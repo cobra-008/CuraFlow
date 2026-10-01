@@ -1,0 +1,42 @@
+# Hasura GraphQL Engine -- connects to Supabase Postgres.
+# Run alongside the fabric + agentic-framework stacks:
+#
+#   docker compose `
+#     -f deployments/docker-compose.hasura.yml `
+#     -f deployments/docker-compose.fabric.yml `
+#     -f deployments/docker-compose.agentic-framework.yml up --build
+#
+# Or run Hasura alone for local development:
+#   docker compose -f deployments/docker-compose.hasura.yml up
+#
+# Hasura Console: http://localhost:8080/console
+name: hospilot-oss
+
+services:
+  hasura:
+    image: hasura/graphql-engine:v2.36.0
+    ports:
+      - "8080:8080"
+    environment:
+      # Replace <YOUR_SUPABASE_DB_PASSWORD> with your Supabase database password.
+      # Find it in: Supabase Dashboard -> Project Settings -> Database -> Password
+      HASURA_GRAPHQL_DATABASE_URL: postgresql://postgres.bynfxwxswvezbevaspci:UwPpBkiLMbJj78aA@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_ADMIN_SECRET: "hospilot-dev-secret"
+      HASURA_GRAPHQL_PG_CONNECTIONS: "10"
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
+      HASURA_GRAPHQL_LOG_LEVEL: "warn"
+      HASURA_GRAPHQL_CORS_DOMAIN: "*"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - hospilot-oss-net
+
+networks:
+  hospilot-oss-net:
+    name: hospilot-oss-net
