@@ -63,6 +63,41 @@ Since you are connected to the shared database, you can immediately log in using
 
 ---
 
+## Git Branching Workflow
+
+To ensure we don't accidentally overwrite each other's code, **everyone should work on their own branches** rather than directly on `main`.
+
+### 1. Create and switch to a new branch
+Before starting any new feature or bug fix, create a new branch from `main`:
+```bash
+# Make sure you're up to date first
+git checkout main
+git pull origin main
+
+# Create and switch to your new branch (replace 'feature/my-new-idea' with your branch name)
+git checkout -b feature/my-new-idea
+```
+
+### 2. Make changes and commit
+As you work, save your changes to your branch:
+```bash
+# Stage your modified files
+git add .
+
+# Commit with a descriptive message
+git commit -m "Add new dashboard component"
+```
+
+### 3. Push and Merge
+When you're completely done and ready to share your work:
+```bash
+# Push your branch to GitHub
+git push -u origin feature/my-new-idea
+```
+After pushing, go to the GitHub repository in your browser and open a **Pull Request (PR)** to merge your branch into `main`. Once approved, you can merge it in!
+
+---
+
 ## Troubleshooting
 
 - **`Failed to fetch` or `500 Internal Server Error` on Login:** This usually means your Docker containers haven't finished booting up, or Docker networking has a glitch. Run `docker compose ... down` (using the same 3 files) and then bring them back `up -d`. 
