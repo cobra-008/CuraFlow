@@ -88,13 +88,51 @@ git add .
 git commit -m "Add new dashboard component"
 ```
 
-### 3. Push and Merge
+### 3. Push to GitHub
 When you're completely done and ready to share your work:
 ```bash
 # Push your branch to GitHub
 git push -u origin feature/my-new-idea
 ```
-After pushing, go to the GitHub repository in your browser and open a **Pull Request (PR)** to merge your branch into `main`. Once approved, you can merge it in!
+
+### 4. Merging into Main
+To merge your branch into `main`:
+1. Go to the GitHub repository in your browser.
+2. You will see a banner to "Compare & pull request". Click it to open a **Pull Request (PR)**.
+3. Once approved, you can click the green **Merge** button on GitHub.
+
+Alternatively, to merge it locally using the terminal:
+```bash
+# Switch to main and get the latest changes
+git checkout main
+git pull origin main
+
+# Merge your branch into main
+git merge feature/my-new-idea
+
+# Push the merged main branch back to GitHub
+git push origin main
+```
+
+### 5. Dealing with Merge Conflicts
+Sometimes, two people edit the exact same lines of code. When you try to merge or pull, Git will pause and say there's a **Merge Conflict**.
+
+1. Git will tell you which files have conflicts. Open those files in your code editor.
+2. Look for the conflict markers in the file:
+```text
+<<<<<<< HEAD
+Your changes in main
+=======
+The incoming changes from the branch
+>>>>>>> feature/my-new-idea
+```
+3. Decide which code to keep, delete the Git markers (`<<<<`, `====`, `>>>>`), and save the file.
+4. Mark the conflict as resolved by staging and committing the file:
+```bash
+git add <conflicted-file>
+git commit -m "Resolved merge conflicts"
+```
+You are now good to go!
 
 ---
 
