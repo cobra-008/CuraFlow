@@ -63,14 +63,14 @@ function AppShell() {
       <Header />
       <Toaster />
 
-      {activeView === 'approvals' && isApprover ? (
-        <ApprovalsPage />
-      ) : activeView === 'admin' && isAdmin ? (
-        <AdminPage />
-      ) : activeView === 'command' ? (
+      {['/', '/command-center', '/approvals', '/simulation', '/system-health', '/agent-operations'].includes(window.location.pathname) || activeView === 'command' ? (
         <div className="flex flex-1 overflow-hidden">
           <CommandCenter />
         </div>
+      ) : activeView === 'approvals' && isApprover ? (
+        <ApprovalsPage />
+      ) : activeView === 'admin' && isAdmin ? (
+        <AdminPage />
       ) : activeView === 'capabilities' ? (
         <AgentCapabilitiesView />
       ) : activeView === 'workflows' ? (

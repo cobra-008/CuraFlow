@@ -196,7 +196,16 @@ function TimelineBar({ label, values, color }: { label: string; values: number[]
 // ── Main Command Center ───────────────────────────────────────────────────────
 
 export function CommandCenter() {
-  const [view, setView] = useState<OpsView>('command')
+  const getPathView = useCallback((): OpsView => {
+    const p = window.location.pathname
+    if (p === '/approvals') return 'approvals'
+    if (p === '/simulation') return 'simulation'
+    if (p === '/system-health') return 'system'
+    if (p === '/agent-operations') return 'agents'
+    return 'command'
+  }, [])
+
+  const [view, setView] = useState<OpsView>(getPathView())
   const [state, setState] = useState<HospitalState | null>(null)
   const [bottlenecks, setBottlenecks] = useState<Bottleneck[]>([])
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
@@ -205,6 +214,22 @@ export function CommandCenter() {
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [crisisLoading, setCrisisLoading] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    const onPopState = () => setView(getPathView())
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [getPathView])
+
+  const navigateTo = (newView: OpsView) => {
+    setView(newView)
+    let path = '/command-center'
+    if (newView === 'approvals') path = '/approvals'
+    if (newView === 'simulation') path = '/simulation'
+    if (newView === 'system') path = '/system-health'
+    if (newView === 'agents') path = '/agent-operations'
+    window.history.pushState(null, '', path)
+  }
 
   const fetchData = useCallback(async () => {
     try {
@@ -254,7 +279,7 @@ export function CommandCenter() {
     const rec = recommendations.find(r => r.id === id)
     if (rec) {
       setSelectedRec(rec)
-      setView('approvals')
+      navigateTo('approvals')
     }
   }
 
@@ -322,7 +347,7 @@ export function CommandCenter() {
           {navItems.map(item => (
             <button
               key={item.id}
-              onClick={() => setView(item.id)}
+              onClick={() => navigateTo(item.id)}
               className={`px-3 py-2 text-[11px] font-semibold uppercase tracking-wider border-b-2 transition-colors ${
                 view === item.id
                   ? 'border-blue-500 text-slate-200'
