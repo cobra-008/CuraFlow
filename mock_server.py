@@ -96,6 +96,7 @@ _audit_events: list = []
 _execution_log: list = []   # FIX G1 — was always returned as []
 _sim_runs: dict = {}
 _crisis_active = False
+_verifications: dict = {}
 
 # Canonical audit event type vocabulary (FIX G3)
 _DECISION_EVENT = {
@@ -240,10 +241,16 @@ def _gen_recommendations():
     ]
 
 
-def _add_execution_entry(approval_id: str, decision: str, actor: str, modifications=None):
+def _add_execution_entry(approval_id: str, decision: str, actor: str, modifications=None, simulate_outcome=None):
     """FIX G1: Real execution log entry with lifecycle timestamps."""
     exec_id = str(uuid.uuid4())
     snap = _snap()
+    
+    # Capture expected impact for verification
+    recs = _gen_recommendations()
+    rec = next((r for r in recs if r["id"] == approval_id), None)
+    expected_impact = rec["expected_impact"] if rec else {}
+    
     changes = []
     if snap.get("icu", {}).get("occupancy_pct", 0) >= 85:
         changes.append("icu_bed_reserved")
@@ -290,7 +297,89 @@ def _add_execution_entry(approval_id: str, decision: str, actor: str, modificati
         "reason": f"Executed after {decision} by {actor}",
         "correlation_id": exec_id,
     })
+    
+    # Create verification record
+    verif_id = str(uuid.uuid4())
+    _verifications[approval_id] = {
+        "id": verif_id,
+        "recommendation_id": approval_id,
+        "execution_id": exec_id,
+        "baseline_timestamp": NOW(),
+        "measurement_timestamp": None,
+        "measurement_window_seconds": 15,
+        "baseline_state": snap,
+        "expected_impact": expected_impact,
+        "outcome": "PENDING",
+        "_simulate_outcome": simulate_outcome
+    }
+    _audit_events.append({
+        "id": str(uuid.uuid4()),
+        "event_timestamp": NOW(),
+        "actor_type": "system",
+        "actor_id": "curaflow_verification_engine",
+        "event_type": "recommendation_verification_started",
+        "resource_type": "verification",
+        "resource_id": verif_id,
+        "action": "start_verification",
+        "reason": f"Measurement window started for execution {exec_id}",
+        "correlation_id": exec_id,
+    })
     return entry
+
+
+def _evaluate_verification(approval_id: str):
+    v = _verifications.get(approval_id)
+    if not v or v["outcome"] != "PENDING":
+        return v
+        
+    baseline_time = datetime.fromisoformat(v["baseline_timestamp"].replace('Z', '+00:00'))
+    # Shorten measurement window to 1 second for testing if simulate_outcome is set
+    window = 1 if v.get("_simulate_outcome") else v["measurement_window_seconds"]
+    if datetime.now(timezone.utc) < baseline_time + timedelta(seconds=window):
+        return v
+        
+    v["measurement_timestamp"] = NOW()
+    expected = v["expected_impact"]
+    sim_outcome = v.get("_simulate_outcome")
+    
+    actual = {}
+    variance = {}
+    
+    if sim_outcome:
+        v["outcome"] = sim_outcome
+        if sim_outcome == "SUCCESS":
+            actual = expected.copy()
+            variance = {k: 0 for k in expected}
+        elif sim_outcome == "PARTIAL":
+            actual = {k: v * 0.5 for k, v in expected.items()}
+            variance = {k: actual[k] - expected[k] for k in expected}
+        elif sim_outcome == "FAILED":
+            actual = {k: 0 for k in expected}
+            variance = {k: -expected[k] for k in expected}
+        elif sim_outcome == "NOT_MEASURABLE":
+            pass
+    else:
+        # Default behavior if not explicitly simulated: SUCCESS for demo purposes
+        v["outcome"] = "SUCCESS"
+        actual = expected.copy()
+        variance = {k: 0 for k in expected}
+        
+    v["actual_impact"] = actual
+    v["variance"] = variance
+    
+    _audit_events.append({
+        "id": str(uuid.uuid4()),
+        "event_timestamp": NOW(),
+        "actor_type": "system",
+        "actor_id": "curaflow_verification_engine",
+        "event_type": "recommendation_verified",
+        "resource_type": "verification",
+        "resource_id": v["id"],
+        "action": "verify_outcome",
+        "outcome": v["outcome"],
+        "correlation_id": v["execution_id"],
+    })
+    return v
 
 
 SIMULATION_METRICS = {
@@ -431,7 +520,8 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             })
             # FIX G1: real execution entry
             if decision in ("approve", "modify"):
-                _add_execution_entry(approval_id, decision, actor, modifications)
+                simulate_outcome = body.get("simulate_outcome")
+                _add_execution_entry(approval_id, decision, actor, modifications, simulate_outcome)
             self._send(200, {"approval": approval, "message": f"Recommendation {status_map[decision]} successfully"})
 
         elif p.endswith('/request-approval'):
@@ -550,6 +640,9 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             for rec in recs:
                 if rec["id"] in _approvals:
                     rec["status"] = _approvals[rec["id"]]["status"]
+                v = _evaluate_verification(rec["id"])
+                if v:
+                    rec["verification"] = v
             self._send(200, {"recommendations": recs, "count": len(recs), "_note": "SYNTHETIC — not for clinical use"})
 
         elif p == '/api/ops/approvals':

@@ -164,6 +164,43 @@ function RecommendationCard({
         </div>
       </div>
 
+      {rec.verification && (
+        <div className="mt-3 pt-2 border-t border-slate-800/60 flex flex-col gap-1">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Outcome</span>
+            <span className={`text-[10px] font-bold uppercase ${
+              rec.verification.outcome === 'SUCCESS' ? 'text-emerald-400' :
+              rec.verification.outcome === 'PARTIAL' ? 'text-amber-400' :
+              rec.verification.outcome === 'FAILED' ? 'text-red-400' :
+              'text-blue-400 animate-pulse'
+            }`}>
+              {rec.verification.outcome}
+            </span>
+          </div>
+          {rec.verification.outcome !== 'PENDING' && rec.verification.actual_impact && (
+            <div className="flex flex-col gap-1 mt-1">
+              {Object.entries(rec.verification.expected_impact).map(([k, expectedVal]) => {
+                const actualVal = rec.verification!.actual_impact![k]
+                const variance = rec.verification!.variance![k]
+                const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                return (
+                  <div key={k} className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-400">{label}</span>
+                    <div className="flex gap-2 font-mono">
+                      <span className="text-slate-500" title="Expected">Exp: {expectedVal}</span>
+                      <span className="text-slate-300" title="Actual">Act: {actualVal?.toFixed(1) ?? 'N/A'}</span>
+                      <span className={variance >= 0 ? 'text-emerald-500' : 'text-red-500'} title="Variance">
+                        Var: {variance > 0 ? '+' : ''}{variance?.toFixed(1) ?? 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {rec._is_synthetic && (
         <div className="mt-2 text-[9px] text-slate-600 font-mono">
           SYNTHETIC — prototype recommendation, not for clinical use
@@ -587,6 +624,38 @@ function DecisionTrace({ state, bottlenecks, recommendations }: { state: Hospita
     }
   }
 
+  const executableRecs = recommendations.filter(r => r.status === 'approved' || r.status === 'modified')
+  let verifyDesc = 'PENDING — awaiting execution'
+  let verifyStatus = 'pending'
+
+  if (totalCount > 0 && executableCount > 0) {
+    const measuring = executableRecs.some(r => r.verification?.outcome === 'PENDING')
+    const hasSuccess = executableRecs.some(r => r.verification?.outcome === 'SUCCESS')
+    const hasPartial = executableRecs.some(r => r.verification?.outcome === 'PARTIAL')
+    const hasFailed = executableRecs.some(r => r.verification?.outcome === 'FAILED')
+    const hasNotMeasurable = executableRecs.some(r => r.verification?.outcome === 'NOT_MEASURABLE')
+    const anyVerified = hasSuccess || hasPartial || hasFailed || hasNotMeasurable
+
+    if (measuring) {
+      verifyDesc = 'MEASURING — outcome window active'
+      verifyStatus = 'waiting'
+    } else if (anyVerified) {
+      verifyStatus = pendingCount === 0 ? 'done' : 'waiting'
+      if (hasFailed) {
+        verifyDesc = 'FAILED — target not achieved'
+      } else if (hasPartial) {
+        verifyDesc = 'PARTIAL — improvement below target'
+      } else if (hasSuccess) {
+        verifyDesc = 'SUCCESS — target achieved'
+      } else if (hasNotMeasurable) {
+        verifyDesc = 'NOT MEASURABLE — required data unavailable'
+      }
+    }
+  } else if (totalCount > 0 && pendingCount === 0) {
+    verifyDesc = 'No actions to verify'
+    verifyStatus = 'done'
+  }
+
   const stages = [
     { label: 'OBSERVE', desc: 'Hospital state updated', status: isRecent ? 'done' : 'waiting' },
     { label: 'PREDICT', desc: 'Demand forecast generated', status: isRecent ? 'done' : 'waiting' },
@@ -595,7 +664,7 @@ function DecisionTrace({ state, bottlenecks, recommendations }: { state: Hospita
     { label: 'RECOMMEND', desc: 'Plan with explanations ready', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
     { label: 'APPROVAL', desc: approvalDesc, status: approvalStatus },
     { label: 'EXECUTE', desc: executeDesc, status: executeStatus },
-    { label: 'VERIFY', desc: 'PENDING — outcome measurement not yet implemented', status: 'pending' },
+    { label: 'VERIFY', desc: verifyDesc, status: verifyStatus },
   ]
 
   return (

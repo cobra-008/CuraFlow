@@ -92,6 +92,13 @@ export interface Recommendation {
   data_freshness_seconds?: number
   requires_approval: boolean
   actions: RecommendationAction[]
+  verification?: {
+    id: string
+    outcome: 'PENDING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'NOT_MEASURABLE'
+    expected_impact: Record<string, number>
+    actual_impact?: Record<string, number>
+    variance?: Record<string, number>
+  }
   _is_synthetic?: boolean
 }
 

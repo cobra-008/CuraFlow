@@ -398,6 +398,65 @@ export function ApprovalCenter({
               </span>
             </div>
           )}
+
+          {rec.verification && (
+            <div className="border border-slate-700 bg-[#0a0e1a] rounded-sm p-4 mt-3">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3 border-b border-slate-800 pb-2">
+                Execution & Verification
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-[10px] text-slate-500 mb-1">Execution</div>
+                  <div className="text-sm font-semibold text-slate-300">Completed</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 mb-1">Verification</div>
+                  <div className={`text-sm font-bold uppercase ${
+                    rec.verification.outcome === 'SUCCESS' ? 'text-emerald-400' :
+                    rec.verification.outcome === 'PARTIAL' ? 'text-amber-400' :
+                    rec.verification.outcome === 'FAILED' ? 'text-red-400' :
+                    'text-blue-400 animate-pulse'
+                  }`}>
+                    {rec.verification.outcome === 'PENDING' ? 'Measuring...' : rec.verification.outcome}
+                  </div>
+                </div>
+              </div>
+              
+              {rec.verification.outcome !== 'PENDING' && rec.verification.actual_impact && (
+                <div className="mt-4 pt-3 border-t border-slate-800/60">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Metrics Analysis</div>
+                  <div className="flex flex-col gap-2">
+                    {Object.entries(rec.verification.expected_impact).map(([k, expectedVal]) => {
+                      const actualVal = rec.verification!.actual_impact![k]
+                      const variance = rec.verification!.variance![k]
+                      const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                      return (
+                        <div key={k} className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">{label}</span>
+                          <div className="flex gap-4 font-mono text-sm">
+                            <div className="flex flex-col items-end">
+                              <span className="text-[9px] text-slate-500">Expected</span>
+                              <span className="text-slate-400">{expectedVal}</span>
+                            </div>
+                            <div className="flex flex-col items-end">
+                              <span className="text-[9px] text-slate-500">Actual</span>
+                              <span className="text-slate-200">{actualVal?.toFixed(1) ?? 'N/A'}</span>
+                            </div>
+                            <div className="flex flex-col items-end min-w-[50px]">
+                              <span className="text-[9px] text-slate-500">Variance</span>
+                              <span className={`font-bold ${variance >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                {variance > 0 ? '+' : ''}{variance?.toFixed(1) ?? 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center text-slate-600 text-sm">
