@@ -233,8 +233,14 @@ class HospitalStateEngine:
             logger.warning("HospitalStateEngine: CRISIS MODE ACTIVATED")
 
     def resolve_crisis(self):
+        """Restore hospital to pre-crisis state by reversing all mutations."""
         self._crisis_mode = False
-        logger.info("HospitalStateEngine: crisis mode deactivated")
+        if self._hospital:
+            self._hospital.resolve_crisis()
+            logger.info("HospitalStateEngine: crisis resolved — state restored to baseline")
+        else:
+            logger.info("HospitalStateEngine: crisis flag cleared (no hospital object)")
+
 
     def update_bed_status(self, bed_id: str, new_status: str) -> bool:
         if not self._hospital:

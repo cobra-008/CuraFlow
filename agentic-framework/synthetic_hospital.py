@@ -449,10 +449,61 @@ class SyntheticHospital:
 
     # ── Crisis scenario ───────────────────────────────────────────────────────
 
+    # Pre-crisis state stored for exact restoration on resolve
+    _pre_crisis_snapshot: "dict | None" = None
+
     def apply_crisis(self):
-        """Simulate a hospital crisis: ER surge, CT failure, staff shortage."""
-        # ER surge: add 8-12 arrivals at once
-        for _ in range(self.rng.randint(8, 12)):
+        """
+        Simulate a genuine hospital crisis that crosses all bottleneck thresholds:
+          - ICU occupancy  ≥ 90%  (threshold: 85%)
+          - Bed occupancy  ≥ 91%  (threshold: 88%)
+          - ER queue       ≥ 60%  (threshold: 50%)
+          - Staff util     ≥ 85%  (threshold: 80%)
+          - Diag queue     ≥ 20   (threshold: 10)
+
+        Stores a snapshot of all mutable state before mutation so resolve_crisis()
+        can restore it exactly.
+        """
+        # ── 1. Store baseline for restoration ─────────────────────────────────
+        self._pre_crisis_snapshot = {
+            "bed_statuses":    {b.id: b.status for b in self.beds},
+            "bed_tokens":      {b.id: b.patient_token for b in self.beds},
+            "staff_statuses":  {s.id: s.status for s in self.staff},
+            "staff_workloads": {s.id: s.current_workload for s in self.staff},
+            "device_statuses": {d.id: d.status for d in self.devices},
+            "device_queues":   {d.id: d.queue_length for d in self.devices},
+            "ot_statuses":     {r.id: r.status for r in self.ot_rooms},
+            "ot_case_ends":    {r.id: r.current_case_end for r in self.ot_rooms},
+            "er_queue":        list(self.er_queue),
+        }
+
+        # ── 2. Fill ICU to ≥ 90% ──────────────────────────────────────────────
+        icu_beds = [b for b in self.beds if b.is_icu]
+        target_icu_occupied = max(
+            sum(1 for b in icu_beds if b.status == "occupied"),
+            int(len(icu_beds) * 0.90)  # at least 90%
+        )
+        for bed in icu_beds:
+            if sum(1 for b in icu_beds if b.status == "occupied") >= target_icu_occupied:
+                break
+            if bed.status != "occupied":
+                bed.status = "occupied"
+                bed.patient_token = f"CRISIS-ICU-{uuid.uuid4().hex[:6].upper()}"
+
+        # ── 3. Fill general beds to ≥ 91% ─────────────────────────────────────
+        gen_beds = [b for b in self.beds if not b.is_icu]
+        target_gen_occupied = int(len(gen_beds) * 0.91)
+        for bed in gen_beds:
+            if sum(1 for b in gen_beds if b.status == "occupied") >= target_gen_occupied:
+                break
+            if bed.status != "occupied":
+                bed.status = "occupied"
+                bed.patient_token = f"CRISIS-{uuid.uuid4().hex[:6].upper()}"
+
+        # ── 4. ER surge: push queue to ≥ 60% of capacity ─────────────────────
+        er_cap = HOSPITAL_CFG.get("er_capacity", 30)
+        target_waiting = max(len(self.er_queue), int(er_cap * 0.65))
+        while len(self.er_queue) < target_waiting:
             self.er_queue.append({
                 "id": str(uuid.uuid4()),
                 "patient_token": f"ER-{uuid.uuid4().hex[:6].upper()}",
@@ -461,21 +512,69 @@ class SyntheticHospital:
                 "status": "waiting",
             })
 
-        # One CT scanner fails
+        # ── 5. Load staff to ≥ 85% utilization ───────────────────────────────
+        for s in self.staff:
+            if s.status == "active":
+                s.current_workload = min(s.max_workload, s.max_workload - 1)
+        # Also put 20% off duty to shrink available pool further
+        active = [s for s in self.staff if s.status == "active"]
+        n_off = max(1, len(active) // 5)
+        for s in self.rng.sample(active, n_off):
+            s.status = "off_duty"
+
+        # ── 6. Primary CT scanner fails; cascade queue to remaining devices ───
         ct_devs = [d for d in self.devices if d.device_type == "ct_scanner"]
         if ct_devs:
             ct_devs[0].status = "maintenance"
             ct_devs[0].queue_length = 0
+        # Push diagnostic queue to ≥ 22 orders across all devices
+        total_queue = sum(d.queue_length for d in self.devices)
+        deficit = max(0, 22 - total_queue)
+        for d in self.devices:
+            if d.status != "maintenance" and deficit > 0:
+                add = min(deficit, 8)
+                d.queue_length += add
+                deficit -= add
 
-        # 20% staff go off duty
-        active = [s for s in self.staff if s.status == "active"]
-        for s in self.rng.sample(active, max(1, len(active) // 5)):
-            s.status = "off_duty"
-
-        # One OT overruns
+        # ── 7. One OT overruns (running hot) ──────────────────────────────────
         occupied_ot = [r for r in self.ot_rooms if r.status == "occupied"]
         if occupied_ot:
             occupied_ot[0].current_case_end = (NOW() + timedelta(hours=2)).isoformat()
+        # Occupy an extra OT room to push utilisation up
+        avail_ot = [r for r in self.ot_rooms if r.status == "available"]
+        if avail_ot:
+            avail_ot[0].status = "occupied"
+
+    def resolve_crisis(self):
+        """
+        Restore all synthetic resources to their exact pre-crisis state.
+        Does NOT merely hide the crisis indicator — it reverses every mutation
+        made by apply_crisis().
+        """
+        if self._pre_crisis_snapshot is None:
+            # No crisis was applied (or server restarted) — nothing to restore
+            return
+
+        snap = self._pre_crisis_snapshot
+
+        for bed in self.beds:
+            bed.status = snap["bed_statuses"].get(bed.id, bed.status)
+            bed.patient_token = snap["bed_tokens"].get(bed.id, bed.patient_token)
+
+        for s in self.staff:
+            s.status = snap["staff_statuses"].get(s.id, s.status)
+            s.current_workload = snap["staff_workloads"].get(s.id, s.current_workload)
+
+        for d in self.devices:
+            d.status = snap["device_statuses"].get(d.id, d.status)
+            d.queue_length = snap["device_queues"].get(d.id, d.queue_length)
+
+        for r in self.ot_rooms:
+            r.status = snap["ot_statuses"].get(r.id, r.status)
+            r.current_case_end = snap["ot_case_ends"].get(r.id, r.current_case_end)
+
+        self.er_queue = list(snap["er_queue"])
+        self._pre_crisis_snapshot = None
 
     # ── Export ────────────────────────────────────────────────────────────────
 
