@@ -1,5 +1,5 @@
-﻿import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Activity } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useStore } from '../store'
 import { OrgSwitcher } from './OrgSwitcher'
@@ -156,8 +156,18 @@ export function Header() {
         >
           <WorkflowIcon size={15} className="flex-shrink-0" />
         </button>
-
-        {/* Theme toggle — hidden when embedded (the widget panel owns the theme) */}
+        <button
+          onClick={() => setActiveView('command')}
+          title="Command Center — Hospital Operations"
+          aria-label="Command Center"
+          className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors flex-shrink-0 ${
+            activeView === 'command'
+              ? 'bg-blue-600 border-blue-600 text-white'
+              : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-slate-400 hover:bg-[var(--bg-hover)] hover:text-slate-200'
+          }`}
+        >
+          <Activity size={15} className="flex-shrink-0" />
+        </button>
         {!isEmbedded && (
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

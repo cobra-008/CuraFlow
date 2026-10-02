@@ -15,6 +15,7 @@ import { WorkflowsPage } from './components/WorkflowsPage'
 import { ApprovalsPage } from './components/ApprovalsPage'
 import { AdminPage } from './components/admin/AdminPage'
 import { AuthScreen } from './components/AuthScreen'
+import { CommandCenter } from './components/ops/CommandCenter'
 import { getToken, setToken, getMe, type AuthUser } from './services/api'
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -66,6 +67,10 @@ function AppShell() {
         <ApprovalsPage />
       ) : activeView === 'admin' && isAdmin ? (
         <AdminPage />
+      ) : activeView === 'command' ? (
+        <div className="flex flex-1 overflow-hidden">
+          <CommandCenter />
+        </div>
       ) : activeView === 'capabilities' ? (
         <AgentCapabilitiesView />
       ) : activeView === 'workflows' ? (

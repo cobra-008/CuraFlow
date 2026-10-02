@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import logging
 import sys
 from contextlib import asynccontextmanager
@@ -26,6 +26,7 @@ from api.routes.agents import router as agents_router
 from api.routes.auth import router as auth_router
 from api.routes.orgs import router as orgs_router
 from api.routes.users import router as users_router
+from api.routes.operations import router as operations_router
 
 logger = logging.getLogger("__main__")
 
@@ -67,6 +68,16 @@ async def lifespan(app: FastAPI):
     # Startup
     await init_redis()
     logger.info("Redis connected  url=%s", settings.redis_url)
+
+    # CuraFlow: Hospital State Engine
+    try:
+        from hospital_state_engine import get_state_engine
+        state_engine = get_state_engine()
+        await state_engine.start()
+        logger.info("CuraFlow Hospital State Engine started")
+    except Exception as exc:
+        logger.warning("Hospital State Engine could not start: %s", exc)
+
 
     if settings.fabric_base_url:
         logger.info("Fabric data layer  url=%s  auth=%s",
@@ -139,6 +150,11 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Hospilot shutting down...")
+    try:
+        from hospital_state_engine import get_state_engine
+        await get_state_engine().stop()
+    except Exception:
+        pass
     reaper_task.cancel()
     if settings.kafka_enabled:
         from messaging.flow_event_relay import stop_ws_relay
@@ -194,6 +210,7 @@ app.include_router(approvals_router, prefix="/api")
 app.include_router(queues_router, prefix="/api")
 app.include_router(agents_router, prefix="/api")
 app.include_router(ws_router)
+app.include_router(operations_router)
 
 
 @app.get("/health")
