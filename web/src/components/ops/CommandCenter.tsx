@@ -173,25 +173,7 @@ function RecommendationCard({
   )
 }
 
-// ── Hospital Timeline (minimal sparkline) ─────────────────────────────────────
 
-function TimelineBar({ label, values, color }: { label: string; values: number[]; color: string }) {
-  const max = Math.max(...values, 1)
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] text-slate-500 w-20 flex-shrink-0 truncate">{label}</span>
-      <div className="flex items-end gap-px flex-1 h-6">
-        {values.map((v, i) => (
-          <div
-            key={i}
-            className={`flex-1 ${color} opacity-80`}
-            style={{ height: `${Math.max(4, (v / max) * 24)}px` }}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // ── Main Command Center ───────────────────────────────────────────────────────
 
@@ -428,23 +410,19 @@ function CommandView({
 
   const pressure = state.pressure
 
-  // Synthetic timeline data
-  const timelineValues = Array.from({ length: 12 }, (_, i) =>
-    Math.max(0, Math.min(100, 60 + Math.sin(i * 0.8) * 20 + (state.crisis_mode ? 20 : 0)))
-  )
+  // Synthetic timeline data not needed in the new layout
 
   return (
-    <div className="p-4 grid grid-cols-12 gap-3">
+    <div className="p-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
 
-      {/* ── Column 1: Hospital State + Pressure ─────────────────────────────── */}
-      <div className="col-span-12 xl:col-span-3 flex flex-col gap-3">
-
+      {/* ── Column 1: Hospital State + Bottlenecks + Decision Trace ───────── */}
+      <div className="flex flex-col gap-3">
         {/* Hospital State header */}
         <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
           <div className="px-3 py-2 border-b border-slate-800/60">
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Hospital State</span>
           </div>
-          <div className="p-3 grid grid-cols-2 gap-2">
+          <div className="p-3 grid grid-cols-2 lg:grid-cols-3 gap-2">
             <StatBlock
               label="Beds"
               value={`${state.beds.occupancy_pct.toFixed(0)}%`}
@@ -483,6 +461,37 @@ function CommandView({
           </div>
         </div>
 
+        {/* Bottlenecks */}
+        <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
+          <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Active Bottlenecks</span>
+            <div className="flex gap-2">
+              {criticalCount > 0 && (
+                <span className="text-[10px] font-mono text-red-400 font-bold">{criticalCount} CRITICAL</span>
+              )}
+              {highCount > 0 && (
+                <span className="text-[10px] font-mono text-orange-400 font-bold">{highCount} HIGH</span>
+              )}
+              {bottlenecks.length === 0 && (
+                <span className="text-[10px] font-mono text-emerald-400">NONE</span>
+              )}
+            </div>
+          </div>
+          <div className="p-3">
+            {bottlenecks.length === 0 ? (
+              <p className="text-xs text-slate-600 text-center py-2">No active bottlenecks</p>
+            ) : (
+              bottlenecks.map(bn => <BottleneckRow key={bn.id} bn={bn} />)
+            )}
+          </div>
+        </div>
+
+        {/* AI Decision Trace */}
+        <DecisionTrace state={state} bottlenecks={bottlenecks} recommendations={recommendations} />
+      </div>
+
+      {/* ── Column 2: Operational Pressure + Recommendations ───────────────── */}
+      <div className="flex flex-col gap-3">
         {/* Operational Pressure */}
         <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
           <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between">
@@ -515,135 +524,7 @@ function CommandView({
           </div>
         </div>
 
-        {/* Bottlenecks */}
-        <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
-          <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Active Bottlenecks</span>
-            <div className="flex gap-2">
-              {criticalCount > 0 && (
-                <span className="text-[10px] font-mono text-red-400 font-bold">{criticalCount} CRITICAL</span>
-              )}
-              {highCount > 0 && (
-                <span className="text-[10px] font-mono text-orange-400 font-bold">{highCount} HIGH</span>
-              )}
-              {bottlenecks.length === 0 && (
-                <span className="text-[10px] font-mono text-emerald-400">NONE</span>
-              )}
-            </div>
-          </div>
-          <div className="p-3">
-            {bottlenecks.length === 0 ? (
-              <p className="text-xs text-slate-600 text-center py-2">No active bottlenecks</p>
-            ) : (
-              bottlenecks.map(bn => <BottleneckRow key={bn.id} bn={bn} />)
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Column 2: Timeline + Quick Stats ────────────────────────────────── */}
-      <div className="col-span-12 xl:col-span-5 flex flex-col gap-3">
-
-        {/* Hospital Timeline */}
-        <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
-          <div className="px-3 py-2 border-b border-slate-800/60">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Hospital Timeline — Last 3 Hours</span>
-          </div>
-          <div className="p-3 flex flex-col gap-2">
-            <TimelineBar
-              label="ER Arrivals"
-              values={timelineValues.map(v => v * 0.3 + (state.emergency.waiting * 2))}
-              color="bg-red-500"
-            />
-            <TimelineBar
-              label="ICU Demand"
-              values={timelineValues.map(v => v * state.icu.occupancy_pct / 100)}
-              color="bg-orange-500"
-            />
-            <TimelineBar
-              label="CT Queue"
-              values={timelineValues.map((_, i) => Math.max(0, state.diagnostics.queue_length + (i - 6)))}
-              color="bg-blue-500"
-            />
-            <TimelineBar
-              label="OT Activity"
-              values={timelineValues.map(v => v * state.operating_rooms.utilization_pct / 100)}
-              color="bg-purple-500"
-            />
-            <TimelineBar
-              label="Staff Avail"
-              values={timelineValues.map(v => 100 - (v * state.staff.utilization_pct / 100))}
-              color="bg-slate-500"
-            />
-            <div className="flex justify-between mt-1">
-              {['3h', '2h 30m', '2h', '1h 30m', '1h', '30m', 'Now'].map((t, i) => (
-                <span key={i} className="text-[9px] text-slate-700">{t}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Resource Breakdown Table */}
-        <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
-          <div className="px-3 py-2 border-b border-slate-800/60">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Resource Summary</span>
-          </div>
-          <div className="p-0">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-slate-800">
-                  <th className="text-left text-[10px] text-slate-500 px-3 py-2 font-semibold uppercase tracking-wider">Resource</th>
-                  <th className="text-right text-[10px] text-slate-500 px-3 py-2 font-semibold uppercase tracking-wider">Total</th>
-                  <th className="text-right text-[10px] text-slate-500 px-3 py-2 font-semibold uppercase tracking-wider">In Use</th>
-                  <th className="text-right text-[10px] text-slate-500 px-3 py-2 font-semibold uppercase tracking-wider">Free</th>
-                  <th className="text-right text-[10px] text-slate-500 px-3 py-2 font-semibold uppercase tracking-wider">Util%</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/50">
-                {[
-                  { label: 'General Beds', total: state.beds.total - state.icu.total,
-                    used: state.beds.occupied - state.icu.occupied,
-                    free: state.beds.available,
-                    util: ((state.beds.occupied - state.icu.occupied) / (state.beds.total - state.icu.total) * 100).toFixed(0) },
-                  { label: 'ICU Beds', total: state.icu.total, used: state.icu.occupied,
-                    free: state.icu.available,
-                    util: state.icu.occupancy_pct.toFixed(0) },
-                  { label: 'Operating Rooms', total: state.operating_rooms.total,
-                    used: state.operating_rooms.occupied,
-                    free: state.operating_rooms.available,
-                    util: state.operating_rooms.utilization_pct.toFixed(0) },
-                  { label: 'Diagnostic Devices', total: state.diagnostics.total_devices,
-                    used: state.diagnostics.total_devices - state.diagnostics.available_devices,
-                    free: state.diagnostics.available_devices,
-                    util: (((state.diagnostics.total_devices - state.diagnostics.available_devices) / Math.max(state.diagnostics.total_devices, 1)) * 100).toFixed(0) },
-                  { label: 'Staff (On Duty)', total: state.staff.on_duty,
-                    used: state.staff.on_duty - state.staff.available,
-                    free: state.staff.available,
-                    util: state.staff.utilization_pct.toFixed(0) },
-                ].map(row => {
-                  const util = Number(row.util)
-                  const utilColor = util >= 90 ? 'text-red-400' : util >= 75 ? 'text-amber-400' : 'text-slate-300'
-                  return (
-                    <tr key={row.label} className="hover:bg-slate-800/20 transition-colors">
-                      <td className="px-3 py-2 text-slate-300">{row.label}</td>
-                      <td className="px-3 py-2 text-right font-mono text-slate-400">{row.total}</td>
-                      <td className="px-3 py-2 text-right font-mono text-slate-300">{row.used}</td>
-                      <td className="px-3 py-2 text-right font-mono text-emerald-400">{row.free}</td>
-                      <td className={`px-3 py-2 text-right font-mono font-bold ${utilColor}`}>{row.util}%</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Predictions strip */}
-        <PredictionsStrip state={state} />
-      </div>
-
-      {/* ── Column 3: Recommendations ────────────────────────────────────────── */}
-      <div className="col-span-12 xl:col-span-4 flex flex-col gap-3">
+        {/* Recommendations */}
         <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm flex flex-col min-h-0">
           <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between flex-shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Active Recommendations</span>
@@ -663,65 +544,12 @@ function CommandView({
             )}
           </div>
         </div>
-
-        {/* AI Decision Trace */}
-        <DecisionTrace state={state} bottlenecks={bottlenecks} recommendations={recommendations} />
       </div>
     </div>
   )
 }
 
-// ── Predictions Strip ─────────────────────────────────────────────────────────
 
-function PredictionsStrip({ state }: { state: HospitalState }) {
-  const [preds, setPreds] = useState<{ type: string; value: number; confidence: number; horizon: string }[]>([])
-
-  useEffect(() => {
-    opsApi.getPredictions().then(r => {
-      const grouped: Record<string, typeof r.predictions[0][]> = {}
-      r.predictions.forEach(p => {
-        if (!grouped[p.prediction_type]) grouped[p.prediction_type] = []
-        grouped[p.prediction_type].push(p)
-      })
-      const summary = Object.entries(grouped).map(([type, ps]) => ({
-        type,
-        value: ps[0]?.predicted_value ?? 0,
-        confidence: ps[0]?.confidence ?? 0.7,
-        horizon: '1h',
-      })).slice(0, 4)
-      setPreds(summary)
-    }).catch(() => {})
-  }, [state])
-
-  if (!preds.length) return null
-
-  const typeLabel: Record<string, string> = {
-    icu_demand: 'ICU Demand',
-    bed_occupancy: 'Bed Occ%',
-    er_arrivals: 'ER Queue',
-    discharges: 'Discharges',
-    staff_demand: 'Staff Demand',
-    diagnostic_demand: 'Diag Queue',
-  }
-
-  return (
-    <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
-      <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Predictions — Next Hour</span>
-        <span className="text-[9px] font-mono text-slate-600">SYNTHETIC / STATISTICAL</span>
-      </div>
-      <div className="p-3 grid grid-cols-2 gap-2">
-        {preds.map(p => (
-          <div key={p.type} className="border border-slate-800/60 rounded-sm px-2 py-1.5">
-            <div className="text-[9px] text-slate-500 uppercase tracking-wider">{typeLabel[p.type] ?? p.type}</div>
-            <div className="font-mono text-base font-bold text-slate-200 mt-0.5">{p.value.toFixed(1)}</div>
-            <div className="text-[9px] text-slate-600 font-mono">conf: {(p.confidence * 100).toFixed(0)}%</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // ── AI Decision Trace ─────────────────────────────────────────────────────────
 
