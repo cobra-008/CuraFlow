@@ -165,7 +165,7 @@ def _gen_recommendations():
     snap = _snap()
     return [
         {
-            "id": str(uuid.uuid4()), "recommendation_number": 1,
+            "id": "rec-icu-001", "recommendation_number": 1,
             "rec_type": "resource_allocation", "priority": "critical",
             "title": "Reserve ICU capacity",
             "summary": "ICU occupancy at {:.0f}% — reserve ICU-04 for high-acuity admission".format(snap["icu"]["occupancy_pct"]),
@@ -192,7 +192,7 @@ def _gen_recommendations():
             "_is_synthetic": True,
         },
         {
-            "id": str(uuid.uuid4()), "recommendation_number": 2,
+            "id": "rec-staff-002", "recommendation_number": 2,
             "rec_type": "staff_rebalance", "priority": "high",
             "title": "Rebalance staff assignments",
             "summary": "Staff utilization at {:.0f}% — reassign float nurses from Orthopedics to Respiratory".format(snap["staff"]["utilization_pct"]),
@@ -215,7 +215,7 @@ def _gen_recommendations():
             "_is_synthetic": True,
         },
         {
-            "id": str(uuid.uuid4()), "recommendation_number": 3,
+            "id": "rec-lab-003", "recommendation_number": 3,
             "rec_type": "resource_allocation", "priority": "medium",
             "title": "Redirect diagnostic workload",
             "summary": "Diagnostic queue at {} orders — route non-urgent to CT-02".format(snap["diagnostics"]["queue_length"]),
@@ -612,5 +612,6 @@ print(f"CuraFlow Mock API Server — port {PORT}")
 print(f"  Hospital state: synthetic ({'loaded' if _hospital else 'unavailable'})")
 print(f"  Auth mode: {auth_mode}")
 print(f"  All /api/ops/* routes require Authorization: Bearer <token>")
+socketserver.TCPServer.allow_reuse_address = True
 with socketserver.TCPServer(("", PORT), MockAPIHandler) as httpd:
     httpd.serve_forever()

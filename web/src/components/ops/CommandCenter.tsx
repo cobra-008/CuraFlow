@@ -528,7 +528,7 @@ function CommandView({
         <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm flex flex-col min-h-0">
           <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between flex-shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Active Recommendations</span>
-            <span className="text-[10px] font-mono text-slate-500">{recommendations.length} active</span>
+            <span className="text-[10px] font-mono text-slate-500">{recommendations.filter(r => r.status === 'pending').length} active</span>
           </div>
           <div className="p-3 flex flex-col gap-2 overflow-auto">
             {recommendations.length === 0 ? (
@@ -559,9 +559,33 @@ function DecisionTrace({ state, bottlenecks, recommendations }: { state: Hospita
   const hasBottlenecks = bottlenecks.length > 0
   const hasRecs = recommendations.length > 0
   
-  const pendingRecs = recommendations.some(r => r.status === 'pending')
-  const decidedRecs = recommendations.some(r => r.status === 'approved' || r.status === 'modified' || r.status === 'rejected')
-  const executeDone = recommendations.some(r => r.status === 'approved' || r.status === 'modified')
+  const totalCount = recommendations.length
+  const pendingCount = recommendations.filter(r => r.status === 'pending').length
+  const executableCount = recommendations.filter(r => r.status === 'approved' || r.status === 'modified').length
+
+  let approvalDesc = 'Awaiting human decision'
+  let approvalStatus = 'pending'
+  if (totalCount > 0) {
+    if (pendingCount === 0) {
+      approvalDesc = `DONE — ${totalCount} decisions complete`
+      approvalStatus = 'done'
+    } else {
+      approvalDesc = `WAITING — ${pendingCount} decision${pendingCount !== 1 ? 's' : ''} remaining`
+      approvalStatus = 'waiting'
+    }
+  }
+
+  let executeDesc = 'Execution pending'
+  let executeStatus = 'pending'
+  if (totalCount > 0) {
+    if (executableCount > 0) {
+      executeDesc = `${executableCount} execution${executableCount !== 1 ? 's' : ''} logged`
+      executeStatus = pendingCount === 0 ? 'done' : 'waiting'
+    } else if (pendingCount === 0) {
+      executeDesc = 'No actions to execute'
+      executeStatus = 'done'
+    }
+  }
 
   const stages = [
     { label: 'OBSERVE', desc: 'Hospital state updated', status: isRecent ? 'done' : 'waiting' },
@@ -569,9 +593,9 @@ function DecisionTrace({ state, bottlenecks, recommendations }: { state: Hospita
     { label: 'DETECT', desc: 'Bottlenecks identified', status: hasBottlenecks ? 'done' : (isRecent ? 'pending' : 'waiting') },
     { label: 'OPTIMIZE', desc: 'CP-SAT constraints solved', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
     { label: 'RECOMMEND', desc: 'Plan with explanations ready', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
-    { label: 'APPROVAL', desc: 'Awaiting human decision', status: pendingRecs ? 'waiting' : (decidedRecs ? 'done' : 'pending') },
-    { label: 'EXECUTE', desc: 'Execution logged', status: executeDone ? 'done' : 'pending' },
-    { label: 'VERIFY', desc: 'Outcome measurement', status: executeDone ? 'done' : 'pending' },
+    { label: 'APPROVAL', desc: approvalDesc, status: approvalStatus },
+    { label: 'EXECUTE', desc: executeDesc, status: executeStatus },
+    { label: 'VERIFY', desc: 'PENDING — outcome measurement not yet implemented', status: 'pending' },
   ]
 
   return (
