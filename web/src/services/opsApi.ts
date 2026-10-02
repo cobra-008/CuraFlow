@@ -3,11 +3,18 @@
  * Connects frontend to /api/ops/* endpoints (real backend or mock server)
  */
 
+import { getToken } from './api'
+
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+
+function authHeader(): Record<string, string> {
+  const t = getToken()
+  return t ? { 'Authorization': `Bearer ${t}` } : {}
+}
 
 async function opsGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}/api/ops/${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
   })
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
   return res.json()
@@ -16,7 +23,7 @@ async function opsGet<T>(path: string): Promise<T> {
 async function opsPost<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}/api/ops/${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
