@@ -8,18 +8,24 @@ export function CoordinatingLoader() {
     <div className="coord-loader">
       <svg width={100} height={100} viewBox="0 0 100 100">
         <defs>
-          <mask id="coord-clipping">
-            <polygon points="0,0 100,0 100,100 0,100" fill="black" />
-            <polygon points="25,25 75,25 50,75" fill="white" />
-            <polygon points="50,25 75,75 25,75" fill="white" />
-            <polygon points="35,35 65,35 50,65" fill="white" />
-            <polygon points="35,35 65,35 50,65" fill="white" />
-            <polygon points="35,35 65,35 50,65" fill="white" />
-            <polygon points="35,35 65,35 50,65" fill="white" />
-          </mask>
+          <linearGradient id="coord-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="30%" stopColor="var(--color-one)" />
+            <stop offset="70%" stopColor="var(--color-two)" />
+          </linearGradient>
+          <filter id="coord-goo">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 15 -5" result="goo" />
+          </filter>
         </defs>
+        <g filter="url(#coord-goo)" fill="url(#coord-grad)" id="coord-shapes">
+          <polygon points="25,25 75,25 50,75" />
+          <polygon points="50,25 75,75 25,75" />
+          <polygon points="35,35 65,35 50,65" />
+          <polygon points="35,35 65,35 50,65" />
+          <polygon points="35,35 65,35 50,65" />
+          <polygon points="35,35 65,35 50,65" />
+        </g>
       </svg>
-      <div className="coord-loader-box" />
     </div>
   )
 }

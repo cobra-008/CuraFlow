@@ -309,57 +309,40 @@ html.light ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
     inset 0 -10px 10px 0 var(--color-four);
 }
 
-.coord-loader-box {
-  width: 100px;
-  height: 100px;
-  background: linear-gradient(180deg, var(--color-one) 30%, var(--color-two) 70%);
-  mask: url(#coord-clipping);
-  -webkit-mask: url(#coord-clipping);
-}
-
 .coord-loader svg {
   position: absolute;
 }
 
-.coord-loader svg #coord-clipping {
-  filter: contrast(15);
+.coord-loader svg #coord-shapes {
   animation: coordRoundness calc(var(--time-animation) / 2) linear infinite;
+  transform-origin: 50% 50%;
 }
 
-.coord-loader svg #coord-clipping polygon {
-  filter: blur(7px);
-}
-
-.coord-loader svg #coord-clipping polygon:nth-child(1) {
+.coord-loader svg #coord-shapes polygon:nth-child(1) {
   transform-origin: 75% 25%;
   transform: rotate(90deg);
 }
-.coord-loader svg #coord-clipping polygon:nth-child(2) {
+.coord-loader svg #coord-shapes polygon:nth-child(2) {
   transform-origin: 50% 50%;
   animation: coordRotation var(--time-animation) linear infinite reverse;
 }
-.coord-loader svg #coord-clipping polygon:nth-child(3) {
+.coord-loader svg #coord-shapes polygon:nth-child(3) {
   transform-origin: 50% 60%;
   animation: coordRotation var(--time-animation) linear infinite;
   animation-delay: calc(var(--time-animation) / -3);
 }
-.coord-loader svg #coord-clipping polygon:nth-child(4) {
+.coord-loader svg #coord-shapes polygon:nth-child(4) {
   transform-origin: 40% 40%;
   animation: coordRotation var(--time-animation) linear infinite reverse;
 }
-.coord-loader svg #coord-clipping polygon:nth-child(5) {
+.coord-loader svg #coord-shapes polygon:nth-child(5) {
   transform-origin: 40% 40%;
   animation: coordRotation var(--time-animation) linear infinite reverse;
   animation-delay: calc(var(--time-animation) / -2);
 }
-.coord-loader svg #coord-clipping polygon:nth-child(6) {
+.coord-loader svg #coord-shapes polygon:nth-child(6) {
   transform-origin: 60% 40%;
   animation: coordRotation var(--time-animation) linear infinite;
-}
-.coord-loader svg #coord-clipping polygon:nth-child(7) {
-  transform-origin: 60% 40%;
-  animation: coordRotation var(--time-animation) linear infinite;
-  animation-delay: calc(var(--time-animation) / -1.5);
 }
 
 @keyframes coordRotation {
@@ -368,11 +351,9 @@ html.light ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
 }
 
 @keyframes coordRoundness {
-  0%   { filter: contrast(15); }
-  20%  { filter: contrast(3); }
-  40%  { filter: contrast(3); }
-  60%  { filter: contrast(15); }
-  100% { filter: contrast(15); }
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.92); }
+  100% { transform: scale(1); }
 }
 
 @keyframes coordColorize {

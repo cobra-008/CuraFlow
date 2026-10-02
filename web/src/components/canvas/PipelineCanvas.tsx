@@ -569,6 +569,7 @@ export function PipelineCanvas() {
 					nodeColor={() => '#1e3a73'}
 					maskColor="rgba(6,11,24,0.75)"
 					className="!bottom-4 !right-4 !bg-[var(--bg-surface)] !border-[var(--border-a)]"
+					style={{ width: 100, height: 75 }}
 				/>
 			</ReactFlow>
 
