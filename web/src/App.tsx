@@ -64,7 +64,7 @@ function AppShell() {
       <Toaster />
 
       {['/', '/command-center', '/approvals', '/simulation', '/system-health', '/agent-operations'].includes(window.location.pathname) || activeView === 'command' ? (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 w-full overflow-hidden">
           <CommandCenter />
         </div>
       ) : activeView === 'approvals' && isApprover ? (

@@ -278,7 +278,7 @@ export function CommandCenter() {
   const highCount = bottlenecks.filter(b => b.severity === 'high').length
 
   return (
-    <div className="flex flex-col h-full bg-[#07090f] text-slate-200" style={{ fontFamily: "'IBM Plex Sans', 'IBM Plex Mono', system-ui, sans-serif" }}>
+    <div className="flex flex-col flex-1 w-full min-w-0 h-full bg-[#07090f] text-slate-200" style={{ fontFamily: "'IBM Plex Sans', 'IBM Plex Mono', system-ui, sans-serif" }}>
 
       {/* ── Top bar ──────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 border-b border-slate-800/60 bg-[#070b14]">
