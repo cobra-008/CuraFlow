@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react'
-import { opsApi, type SimScenario } from '../../services/opsApi'
+import { opsApi } from '../../services/opsApi'
 
 const SCENARIOS = [
   { id: 'emergency_surge', name: 'Emergency Surge', description: 'ER arrivals +40%, ICU demand increases, CT failure, OT overrun' },

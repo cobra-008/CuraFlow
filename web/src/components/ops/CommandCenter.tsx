@@ -29,13 +29,6 @@ function pressureColor(label: string) {
   return 'text-emerald-400'
 }
 
-function pressureBg(label: string) {
-  if (label === 'CRITICAL') return 'bg-red-900/20 border-red-700/40'
-  if (label === 'HIGH') return 'bg-orange-900/20 border-orange-700/40'
-  if (label === 'ELEVATED') return 'bg-amber-900/20 border-amber-700/30'
-  if (label === 'MODERATE') return 'bg-yellow-900/10 border-yellow-700/30'
-  return 'bg-emerald-900/10 border-emerald-700/30'
-}
 
 function severityColor(sev: string) {
   if (sev === 'critical') return 'text-red-400'

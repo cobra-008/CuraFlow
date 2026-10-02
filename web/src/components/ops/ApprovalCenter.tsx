@@ -123,7 +123,7 @@ export function ApprovalCenter({
         decision === 'reject' ? rejectReason : decisionReason,
         modifications
       )
-      setDecidedMap(d => ({ ...d, [selected.id]: decision }))
+      setDecidedMap(d => ({ ...d, [selected.id]: (decision === 'approve' ? 'approved' : decision === 'modify' ? 'modified' : 'rejected') as 'approved' | 'modified' | 'rejected' }))
       setModifyMode(false)
       onDecision?.()
     } catch (e) {
