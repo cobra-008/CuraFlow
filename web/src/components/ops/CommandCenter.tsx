@@ -271,7 +271,7 @@ export function CommandCenter() {
   const highCount = bottlenecks.filter(b => b.severity === 'high').length
 
   return (
-    <div className="flex flex-col h-full bg-[#07090f] text-slate-200" style={{ fontFamily: "'IBM Plex Sans', 'Inter', system-ui, sans-serif" }}>
+    <div className="flex flex-col h-full bg-[#07090f] text-slate-200" style={{ fontFamily: "'IBM Plex Sans', 'IBM Plex Mono', system-ui, sans-serif" }}>
 
       {/* ── Top bar ──────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 border-b border-slate-800/60 bg-[#070b14]">
@@ -640,7 +640,7 @@ function CommandView({
         </div>
 
         {/* AI Decision Trace */}
-        <DecisionTrace />
+        <DecisionTrace state={state} bottlenecks={bottlenecks} recommendations={recommendations} />
       </div>
     </div>
   )
@@ -700,16 +700,25 @@ function PredictionsStrip({ state }: { state: HospitalState }) {
 
 // ── AI Decision Trace ─────────────────────────────────────────────────────────
 
-function DecisionTrace() {
+function DecisionTrace({ state, bottlenecks, recommendations }: { state: HospitalState | null, bottlenecks: Bottleneck[], recommendations: Recommendation[] }) {
+  const ts = state ? new Date(state.timestamp).getTime() : 0
+  const isRecent = Date.now() - ts < 45000 // consider observe done if state < 45s old
+  const hasBottlenecks = bottlenecks.length > 0
+  const hasRecs = recommendations.length > 0
+  
+  const pendingRecs = recommendations.some(r => r.status === 'pending')
+  const decidedRecs = recommendations.some(r => r.status === 'approved' || r.status === 'modified' || r.status === 'rejected')
+  const executeDone = recommendations.some(r => r.status === 'approved' || r.status === 'modified')
+
   const stages = [
-    { label: 'OBSERVE', desc: 'Hospital state updated', status: 'done' },
-    { label: 'PREDICT', desc: 'Demand forecast generated', status: 'done' },
-    { label: 'DETECT', desc: 'Bottlenecks identified', status: 'done' },
-    { label: 'OPTIMIZE', desc: 'CP-SAT constraints solved', status: 'done' },
-    { label: 'RECOMMEND', desc: 'Plan with explanations ready', status: 'done' },
-    { label: 'APPROVAL', desc: 'Awaiting human decision', status: 'waiting' },
-    { label: 'EXECUTE', desc: 'Pending approval', status: 'pending' },
-    { label: 'VERIFY', desc: 'Outcome measurement', status: 'pending' },
+    { label: 'OBSERVE', desc: 'Hospital state updated', status: isRecent ? 'done' : 'waiting' },
+    { label: 'PREDICT', desc: 'Demand forecast generated', status: isRecent ? 'done' : 'waiting' },
+    { label: 'DETECT', desc: 'Bottlenecks identified', status: hasBottlenecks ? 'done' : (isRecent ? 'pending' : 'waiting') },
+    { label: 'OPTIMIZE', desc: 'CP-SAT constraints solved', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
+    { label: 'RECOMMEND', desc: 'Plan with explanations ready', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
+    { label: 'APPROVAL', desc: 'Awaiting human decision', status: pendingRecs ? 'waiting' : (decidedRecs ? 'done' : 'pending') },
+    { label: 'EXECUTE', desc: 'Execution logged', status: executeDone ? 'done' : 'pending' },
+    { label: 'VERIFY', desc: 'Outcome measurement', status: executeDone ? 'done' : 'pending' },
   ]
 
   return (

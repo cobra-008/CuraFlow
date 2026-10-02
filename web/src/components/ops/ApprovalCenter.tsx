@@ -54,7 +54,7 @@ function RecListItem({
     <button
       onClick={onClick}
       className={`w-full text-left px-3 py-2.5 border-b border-slate-800/50 transition-colors ${
-        selected ? 'bg-blue-900/20 border-l-2 border-l-blue-500' : 'hover:bg-slate-800/30'
+        selected ? 'bg-slate-800/60 border-l-2 border-l-slate-500' : 'hover:bg-slate-800/30'
       }`}
     >
       <div className="flex items-start gap-2">
