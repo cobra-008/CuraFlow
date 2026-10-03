@@ -9,7 +9,6 @@ import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from
  */
 export function useNotificationPipeline(hospitalState?: HospitalState | null) {
   const addNotification = useStore((s) => s.addNotification)
-  const notifications = useStore((s) => s.notifications)
   const seenKeysRef = useRef<Set<string>>(new Set())
   const prevCrisisRef = useRef<boolean | null>(null)
   const initialSeededRef = useRef(false)
@@ -21,30 +20,36 @@ export function useNotificationPipeline(hospitalState?: HospitalState | null) {
     // Crisis mode transitions
     if (prevCrisisRef.current !== null && prevCrisisRef.current !== hospitalState.crisis_mode) {
       if (hospitalState.crisis_mode) {
-        addNotification({
-          title: '🚨 CRISIS PROTOCOL ACTIVATED',
-          message: 'Mass casualty / emergency surge protocol initiated. All clinical reserves dispatched.',
-          severity: 'critical',
-          type: 'crisis',
-          actionRoute: 'emergency',
-          actionLabel: 'Emergency Command',
-        })
+        addNotification(
+          {
+            title: '🚨 CRISIS PROTOCOL ACTIVATED',
+            message: 'Mass casualty / emergency surge protocol initiated. All clinical reserves dispatched.',
+            severity: 'critical',
+            type: 'crisis',
+            actionRoute: 'emergency',
+            actionLabel: 'Emergency Command',
+          },
+          true // show transient toast for crisis activation
+        )
       } else {
-        addNotification({
-          title: 'Crisis Resolved',
-          message: 'Hospital operations restored to standard baseline protocols.',
-          severity: 'success',
-          type: 'crisis',
-          actionRoute: 'command',
-          actionLabel: 'View Dashboard',
-        })
+        addNotification(
+          {
+            title: 'Crisis Resolved',
+            message: 'Hospital operations restored to standard baseline protocols.',
+            severity: 'success',
+            type: 'crisis',
+            actionRoute: 'command',
+            actionLabel: 'View Dashboard',
+          },
+          true
+        )
       }
     }
     prevCrisisRef.current = hospitalState.crisis_mode
 
     // ICU Saturation check
     if (hospitalState.icu.occupancy_pct >= 90) {
-      const key = `icu-sat-${Math.floor(Date.now() / (1000 * 60 * 5))}` // once per 5 min
+      const key = 'icu-saturation-threshold'
       if (!seenKeysRef.current.has(key)) {
         seenKeysRef.current.add(key)
         addNotification({
@@ -56,11 +61,13 @@ export function useNotificationPipeline(hospitalState?: HospitalState | null) {
           actionLabel: 'Manage Capacity',
         })
       }
+    } else {
+      seenKeysRef.current.delete('icu-saturation-threshold')
     }
 
     // ER Surge check
     if (hospitalState.emergency.waiting >= 15) {
-      const key = `er-surge-${Math.floor(Date.now() / (1000 * 60 * 5))}`
+      const key = 'er-surge-threshold'
       if (!seenKeysRef.current.has(key)) {
         seenKeysRef.current.add(key)
         addNotification({
@@ -72,17 +79,23 @@ export function useNotificationPipeline(hospitalState?: HospitalState | null) {
           actionLabel: 'ER Command',
         })
       }
+    } else {
+      seenKeysRef.current.delete('er-surge-threshold')
     }
   }, [hospitalState, addNotification])
 
   // 2. Poll & evaluate recommendations & bottlenecks
   useEffect(() => {
+    let isMounted = true
+
     async function evaluatePipeline() {
       try {
         const [recsRes, botsRes] = await Promise.all([
           opsApi.getRecommendations(),
           opsApi.getBottlenecks(),
         ])
+
+        if (!isMounted) return
 
         // Evaluate pending recommendations
         const pendingRecs = (recsRes.recommendations || []).filter((r: Recommendation) => r.status === 'pending')
@@ -101,10 +114,10 @@ export function useNotificationPipeline(hospitalState?: HospitalState | null) {
           }
         }
 
-        // Evaluate severe bottlenecks
+        // Evaluate severe bottlenecks (deduplicate by type + resource, NOT random UUID)
         const critBots = (botsRes.bottlenecks || []).filter((b: Bottleneck) => b.severity === 'critical' || b.severity === 'high')
         for (const bot of critBots) {
-          const key = `bot-${bot.id}`
+          const key = `bot-${bot.bottleneck_type}-${bot.resource_type}`
           if (!seenKeysRef.current.has(key)) {
             seenKeysRef.current.add(key)
             addNotification({
@@ -118,12 +131,11 @@ export function useNotificationPipeline(hospitalState?: HospitalState | null) {
           }
         }
 
-        // Seed initial notifications if store is empty on fresh login
-        if (!initialSeededRef.current && notifications.length === 0) {
+        // Seed initial welcome notification only once on login if list is empty
+        if (!initialSeededRef.current) {
           initialSeededRef.current = true
-          if (pendingRecs.length > 0) {
-            // Already handled above
-          } else {
+          const currentCount = useStore.getState().notifications.length
+          if (currentCount === 0 && pendingRecs.length === 0) {
             addNotification({
               title: 'CuraFlow AI Orchestrator Online',
               message: 'Autonomous multi-agent monitoring connected to hospital telemetry pipeline.',
@@ -140,7 +152,10 @@ export function useNotificationPipeline(hospitalState?: HospitalState | null) {
     }
 
     evaluatePipeline()
-    const interval = setInterval(evaluatePipeline, 12000)
-    return () => clearInterval(interval)
-  }, [addNotification, notifications.length])
+    const interval = setInterval(evaluatePipeline, 25000)
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
+  }, [addNotification])
 }

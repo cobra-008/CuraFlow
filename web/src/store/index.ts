@@ -235,8 +235,9 @@ export interface AppState {
   pushPolicyDecision: (d: PolicyDecision) => void
   pushToast: (t: Omit<Toast, 'id'>) => void
   dismissToast: (id: string) => void
+  clearToasts: () => void
   notifications: AppNotification[]
-  addNotification: (n: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => void
+  addNotification: (n: Omit<AppNotification, 'id' | 'timestamp' | 'read'>, showToast?: boolean) => void
   markNotificationAsRead: (id: string) => void
   markAllNotificationsAsRead: () => void
   clearNotifications: () => void
@@ -1124,13 +1125,21 @@ export const useStore = create<AppState>((set, get) => {
     },
     pushToast(t) {
       const id = `toast-${Date.now()}-${Math.round(Math.random() * 1e6)}`
-      set((s) => ({ toasts: [...s.toasts, { ...t, id }] }))
+      set((s) => {
+        // Prevent duplicate toasts with identical title from stacking up
+        if (s.toasts.some((existing) => existing.title === t.title)) return s
+        const keep = s.toasts.slice(-2) // keep at most 2 existing toasts so max visible is 3
+        return { toasts: [...keep, { ...t, id }] }
+      })
     },
     dismissToast(id) {
       set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) }))
     },
+    clearToasts() {
+      set({ toasts: [] })
+    },
 
-    addNotification(n) {
+    addNotification(n, showToast = false) {
       const id = `notif-${Date.now()}-${Math.round(Math.random() * 1e6)}`
       const notif: AppNotification = {
         ...n,
@@ -1138,21 +1147,27 @@ export const useStore = create<AppState>((set, get) => {
         timestamp: Date.now(),
         read: false,
       }
+      let wasAdded = false
       set((s) => {
+        // Prevent duplicate notifications with same title within 5 minutes
         const exists = s.notifications.some(
-          (existing) => existing.title === n.title && existing.message === n.message && Date.now() - existing.timestamp < 30000
+          (existing) =>
+            existing.title === n.title &&
+            (existing.message === n.message || Date.now() - existing.timestamp < 300000)
         )
         if (exists) return s
+        wasAdded = true
         return {
           notifications: [notif, ...s.notifications.slice(0, 49)],
         }
       })
-      if (n.severity === 'critical' || n.severity === 'warning') {
+      // Only pop a toast when explicitly requested (e.g. crisis protocol changes)
+      if (wasAdded && showToast) {
         get().pushToast({
-          severity: n.severity,
+          severity: n.severity === 'success' ? 'info' : n.severity,
           title: n.title,
           message: n.message,
-          sticky: n.severity === 'critical',
+          sticky: false,
         })
       }
     },
