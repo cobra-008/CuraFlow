@@ -420,7 +420,7 @@ async def list_simulation_scenarios():
         ]
     }
 
-@router.post("/simulations/run", dependencies=[Depends(require_active_user)])
+@router.post("/simulations/run", dependencies=[Depends(require_role("admin"))])
 async def run_simulation(body: SimulationRequest):
     run_id = str(uuid.uuid4())
     metrics = SIMULATION_METRICS.get(body.scenario_type, SIMULATION_METRICS["emergency_surge"])

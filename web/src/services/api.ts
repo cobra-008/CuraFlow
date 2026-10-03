@@ -174,7 +174,7 @@ async function get<T>(path: string): Promise<T> {
 
 // ── Auth API ───────────────────────────────────────────────────────────────────
 
-export type UserRole = 'doctor' | 'admin' | 'approver' | 'super_admin'
+export type UserRole = 'doctor' | 'admin' | 'approver' | 'super_admin' | 'er_coordinator' | 'ot_manager' | 'nurse'
 
 export interface AuthUser {
 	id: string
@@ -209,6 +209,10 @@ export async function signupUser(
 
 export async function getMe(): Promise<AuthUser> {
 	return get<AuthUser>('/api/auth/me')
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ status: string; message: string }> {
+	return post('/api/auth/change-password', { current_password: currentPassword, new_password: newPassword })
 }
 
 // ── Organizations (multi-tenancy) ─────────────────────────────────────────────
@@ -390,6 +394,18 @@ export async function createSession(
 	goal: string,
 	constraints: string,
 ): Promise<CreateSessionResponse> {
+	let orgId = getActiveOrgId()
+	if (!orgId) {
+		try {
+			const orgs = await fetchOrgs()
+			const active = orgs.find(o => o.status === 'active') || orgs[0]
+			if (active) {
+				setActiveOrgId(active.id)
+			}
+		} catch {
+			// ignore error if orgs fetch fails
+		}
+	}
 	return post<CreateSessionResponse>(withOrg('/api/sessions'), { goal, constraints, autonomous: false })
 }
 

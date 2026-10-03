@@ -45,28 +45,33 @@ export function OrgSwitcher() {
 
   return (
     <div
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 cursor-pointer hover:bg-purple-500/15 transition-colors"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors"
+      style={{
+        background: '#f5f0e8',
+        border: '1px solid #e0d5c0',
+      }}
       title="Target organization for workflows and sessions"
     >
       {loading
-        ? <Loader2 size={12} className="text-purple-300 animate-spin" />
-        : <Building2 size={12} className="text-purple-300 flex-shrink-0" />}
-      <span className="text-[10px] font-semibold text-purple-300/80 hidden md:inline">Org</span>
+        ? <Loader2 size={13} className="animate-spin" style={{ color: '#1e3a6e' }} />
+        : <Building2 size={13} style={{ color: '#1e3a6e' }} className="flex-shrink-0" />}
+      <span className="text-[11px] font-bold uppercase tracking-wider hidden md:inline" style={{ color: '#6b5c40' }}>Org</span>
       <div className="relative flex items-center">
         <select
           value={activeOrgId ?? ''}
           onChange={(e) => setActiveOrgId(e.target.value)}
           disabled={loading || orgs.length === 0}
-          className="bg-transparent text-xs font-semibold text-purple-200 cursor-pointer focus:outline-none appearance-none pr-4 disabled:cursor-not-allowed"
+          className="bg-transparent text-xs font-semibold cursor-pointer focus:outline-none appearance-none pr-4 disabled:cursor-not-allowed"
+          style={{ color: '#1a2744' }}
         >
-          {orgs.length === 0 && <option value="">No active orgs</option>}
+          {orgs.length === 0 && <option value="" style={{ background: '#fff', color: '#1a2744' }}>No active orgs</option>}
           {orgs.map((o) => (
-            <option key={o.id} value={o.id} className="bg-[var(--bg-surface)] text-slate-200">
+            <option key={o.id} value={o.id} style={{ background: '#fff', color: '#1a2744' }}>
               {o.name}
             </option>
           ))}
         </select>
-        <ChevronDown size={11} className="text-purple-400/70 pointer-events-none absolute right-0" />
+        <ChevronDown size={11} style={{ color: '#9aa3b2' }} className="pointer-events-none absolute right-0" />
       </div>
     </div>
   )

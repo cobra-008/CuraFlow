@@ -6,7 +6,7 @@ import { useSessionWebSocket } from './hooks/useSessionWebSocket'
 import { ApprovalModal } from './components/execution/ApprovalModal'
 import { PatientIdentificationModal } from './components/execution/PatientIdentificationModal'
 
-import { getToken, setToken, getMe, type AuthUser } from './services/api'
+import { getToken, setToken, getMe, getActiveOrgId, fetchOrgs, type AuthUser } from './services/api'
 import { Loader2 } from 'lucide-react'
 
 // Embedded in the widget's overlay iframe -- a widget_init handshake carrying a
@@ -109,6 +109,12 @@ export default function App() {
       .then((user: AuthUser) => {
         setCurrentUser(user)
         setChecking(false)
+        if (user.role === 'super_admin' && !getActiveOrgId()) {
+          fetchOrgs().then(orgs => {
+            const active = orgs.find(o => o.status === 'active') || orgs[0]
+            if (active) useStore.getState().setActiveOrgId(active.id)
+          }).catch(() => {})
+        }
         if (user.role === 'approver') {
           setActiveView('approvals')
         } else if (user.role === 'super_admin' || user.role === 'admin') {

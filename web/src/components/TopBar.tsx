@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Search, Bell, ChevronDown, LogOut, Settings, ShieldCheck } from 'lucide-react'
 import { useStore } from '../store'
+import { AdminPage } from './admin/AdminPage'
+import { OrgSwitcher } from './OrgSwitcher'
 
 export function TopBar() {
   const currentUser = useStore((s) => s.currentUser)
@@ -39,9 +41,26 @@ export function TopBar() {
     currentUser?.role === 'super_admin' ? 'Platform · Super Admin'
     : currentUser?.role === 'admin' ? 'Hospital Admin'
     : currentUser?.role === 'approver' ? 'Operations Manager'
+    : currentUser?.role === 'er_coordinator' ? 'ER Coordinator'
+    : currentUser?.role === 'ot_manager' ? 'OT Manager'
+    : currentUser?.role === 'nurse' ? 'Nurse'
+    : currentUser?.role === 'doctor' ? 'Doctor'
     : 'Clinical Staff'
 
+  const [showAdmin, setShowAdmin] = useState(false)
+
+  const handleAdminPanel = () => {
+    setMenuOpen(false)
+    setShowAdmin(true)
+  }
+
+  const handleSettings = () => {
+    setMenuOpen(false)
+    window.dispatchEvent(new CustomEvent('curaflow:navigate', { detail: 'settings' }))
+  }
+
   return (
+    <>
     <header className="flex-shrink-0 flex items-center gap-4 px-5 h-14 border-b" style={{
       background: '#ffffff',
       borderColor: '#e8e1d4',
@@ -73,6 +92,9 @@ export function TopBar() {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Org switcher (super_admin only) */}
+      <OrgSwitcher />
 
       {/* DateTime */}
       <div className="text-right hidden md:block">
@@ -130,13 +152,17 @@ export function TopBar() {
             </div>
 
             {isAdmin && (
-              <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-blue-50"
+              <button
+                onClick={handleAdminPanel}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-blue-50"
                 style={{ color: '#1e3a6e' }}>
                 <ShieldCheck size={14} />
                 Admin Panel
               </button>
             )}
-            <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-gray-50"
+            <button
+              onClick={handleSettings}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-gray-50"
               style={{ color: '#5a6475' }}>
               <Settings size={14} />
               Settings
@@ -152,5 +178,22 @@ export function TopBar() {
         )}
       </div>
     </header>
+
+    {/* Admin Panel Slide-in Overlay */}
+    {showAdmin && (
+      <div
+        className="fixed inset-0 z-50 flex"
+        style={{ background: 'rgba(26,39,68,0.55)' }}
+        onClick={(e) => { if (e.target === e.currentTarget) setShowAdmin(false) }}
+      >
+        <div
+          className="relative ml-auto w-full max-w-3xl h-full shadow-2xl overflow-hidden flex flex-col"
+          style={{ background: '#f5f0e8', borderLeft: '1px solid #e8e1d4' }}
+        >
+          <AdminPage onClose={() => setShowAdmin(false)} />
+        </div>
+      </div>
+    )}
+  </>
   )
 }
