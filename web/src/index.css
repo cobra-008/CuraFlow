@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Cormorant:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -43,15 +43,15 @@
 /* ── Base body ───────────────────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
-  font-family: 'Cormorant Garamond', 'Cormorant', Georgia, serif !important;
+  font-family: 'Merriweather', Georgia, serif !important;
 }
 
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
-  font-size: 16px;
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 14px; /* Slightly smaller base font size as Merriweather is quite large */
   letter-spacing: 0.01em;
 }
 
