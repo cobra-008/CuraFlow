@@ -45,7 +45,7 @@ export function TopBar() {
     <header className="flex-shrink-0 flex items-center gap-4 px-5 h-14 border-b" style={{
       background: '#ffffff',
       borderColor: '#e8e1d4',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     }}>
 
       {/* Search */}

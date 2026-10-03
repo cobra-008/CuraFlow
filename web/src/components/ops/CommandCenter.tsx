@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Users, BedDouble, HeartPulse, Scissors, FlaskConical,
   TrendingUp, TrendingDown, ArrowRight, Sparkles, Send,
+  Target, BarChart2, RefreshCw, ClipboardList, AlertTriangle, AlertCircle, Bed, MessageSquare
 } from 'lucide-react'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 import { useStore } from '../../store'
@@ -236,35 +237,35 @@ function DeptTable({ state }: { state: HospitalState | null }) {
 
   const depts = [
     {
-      name: 'Emergency', icon: '🚨',
+      name: 'Emergency', icon: <AlertCircle size={14} className="text-red-500" />,
       current: state.emergency.waiting,
       capacity: state.emergency.capacity,
       util: Math.round((state.emergency.waiting / state.emergency.capacity) * 100),
       warn: 60, crit: 80,
     },
     {
-      name: 'Ward', icon: '🛏',
+      name: 'Ward', icon: <Bed size={14} className="text-blue-600" />,
       current: state.beds.occupied,
       capacity: state.beds.total,
       util: Math.round(state.beds.occupancy_pct),
       warn: 80, crit: 90,
     },
     {
-      name: 'ICU', icon: '❤',
+      name: 'ICU', icon: <HeartPulse size={14} className="text-orange-600" />,
       current: state.icu.occupied,
       capacity: state.icu.total,
       util: Math.round(state.icu.occupancy_pct),
       warn: 80, crit: 90,
     },
     {
-      name: 'OT', icon: '🔪',
+      name: 'OT', icon: <Scissors size={14} className="text-gray-600" />,
       current: state.operating_rooms.occupied,
       capacity: state.operating_rooms.total,
       util: Math.round(state.operating_rooms.utilization_pct),
       warn: 70, crit: 85,
     },
     {
-      name: 'Diagnostics', icon: '🔬',
+      name: 'Diagnostics', icon: <FlaskConical size={14} className="text-purple-600" />,
       current: state.diagnostics.queue_length,
       capacity: state.diagnostics.available_devices * 5,
       util: Math.round((state.diagnostics.queue_length / (state.diagnostics.available_devices * 5)) * 100),
@@ -413,13 +414,13 @@ type TabId = 'ask' | 'recs' | 'analyze' | 'simulate' | 'capacity' | 'emergency'
 
 interface ChatMsg { role: 'user' | 'ai'; text: string; ts: string }
 
-const TABS: { id: TabId; icon: string; label: string }[] = [
-  { id: 'ask',       icon: '💬', label: 'Ask Anything' },
-  { id: 'recs',      icon: '🎯', label: 'Get Recommendations' },
-  { id: 'analyze',   icon: '📊', label: 'Analyze Situations' },
-  { id: 'simulate',  icon: '🔄', label: 'Run Simulations' },
-  { id: 'capacity',  icon: '📋', label: 'Check Capacity' },
-  { id: 'emergency', icon: '🚨', label: 'Emergency Support' },
+const TABS: { id: TabId; icon: React.ReactNode; label: string }[] = [
+  { id: 'ask',       icon: <MessageSquare size={14} />, label: 'Ask Anything' },
+  { id: 'recs',      icon: <Target size={14} />, label: 'Get Recommendations' },
+  { id: 'analyze',   icon: <BarChart2 size={14} />, label: 'Analyze Situations' },
+  { id: 'simulate',  icon: <RefreshCw size={14} />, label: 'Run Simulations' },
+  { id: 'capacity',  icon: <ClipboardList size={14} />, label: 'Check Capacity' },
+  { id: 'emergency', icon: <AlertTriangle size={14} />, label: 'Emergency Support' },
 ]
 
 function TypingDots() {
@@ -585,14 +586,14 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
 
           {/* Input bar */}
           <div className="flex items-center gap-2 px-3 py-2.5 border-t flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
-            <input
-              type="text"
+            <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={onKey}
-              placeholder="Ask about ICU, beds, staff, ER..."
-              className="flex-1 py-2 px-3 text-xs rounded-lg outline-none"
-              style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#1a2744' }}
+              placeholder="Ask about ICU, beds, staff, ER... (Press Enter to send, Shift+Enter for new line)"
+              className="flex-1 py-2 px-3 text-sm rounded-lg outline-none resize-none"
+              style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#1a2744', minHeight: '40px', maxHeight: '120px' }}
+              rows={1}
             />
             <button
               onClick={sendMessage}
@@ -777,7 +778,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
             className="w-full mt-2 py-2 text-xs font-bold rounded-lg"
             style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
           >
-            🚨 Run Emergency Simulation
+            <AlertTriangle size={14} className="text-red-500 mr-2" style={{ display: 'inline' }} /> Run Emergency Simulation
           </button>
         </div>
       )
