@@ -1,9 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-<<<<<<< HEAD
-import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Activity, Hospital } from 'lucide-react'
-=======
 import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Activity, LayoutDashboard } from 'lucide-react'
->>>>>>> 7dd6467cf7f1b055d6dfb00e9a517f9639f6b677
 import { useTheme } from 'next-themes'
 import { useStore } from '../store'
 import { OrgSwitcher } from './OrgSwitcher'

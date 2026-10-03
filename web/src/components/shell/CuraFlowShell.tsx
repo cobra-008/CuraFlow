@@ -3,7 +3,7 @@ import { useStore } from '../../store'
 import {
   LayoutDashboard, Activity, Bed, GitBranch, FlaskConical,
   Package, AlertTriangle, Bot, BarChart3, Settings,
-  ChevronRight, Clock
+  ChevronRight
 } from 'lucide-react'
 import { CommandCenter } from '../ops/CommandCenter'
 import { ApprovalCenter } from '../ops/ApprovalCenter'
@@ -21,10 +21,7 @@ import { SettingsView } from '../ops/SettingsView'
 import { TopBar } from '../TopBar'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 7dd6467cf7f1b055d6dfb00e9a517f9639f6b677
 // ── Nav items config ───────────────────────────────────────────────────────────
 const NAV_GROUPS = [
   {
@@ -59,10 +56,6 @@ function Sidebar({
 }) {
   const currentUser = useStore(s => s.currentUser)
   const role = currentUser?.role || 'nurse'
-  
-  const now = new Date()
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-  const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })
 
   const pendingRecs = recommendations.filter(r => r.status === 'pending')
   const criticalBotCount = bottlenecks.filter(b => b.severity === 'critical').length
@@ -79,121 +72,64 @@ function Sidebar({
     <aside
       className="flex flex-col flex-shrink-0 overflow-hidden"
       style={{
-        width: '230px',
+        width: '240px',
         backgroundImage: 'url(/sidebar-bg.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        boxShadow: '2px 0 16px rgba(0,0,0,0.12)',
+        boxShadow: '2px 0 16px rgba(0,0,0,0.06)',
       }}
     >
-      {/* Overlay for readability */}
-      <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: 'rgba(255,248,235,0.82)' }}>
+      {/* Overlay for readability & warm theme */}
+      <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: 'rgba(255,249,240,0.88)' }}>
 
-        {/* Logo */}
-        <div className="px-4 pt-4 pb-3 border-b" style={{ borderColor: 'rgba(180,150,100,0.3)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#1e3a6e' }}>
-              <span className="text-white font-bold text-xs">CF</span>
+        {/* Logo Header */}
+        <div className="px-5 pt-5 pb-4 border-b" style={{ borderColor: 'rgba(180,150,100,0.2)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: '#1e3a6e' }}>
+              <span className="text-white font-bold text-sm tracking-wide">CF</span>
             </div>
             <div>
-              <div className="font-bold text-sm" style={{ color: '#1a2744' }}>CuraFlow</div>
-              <div className="text-2xs leading-tight" style={{ color: '#6b5c40', fontSize: '10px' }}>Hospital Operations Orchestration</div>
-            </div>
-          </div>
-          
-          {role === 'super_admin' && (
-            <div className="mt-2">
-              <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block tracking-wider">Org Switcher</label>
-              <select className="w-full bg-white/50 border border-slate-300 text-xs rounded-md p-1.5 outline-none text-slate-700">
-                <option>Memorial General (Global)</option>
-                <option>City Hospital (Branch 2)</option>
-              </select>
-            </div>
-          )}
-        </div>
-
-        {/* Mission Briefing */}
-        <div className="px-3 py-2.5 border-b" style={{ borderColor: 'rgba(180,150,100,0.25)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <Clock size={12} style={{ color: '#6b5c40' }} />
-              <span className="font-bold uppercase tracking-widest" style={{ fontSize: '10px', color: '#6b5c40' }}>Mission Briefing</span>
-            </div>
-            <div className="text-right">
-              <div className="font-bold text-xs" style={{ color: '#1a2744' }}>{timeStr}</div>
-              <div style={{ fontSize: '9px', color: '#6b5c40' }}>{dateStr}</div>
+              <div className="font-bold text-base leading-tight" style={{ color: '#1a2744' }}>CuraFlow</div>
+              <div className="text-[11px] font-medium leading-tight mt-0.5" style={{ color: '#6b5c40' }}>Hospital Orchestration</div>
             </div>
           </div>
 
-          {/* Live badge + pressure status */}
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-bold text-white" style={{ background: '#dc2626', fontSize: '9px' }}>
-              <span className="pulse-dot w-1.5 h-1.5 rounded-full bg-white inline-block" />
-              LIVE
-            </span>
-            <span className="text-xs font-semibold" style={{ color: pressure?.label === 'CRITICAL' ? '#dc2626' : pressure?.label === 'HIGH' ? '#ea580c' : '#d97706' }}>
-              {pressure ? `${pressure.label} Operational Pressure` : 'Loading…'}
-            </span>
+          {/* Clean Operational Status Capsule */}
+          <div className="mt-3.5 flex items-center justify-between px-3 py-2 rounded-xl"
+            style={{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(180,150,100,0.25)' }}>
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                  style={{ background: pressure?.label === 'CRITICAL' ? '#dc2626' : pressure?.label === 'HIGH' ? '#ea580c' : '#16a34a' }} />
+                <span className="relative inline-flex rounded-full h-2 w-2"
+                  style={{ background: pressure?.label === 'CRITICAL' ? '#dc2626' : pressure?.label === 'HIGH' ? '#ea580c' : '#16a34a' }} />
+              </span>
+              <span className="text-[11px] font-bold uppercase tracking-wider"
+                style={{ color: pressure?.label === 'CRITICAL' ? '#dc2626' : pressure?.label === 'HIGH' ? '#ea580c' : '#16a34a' }}>
+                {pressure?.label ?? 'NORMAL'}
+              </span>
+            </div>
+            {pendingRecs.length > 0 && (
+              <button
+                onClick={() => setActiveRoute('approvals')}
+                className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-white transition-opacity hover:opacity-90"
+                style={{ background: '#1e3a6e' }}
+                title="Pending recommendations"
+              >
+                {pendingRecs.length} Approvals
+              </button>
+            )}
           </div>
-
-          {/* Bullet issues */}
-          <ul className="space-y-0.5" style={{ fontSize: '11px', color: '#5a4530' }}>
-            {hospitalState?.icu.occupancy_pct && hospitalState.icu.occupancy_pct > 80 && (
-              <li className="flex items-start gap-1.5">
-                <span className="mt-1 w-1 h-1 rounded-full flex-shrink-0" style={{ background: '#dc2626' }} />
-                ER waiting time increased
-              </li>
-            )}
-            {hospitalState?.icu.occupancy_pct && hospitalState.icu.occupancy_pct > 70 && (
-              <li className="flex items-start gap-1.5">
-                <span className="mt-1 w-1 h-1 rounded-full flex-shrink-0" style={{ background: '#ea580c' }} />
-                ICU capacity constrained
-              </li>
-            )}
-            {hospitalState?.diagnostics.queue_length && hospitalState.diagnostics.queue_length > 8 && (
-              <li className="flex items-start gap-1.5">
-                <span className="mt-1 w-1 h-1 rounded-full flex-shrink-0" style={{ background: '#d97706' }} />
-                Diagnostic backlog increasing
-              </li>
-            )}
-          </ul>
         </div>
 
-        {/* Key Priorities */}
-        <div className="px-3 py-2.5 border-b" style={{ borderColor: 'rgba(180,150,100,0.25)' }}>
-          <div className="font-bold uppercase tracking-widest mb-2" style={{ fontSize: '10px', color: '#6b5c40' }}>Key Priorities</div>
-          <ol className="space-y-1.5">
-            {priorities.map((p, i) => (
-              <li key={i} className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-                  style={{ background: '#1e3a6e', fontSize: '9px' }}>
-                  {i + 1}
-                </span>
-                <span style={{ fontSize: '11px', color: '#3a2e1e' }}>{p}</span>
-              </li>
-            ))}
-          </ol>
-
-          {pendingRecs.length > 0 && (
-            <button
-              onClick={() => setActiveRoute('approvals')}
-              className="mt-2.5 w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-              style={{ background: '#1e3a6e', color: '#ffffff' }}
-            >
-              <span>View All Priorities</span>
-              <ChevronRight size={14} />
-            </button>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-2 overflow-y-auto">
+        {/* Navigation Items with Generous Padding */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {NAV_GROUPS[0].items.filter(item => {
             // Apply RBAC filters based on CuraFlow_RBAC_Design.md
             if (role === 'super_admin' || role === 'admin') return true;
             if (role === 'er_coordinator') return ['flow', 'capacity', 'orchestration', 'emergency'].includes(item.id);
             if (role === 'ot_manager') return ['command', 'resources'].includes(item.id);
-            if (role === 'doctor' || role === 'nurse') return ['command', 'approvals'].includes(item.id); // Limited for clinical
+            if (role === 'doctor' || role === 'nurse') return ['command', 'approvals'].includes(item.id);
             return false;
           }).map(({ id, label, icon: Icon }) => {
             const active = activeRoute === id
@@ -202,18 +138,19 @@ function Sidebar({
               <button
                 key={id}
                 onClick={() => setActiveRoute(id)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg mb-0.5 text-left transition-all"
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-all"
                 style={{
-                  background: active ? 'rgba(30, 58, 110, 0.14)' : 'transparent',
+                  background: active ? 'rgba(30, 58, 110, 0.12)' : 'transparent',
                   color: active ? '#1e3a6e' : '#3d2e1a',
-                  fontWeight: active ? 600 : 400,
-                  fontSize: '13px',
+                  fontWeight: active ? 600 : 500,
+                  fontSize: '13.5px',
+                  border: active ? '1px solid rgba(30, 58, 110, 0.2)' : '1px solid transparent',
                 }}
               >
-                <Icon size={15} style={{ color: active ? '#1e3a6e' : '#6b5040', flexShrink: 0 }} />
-                <span className="flex-1">{label}</span>
+                <Icon size={16} style={{ color: active ? '#1e3a6e' : '#6b5040', flexShrink: 0 }} />
+                <span className="flex-1 truncate">{label}</span>
                 {hasAlert && pendingRecs.length > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-red-500 text-white text-2xs flex items-center justify-center font-bold" style={{ fontSize: '9px' }}>
+                  <span className="w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
                     {pendingRecs.length}
                   </span>
                 )}
@@ -222,10 +159,32 @@ function Sidebar({
           })}
         </nav>
 
-        {/* Footer tagline */}
-        <div className="px-4 py-3 text-center border-t" style={{ borderColor: 'rgba(180,150,100,0.25)' }}>
-          <div style={{ fontSize: '10px', color: '#6b5040', lineHeight: 1.5 }}>
-            Connected Resources<br />Coordinated Care
+        {/* Bottom Priorities Capsule */}
+        {priorities.length > 0 && (
+          <div className="p-3 mx-3 mb-3 rounded-xl border"
+            style={{ background: 'rgba(255, 255, 255, 0.65)', borderColor: 'rgba(180,150,100,0.25)' }}>
+            <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#6b5c40' }}>
+              Key Operational Priority
+            </div>
+            <div className="text-xs font-semibold truncate" style={{ color: '#1a2744' }}>
+              {priorities[0]}
+            </div>
+            {pendingRecs.length > 0 && (
+              <button
+                onClick={() => setActiveRoute('approvals')}
+                className="mt-2 w-full flex items-center justify-between text-[11px] font-semibold text-blue-800 hover:underline"
+              >
+                <span>Review Recommendations</span>
+                <ChevronRight size={12} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="px-4 py-3 text-center border-t" style={{ borderColor: 'rgba(180,150,100,0.2)' }}>
+          <div className="text-[11px] font-medium" style={{ color: '#8a7458' }}>
+            Connected Resources · Coordinated Care
           </div>
         </div>
       </div>

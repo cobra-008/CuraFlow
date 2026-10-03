@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Search, Bell, ChevronDown, LogOut, Settings, ShieldCheck } from 'lucide-react'
 import { useStore } from '../store'
 import { AdminPage } from './admin/AdminPage'
+import { OrgSwitcher } from './OrgSwitcher'
 
 export function TopBar() {
   const currentUser = useStore((s) => s.currentUser)
@@ -91,6 +92,9 @@ export function TopBar() {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Org switcher (super_admin only) */}
+      <OrgSwitcher />
 
       {/* DateTime */}
       <div className="text-right hidden md:block">

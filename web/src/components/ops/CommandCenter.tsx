@@ -83,36 +83,42 @@ function KpiCard({
   const trendColor = trendUp ? '#dc2626' : '#16a34a'  // up = bad for ER/ICU
 
   return (
-    <div className="cf-card p-4 flex flex-col gap-2 flex-1 min-w-0">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
-            <Icon size={16} style={{ color: iconColor }} />
+    <div
+      className="p-5 rounded-2xl flex flex-col justify-between transition-all hover:shadow-md"
+      style={{
+        background: '#ffffff',
+        border: '1px solid #e8e1d4',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
+            <Icon size={17} style={{ color: iconColor }} />
           </div>
-          <div className="text-xs text-gray-500 font-medium leading-tight">{label}</div>
+          <div className="text-xs text-gray-500 font-semibold leading-tight">{label}</div>
         </div>
       </div>
 
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between mt-1">
         <div>
-          <div className="font-bold leading-tight" style={{ fontSize: '28px', color: '#1a2744' }}>
+          <div className="font-bold tracking-tight text-2xl lg:text-[26px]" style={{ color: '#1a2744' }}>
             {value}
           </div>
-          {subValue && <div className="text-xs text-gray-500">{subValue}</div>}
-          {pct && (
-            <div className="flex items-center gap-1 mt-0.5">
-              {trend === 'up'
-                ? <TrendingUp size={12} style={{ color: trendColor }} />
-                : <TrendingDown size={12} style={{ color: trendColor }} />
-              }
-              <span className="font-bold text-xs" style={{ color: trendColor }}>
+          <div className="flex items-center gap-1.5 mt-1">
+            {pct && (
+              <span className="flex items-center gap-0.5 text-xs font-bold" style={{ color: trendColor }}>
+                {trend === 'up' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                 {pct}
               </span>
-              {pctLabel && <span className="text-xs text-gray-400">{pctLabel}</span>}
-            </div>
-          )}
+            )}
+            {subValue && <span className="text-xs text-gray-400 font-medium">{subValue}</span>}
+            {pctLabel && <span className="text-xs text-gray-400">{pctLabel}</span>}
+          </div>
         </div>
-        <Sparkline values={sparkValues} color={sparkColor} />
+        <div className="flex-shrink-0">
+          <Sparkline values={sparkValues} color={sparkColor} />
+        </div>
       </div>
     </div>
   )
@@ -181,34 +187,39 @@ function PatientFlowChart({ state }: { state: HospitalState | null }) {
   const gridTicks = [0.25, 0.5, 0.75, 1.0]
 
   return (
-    <div className="cf-card h-full flex flex-col justify-between" style={{ overflow: 'hidden' }}>
-      {/* Header with accent bar */}
-      <div style={{ height: '3px', background: 'linear-gradient(90deg, #4e8ef7 0%, #f5a623 50%, #4caf82 100%)' }} />
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="font-bold" style={{ fontSize: '14px', color: '#1a2744' }}>Today's Patient Flow</h3>
-            <p style={{ fontSize: '11px', color: '#9aa3b2', marginTop: '1px' }}>Live throughput — updated every 5 seconds</p>
-          </div>
-          <div className="flex items-center gap-5">
-            {[
-              { label: 'ER Arrivals', color: '#4e8ef7', value: er[4] },
-              { label: 'Admissions', color: '#f5a623', value: adm[4] },
-              { label: 'Discharges', color: '#4caf82', value: disc[4] },
-            ].map(({ label, color, value }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                <div>
-                  <div style={{ fontSize: '11px', color: '#5a6475', lineHeight: 1 }}>{label}</div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color, lineHeight: 1.2 }}>{value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div
+      className="p-6 rounded-2xl flex flex-col justify-between"
+      style={{
+        background: '#ffffff',
+        border: '1px solid #e8e1d4',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div>
+          <h3 className="font-bold text-base" style={{ color: '#1a2744' }}>Today's Patient Flow</h3>
+          <p className="text-xs mt-0.5" style={{ color: '#8c7e6a' }}>Live emergency and admission throughput — updated continuously</p>
         </div>
+        <div className="flex items-center gap-4">
+          {[
+            { label: 'ER Arrivals', color: '#4e8ef7', value: er[4] },
+            { label: 'Admissions', color: '#f5a623', value: adm[4] },
+            { label: 'Discharges', color: '#4caf82', value: disc[4] },
+          ].map(({ label, color, value }) => (
+            <div key={label} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border"
+              style={{ background: '#fdfbf7', borderColor: '#ede6da' }}>
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+              <div>
+                <div className="text-[10px] uppercase font-bold tracking-wider" style={{ color: '#8c7e6a', lineHeight: 1 }}>{label}</div>
+                <div className="text-sm font-bold mt-0.5" style={{ color, lineHeight: 1.1 }}>{value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-        <div className="overflow-hidden">
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: '150px' }}>
+      <div className="w-full">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: '170px' }}>
             <defs>
               <linearGradient id="gr-er" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#4e8ef7" stopOpacity="0.4" />
@@ -277,7 +288,6 @@ function PatientFlowChart({ state }: { state: HospitalState | null }) {
           </svg>
         </div>
       </div>
-    </div>
   )
 }
 
@@ -324,45 +334,80 @@ function DeptTable({ state }: { state: HospitalState | null }) {
   ]
 
   return (
-    <div className="cf-card h-full overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#f0e8d8' }}>
-        <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Department Status</h3>
-        <button className="text-xs font-semibold" style={{ color: '#1e3a6e' }}>
-          View Details
+    <div
+      className="p-6 rounded-2xl flex flex-col justify-between"
+      style={{
+        background: '#ffffff',
+        border: '1px solid #e8e1d4',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h3 className="font-bold text-base" style={{ color: '#1a2744' }}>Department Capacity & Status</h3>
+          <p className="text-xs mt-0.5" style={{ color: '#8c7e6a' }}>Live bed, ICU, operating room, and diagnostic utilization</p>
+        </div>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('curaflow:navigate', { detail: 'capacity' }))}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors hover:bg-slate-50"
+          style={{ color: '#1e3a6e', borderColor: '#e0d5c0' }}
+        >
+          View Full Breakdown
         </button>
       </div>
-      <table className="w-full dept-table">
-        <thead>
-          <tr>
-            <th className="text-left">Department</th>
-            <th className="text-right">Current</th>
-            <th className="text-right">Capacity</th>
-            <th className="text-right">Utilization</th>
-            <th className="text-center">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {depts.map(d => {
-            const b = statusBadge(d.util, d.warn, d.crit)
-            return (
-              <tr key={d.name}>
-                <td className="font-medium" style={{ color: '#1a2744' }}>
-                  <span className="mr-1.5">{d.icon}</span>{d.name}
-                </td>
-                <td className="text-right font-semibold" style={{ color: '#1a2744' }}>{d.current}</td>
-                <td className="text-right" style={{ color: '#9aa3b2' }}>{d.capacity}</td>
-                <td className="text-right font-semibold" style={{ color: b.color }}>{d.util}%</td>
-                <td className="text-center">
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                    style={{ background: b.bg, color: b.color, border: `1px solid ${b.border}` }}>
-                    {b.text}
-                  </span>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b" style={{ borderColor: '#ede6da' }}>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-left" style={{ color: '#8c7e6a' }}>Department</th>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-right" style={{ color: '#8c7e6a' }}>Current</th>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-right" style={{ color: '#8c7e6a' }}>Capacity</th>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-center px-4" style={{ color: '#8c7e6a' }}>Utilization</th>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-right" style={{ color: '#8c7e6a' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y" style={{ borderColor: '#f4efe6' }}>
+            {depts.map(d => {
+              const b = statusBadge(d.util, d.warn, d.crit)
+              const barColor = d.util >= d.crit ? '#dc2626' : d.util >= d.warn ? '#ea580c' : '#16a34a'
+              return (
+                <tr key={d.name} className="hover:bg-[#faf7f2] transition-colors">
+                  <td className="py-3.5 font-semibold text-sm" style={{ color: '#1a2744' }}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg flex items-center justify-center bg-slate-50 border border-slate-200">
+                        {d.icon}
+                      </span>
+                      {d.name}
+                    </span>
+                  </td>
+                  <td className="py-3.5 text-right font-bold text-sm" style={{ color: '#1a2744' }}>{d.current}</td>
+                  <td className="py-3.5 text-right text-sm" style={{ color: '#8c7e6a' }}>{d.capacity}</td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-3 justify-center max-w-[180px] mx-auto">
+                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#ede6da' }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, d.util)}%`, background: barColor }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold w-9 text-right" style={{ color: barColor }}>
+                        {d.util}%
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-3.5 text-right">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block"
+                      style={{ background: b.bg, color: b.color, border: `1px solid ${b.border}` }}>
+                      {b.text}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -430,26 +475,42 @@ function LiveActivityFeed({ state, bottlenecks }: { state: HospitalState | null;
   }
 
   return (
-    <div className="cf-card flex flex-col overflow-hidden h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
-        <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Live Activity</h3>
-        <button className="text-xs font-semibold" style={{ color: '#1e3a6e' }}>View All</button>
+    <div
+      className="p-5 rounded-2xl flex flex-col"
+      style={{
+        background: '#ffffff',
+        border: '1px solid #e8e1d4',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div className="flex items-center justify-between pb-3.5 mb-2 border-b" style={{ borderColor: '#f0e8d8' }}>
+        <div className="flex items-center gap-2">
+          <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Live Clinical Activity</h3>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#f5f0e8', color: '#6b5c40' }}>
+            {activities.length} Events
+          </span>
+        </div>
+        <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Active Feed
+        </span>
       </div>
-      <div className="flex flex-col divide-y overflow-auto flex-1">
+
+      <div className="flex flex-col divide-y divide-[#f7f2eb] max-h-[360px] overflow-y-auto pr-1">
         {activities.slice(0, 6).map(act => (
-          <div key={act.id} className="flex items-start gap-3 px-4 py-3 hover:bg-warm-50 transition-colors">
-            <div className="flex flex-col items-center gap-1 flex-shrink-0">
-              <span className="text-xs font-mono font-medium" style={{ color: '#9aa3b2', fontSize: '11px' }}>{act.time}</span>
+          <div key={act.id} className="flex items-start gap-3 py-3 px-2 rounded-xl hover:bg-[#faf7f2] transition-colors">
+            <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-0.5">
               <div className="w-2 h-2 rounded-full" style={{ background: SEV_DOT[act.severity] }} />
+              <span className="text-[10px] font-mono font-medium" style={{ color: '#9aa3b2' }}>{act.time}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-xs leading-tight" style={{ color: '#1a2744' }}>
+              <div className="font-semibold text-xs leading-snug" style={{ color: '#1a2744' }}>
                 {act.title}
               </div>
-              <div className="text-xs mt-0.5" style={{ color: '#9aa3b2' }}>{act.detail}</div>
+              <div className="text-[11px] mt-0.5 leading-snug" style={{ color: '#8c7e6a' }}>{act.detail}</div>
             </div>
-            <span className="text-2xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
-              style={{ background: SEV_DOT[act.severity] + '18', color: SEV_DOT[act.severity], fontSize: '9px' }}>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md flex-shrink-0 tracking-wider"
+              style={{ background: SEV_DOT[act.severity] + '18', color: SEV_DOT[act.severity] }}>
               {act.deptCode}
             </span>
           </div>
@@ -838,49 +899,55 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
   }
 
   return (
-    <div className="cf-card flex flex-col overflow-hidden h-full" style={{ minHeight: 0 }}>
+    <div
+      className="rounded-2xl flex flex-col overflow-hidden"
+      style={{
+        background: '#ffffff',
+        border: '1px solid #e8e1d4',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0"
-        style={{ borderColor: '#f0e8d8', background: 'linear-gradient(to right, #f5f9ff, #ffffff)' }}>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#1e3a6e' }}>
-            <Sparkles size={12} className="text-white" />
+      <div className="flex items-center justify-between px-5 py-3.5 border-b flex-shrink-0"
+        style={{ borderColor: '#f0e8d8', background: 'linear-gradient(to right, #f8faff, #ffffff)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shadow-xs" style={{ background: '#1e3a6e' }}>
+            <Sparkles size={14} className="text-white" />
           </div>
-          <div className="font-bold text-sm" style={{ color: '#1a2744' }}>CuraFlow AI Assistant</div>
+          <div>
+            <div className="font-bold text-sm leading-tight" style={{ color: '#1a2744' }}>CuraFlow AI Operations Copilot</div>
+            <div className="text-[11px] leading-tight" style={{ color: '#8c7e6a' }}>Hospital Resource & Clinical Intelligence</div>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-xs" style={{ color: '#9aa3b2' }}>Live</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold"
+          style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Live
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex flex-1 min-h-0">
-        {/* Left tabs */}
-        <div className="flex flex-col border-r flex-shrink-0" style={{ width: '148px', borderColor: '#f0e8d8' }}>
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className="flex items-center gap-2 px-2.5 py-2 text-left text-xs transition-colors flex-shrink-0"
-              style={{
-                background: activeTab === t.id ? '#f0f6ff' : 'transparent',
-                color: activeTab === t.id ? '#1e3a6e' : '#5a6475',
-                fontWeight: activeTab === t.id ? 600 : 400,
-                borderLeft: activeTab === t.id ? '3px solid #1e3a6e' : '3px solid transparent',
-                fontSize: '11px',
-              }}
-            >
-              <span style={{ fontSize: '13px' }}>{t.icon}</span>
-              <span className="leading-tight">{t.label}</span>
-            </button>
-          ))}
-        </div>
+      {/* Horizontal Tab Navigation */}
+      <div className="flex items-center gap-1.5 px-4 py-2 border-b overflow-x-auto flex-shrink-0"
+        style={{ borderColor: '#f0e8d8', background: '#faf7f2' }}>
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
+            style={{
+              background: activeTab === t.id ? '#1e3a6e' : 'transparent',
+              color: activeTab === t.id ? '#ffffff' : '#6b5c40',
+            }}
+          >
+            <span>{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </div>
 
-        {/* Right: tab content */}
-        <div className="flex flex-col flex-1 min-w-0 min-h-0">
-          {TabContent()}
-        </div>
+      {/* Body: Tab Content with comfortable height */}
+      <div className="flex flex-col flex-1 min-h-[310px] max-h-[380px]">
+        {TabContent()}
       </div>
     </div>
   )
@@ -954,55 +1021,59 @@ export function CommandCenter() {
 
   if (loading && !state) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="w-12 h-12 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
-          <div className="text-sm text-gray-500">Connecting to hospital operations…</div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center p-8 rounded-2xl bg-white border border-[#e8e1d4] shadow-sm max-w-sm">
+          <div className="w-10 h-10 border-3 border-blue-200 border-t-[#1e3a6e] rounded-full animate-spin mx-auto mb-3" />
+          <div className="text-sm font-semibold text-[#1a2744]">Connecting to Hospital State…</div>
+          <div className="text-xs text-[#8c7e6a] mt-1">Fetching telemetry from real-time clinical systems</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-3 flex flex-col gap-2 min-h-full" style={{ background: '#f5f0e8' }}>
+    <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto w-full" style={{ background: '#f5f0e8' }}>
 
-      {/* ── Welcome Header ────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between">
+      {/* ── Welcome Header with Breathing Space ────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-bold" style={{ fontSize: '22px', color: '#1a2744' }}>
+          <h1 className="font-bold tracking-tight text-2xl lg:text-3xl" style={{ color: '#1a2744' }}>
             Welcome back, {displayName}
           </h1>
-          <p className="text-sm mt-0.5 flex items-center gap-2" style={{ color: '#9aa3b2' }}>
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-              Real-time hospital state
+          <p className="text-sm mt-1.5 flex items-center gap-2" style={{ color: '#6b5c40' }}>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+              Real-time Hospital Operations
             </span>
             <span>•</span>
-            <span>AI-powered resource orchestration</span>
+            <span>AI-Assisted Patient Flow & Capacity Orchestration</span>
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <p className="italic text-sm text-right hidden lg:block" style={{ color: '#9aa3b2', maxWidth: '200px', lineHeight: 1.6 }}>
-            A more coordinated hospital.<br />For every patient, every time.
-          </p>
           {state?.crisis_mode ? (
-            <button onClick={resolveCrisis} disabled={crisisLoading}
-              className="px-4 py-2 text-xs font-bold rounded-lg transition-colors"
-              style={{ background: '#f5f0e8', border: '2px solid #dc2626', color: '#dc2626' }}>
-              {crisisLoading ? 'Working…' : '✓ Resolve Crisis'}
+            <button
+              onClick={resolveCrisis}
+              disabled={crisisLoading}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-sm"
+              style={{ background: '#dc2626', color: '#ffffff' }}
+            >
+              {crisisLoading ? 'Working…' : '✓ Resolve Crisis Mode'}
             </button>
           ) : (
-            <button onClick={triggerCrisis} disabled={crisisLoading}
-              className="px-4 py-2 text-xs font-bold rounded-lg transition-colors"
-              style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
-              {crisisLoading ? 'Working…' : '⚠ Demo Crisis'}
+            <button
+              onClick={triggerCrisis}
+              disabled={crisisLoading}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-sm border hover:bg-red-50"
+              style={{ background: '#ffffff', borderColor: '#fecaca', color: '#dc2626' }}
+            >
+              {crisisLoading ? 'Simulating…' : '⚠ Demo Surge Crisis'}
             </button>
           )}
         </div>
       </div>
 
-      {/* ── 5 KPI Cards ──────────────────────────────────────────────────── */}
-      <div className="flex gap-2">
+      {/* ── 5 KPI Cards in Responsive Grid ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard
           icon={Users} iconColor="#1e50a0" iconBg="#dbeafe"
           label="ER Waiting"
@@ -1053,26 +1124,18 @@ export function CommandCenter() {
         />
       </div>
 
-      {/* ── Middle row: AI Assistant + Live Activity ──────────────────────── */}
-      <div className="flex gap-2" style={{ height: '340px' }}>
-        {/* AI Assistant */}
-        <div className="flex-1 min-w-0 h-full">
-          <AIAssistant state={state} />
-        </div>
-
-        {/* Live Activity */}
-        <div className="flex-shrink-0 h-full" style={{ width: '280px' }}>
-          <LiveActivityFeed state={state} bottlenecks={bottlenecks} />
-        </div>
-      </div>
-
-      {/* ── Bottom row: Patient Flow Chart + Department Table ─────────────── */}
-      <div className="flex gap-2 items-stretch">
-        <div className="flex-1 min-w-0 h-full">
+      {/* ── Main Operations 2-Column Grid with Generous Breathing Space ─────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column (8 cols): Primary Flow Chart + Capacity Table */}
+        <div className="lg:col-span-8 space-y-6">
           <PatientFlowChart state={state} />
-        </div>
-        <div className="flex-shrink-0 h-full" style={{ width: '360px' }}>
           <DeptTable state={state} />
+        </div>
+
+        {/* Right Column (4 cols): AI Assistant + Live Activity Feed */}
+        <div className="lg:col-span-4 space-y-6">
+          <AIAssistant state={state} />
+          <LiveActivityFeed state={state} bottlenecks={bottlenecks} />
         </div>
       </div>
     </div>

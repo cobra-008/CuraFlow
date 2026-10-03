@@ -394,6 +394,18 @@ export async function createSession(
 	goal: string,
 	constraints: string,
 ): Promise<CreateSessionResponse> {
+	let orgId = getActiveOrgId()
+	if (!orgId) {
+		try {
+			const orgs = await fetchOrgs()
+			const active = orgs.find(o => o.status === 'active') || orgs[0]
+			if (active) {
+				setActiveOrgId(active.id)
+			}
+		} catch {
+			// ignore error if orgs fetch fails
+		}
+	}
 	return post<CreateSessionResponse>(withOrg('/api/sessions'), { goal, constraints, autonomous: false })
 }
 

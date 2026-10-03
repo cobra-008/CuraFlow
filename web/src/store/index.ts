@@ -521,6 +521,9 @@ export const useStore = create<AppState>((set, get) => {
         let data: Awaited<ReturnType<typeof createSession>> | null = null
         try {
           data = await createSession(promptText, constraintText)
+          if (!get().activeOrgId && getActiveOrgId()) {
+            set({ activeOrgId: getActiveOrgId() })
+          }
         } catch (err) {
           console.error('[generatePipeline] createSession failed:', err)
           // A network-level failure (backend down/unreachable) throws before any
