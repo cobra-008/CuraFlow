@@ -46,6 +46,11 @@
   font-family: 'Merriweather', Georgia, serif !important;
 }
 
+::selection {
+  background-color: var(--accent-blue);
+  color: #ffffff;
+}
+
 html, body {
   margin: 0;
   padding: 0;
