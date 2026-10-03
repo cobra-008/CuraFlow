@@ -879,7 +879,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
 
         {/* Right: tab content */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
-          <TabContent />
+          {TabContent()}
         </div>
       </div>
     </div>
@@ -964,7 +964,7 @@ export function CommandCenter() {
   }
 
   return (
-    <div className="p-4 flex flex-col gap-3 min-h-full" style={{ background: '#f5f0e8' }}>
+    <div className="p-3 flex flex-col gap-2 min-h-full" style={{ background: '#f5f0e8' }}>
 
       {/* ── Welcome Header ────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
@@ -1002,7 +1002,7 @@ export function CommandCenter() {
       </div>
 
       {/* ── 5 KPI Cards ──────────────────────────────────────────────────── */}
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         <KpiCard
           icon={Users} iconColor="#1e50a0" iconBg="#dbeafe"
           label="ER Waiting"
@@ -1054,7 +1054,7 @@ export function CommandCenter() {
       </div>
 
       {/* ── Middle row: AI Assistant + Live Activity ──────────────────────── */}
-      <div className="flex gap-3" style={{ minHeight: '400px' }}>
+      <div className="flex gap-2" style={{ minHeight: '400px' }}>
         {/* AI Assistant */}
         <div className="flex-1 min-w-0" style={{ minHeight: 0 }}>
           <AIAssistant state={state} />
@@ -1067,7 +1067,7 @@ export function CommandCenter() {
       </div>
 
       {/* ── Bottom row: Patient Flow Chart + Department Table ─────────────── */}
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         <div className="flex-1 min-w-0">
           <PatientFlowChart state={state} />
         </div>
