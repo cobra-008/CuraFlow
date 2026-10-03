@@ -1668,7 +1668,8 @@ async function runExecution(
 
   const { edges: currentEdges } = get()
   set({
-    executionStatus: 'submitted',
+    executionStatus: 'complete_pending',
+    sessionRecommendation: scenario.recommendation ?? null,
     edges: currentEdges.map((e) => ({
       ...e,
       animated: true,
