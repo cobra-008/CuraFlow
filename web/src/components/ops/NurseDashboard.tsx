@@ -1,5 +1,5 @@
-﻿import { useState, useEffect, useCallback } from "react"
-import { User, Clock, Send, BellRing, CheckCircle2, AlertTriangle, Edit3, Save, X, ChevronDown, ChevronUp } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { User, Clock, Send, BellRing, CheckCircle2, AlertTriangle, Edit3, Save, X, ChevronDown, ChevronUp, CheckSquare, Square } from "lucide-react"
 import { useStore } from "../../store"
 import type { DoctorPatient } from "./DoctorDashboard"
 
@@ -77,9 +77,12 @@ function NursePatientRow({ patient, nurseCallActive, onSendUpdate, onUpdateTime,
         <div className="flex-1 min-w-0">
           <div className="font-bold text-sm" style={{ color: "#1a2744" }}>
             {patient.name}
-            <span className="ml-2 text-xs font-normal" style={{ color: "#8c7e6a" }}>{patient.age} yrs · {patient.gender} · {patient.ward}</span>
+            <span className="ml-2 text-xs font-normal" style={{ color: "#8c7e6a" }}>{patient.age} yrs · {patient.gender}</span>
           </div>
-          <div className="text-xs mt-0.5" style={{ color: "#6b5c40" }}>{patient.problem}</div>
+          <div className="text-xs mt-0.5 flex items-center flex-wrap gap-1" style={{ color: "#6b5c40" }}>
+            <span className="font-bold text-blue-700 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">Ward {patient.ward} • Rm {patient.room || "TBA"}-{patient.bed || "-"}</span>
+            <span className="ml-1">{patient.problem}</span>
+          </div>
         </div>
         {/* Time slot — editable */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -115,6 +118,23 @@ function NursePatientRow({ patient, nurseCallActive, onSendUpdate, onUpdateTime,
               <b>Last update sent:</b> {patient.nurseNote}
             </div>
           )}
+          <div className="mt-4">
+            <label className="text-[11px] font-bold uppercase tracking-wider mb-2 block" style={{ color: "#6b5c40" }}>Bedside Task Checklist</label>
+            <div className="flex flex-col gap-2 mb-4 p-3 rounded-xl" style={{ background: "#fafaf9", border: "1px solid #e8e1d4" }}>
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 accent-[#1e3a6e]" />
+                <span className="text-sm font-medium group-hover:text-blue-700 transition-colors" style={{ color: "#374151" }}>Administer Scheduled Medications</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 accent-[#1e3a6e]" />
+                <span className="text-sm font-medium group-hover:text-blue-700 transition-colors" style={{ color: "#374151" }}>Check IV Fluid Levels</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="checkbox" className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 accent-[#1e3a6e]" />
+                <span className="text-sm font-medium group-hover:text-blue-700 transition-colors" style={{ color: "#374151" }}>Record Vitals (Temp, BP, SpO2)</span>
+              </label>
+            </div>
+          </div>
           <div className="mt-4">
             <label className="text-[11px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: "#6b5c40" }}>Send Patient Update to Doctor</label>
             <textarea

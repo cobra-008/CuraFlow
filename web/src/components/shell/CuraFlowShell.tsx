@@ -127,9 +127,10 @@ function Sidebar({
           {NAV_GROUPS[0].items.filter(item => {
             // Apply RBAC filters based on CuraFlow_RBAC_Design.md
             if (role === 'super_admin' || role === 'admin') return true;
-            if (role === 'er_coordinator') return ['flow', 'capacity', 'orchestration', 'emergency'].includes(item.id);
-            if (role === 'ot_manager') return ['command', 'resources'].includes(item.id);
-            if (role === 'doctor' || role === 'nurse') return ['command', 'approvals'].includes(item.id);
+            if (role === 'er_coordinator') return ['emergency', 'command', 'flow', 'capacity', 'orchestration', 'reports', 'settings'].includes(item.id);
+            if (role === 'ot_manager') return ['command', 'resources', 'capacity', 'reports', 'settings'].includes(item.id);
+            if (role === 'doctor') return ['command', 'flow', 'capacity', 'reports', 'settings'].includes(item.id);
+            if (role === 'nurse') return ['command', 'capacity', 'resources', 'reports', 'settings'].includes(item.id);
             return false;
           }).map(({ id, label, icon: Icon }) => {
             const active = activeRoute === id

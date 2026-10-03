@@ -1,5 +1,5 @@
-﻿import { useState, useEffect, useCallback } from "react"
-import { User, Clock, ClipboardList, BellRing, CheckCircle2, LogOut, Stethoscope, ChevronDown, ChevronUp, X } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { User, Clock, ClipboardList, BellRing, CheckCircle2, LogOut, Stethoscope, ChevronDown, ChevronUp, X, AlertTriangle, FileText, Activity, Pill } from "lucide-react"
 import { useStore } from "../../store"
 
 function SyringeIcon({ size = 18 }: { size?: number }) {
@@ -23,8 +23,12 @@ export interface DoctorPatient {
   gender: "M" | "F" | "Other"
   problem: string
   medicalHistory: string
+  allergies?: string[]
+  vitals?: { bp: string, hr: number, temp: number, spo2: number }
   appointmentTime: string
   ward: string
+  room?: string
+  bed?: string
   nurseNote?: string
   nurseNoteAt?: string
   status: "waiting" | "in-progress" | "done" | "discharged"
@@ -44,11 +48,11 @@ function savePatients(pts: DoctorPatient[]) {
 }
 function defaultPatients(): DoctorPatient[] {
   return [
-    { id: "p001", name: "Arun Kumar", age: 58, gender: "M", problem: "Chest pain with breathlessness", medicalHistory: "Hypertension (10 yrs), Type-2 Diabetes, Prior MI (2019)", appointmentTime: "09:00", ward: "Cardiology", status: "waiting" },
-    { id: "p002", name: "Meena Shetty", age: 34, gender: "F", problem: "Recurrent migraine, vomiting", medicalHistory: "Chronic migraine diagnosed 2021, no prior surgeries", appointmentTime: "09:30", ward: "Neurology", status: "waiting" },
-    { id: "p003", name: "Rajesh Pillai", age: 72, gender: "M", problem: "Post-operative wound check", medicalHistory: "Hip replacement surgery (3 weeks ago), mild anaemia", appointmentTime: "10:00", ward: "Orthopaedics", status: "in-progress", nurseNote: "Vitals stable. Wound dressing changed. Patient is mobile.", nurseNoteAt: "09:52" },
-    { id: "p004", name: "Kavitha Nair", age: 45, gender: "F", problem: "Fever, sore throat, difficulty swallowing", medicalHistory: "Tonsillitis (recurring), no chronic conditions", appointmentTime: "10:30", ward: "ENT", status: "waiting" },
-    { id: "p005", name: "Suresh Mohan", age: 61, gender: "M", problem: "Uncontrolled blood sugar, dizziness", medicalHistory: "Type-1 Diabetes (20 yrs), CKD Stage 2", appointmentTime: "11:00", ward: "Endocrinology", status: "waiting" },
+    { id: "p001", name: "Arun Kumar", age: 58, gender: "M", problem: "Chest pain with breathlessness", medicalHistory: "Hypertension (10 yrs), Type-2 Diabetes, Prior MI (2019)", allergies: ["Penicillin"], vitals: { bp: "145/90", hr: 110, temp: 37.2, spo2: 92 }, appointmentTime: "09:00", ward: "Cardiology", room: "201", bed: "A", status: "waiting" },
+    { id: "p002", name: "Meena Shetty", age: 34, gender: "F", problem: "Recurrent migraine, vomiting", medicalHistory: "Chronic migraine diagnosed 2021, no prior surgeries", allergies: [], vitals: { bp: "120/80", hr: 75, temp: 36.8, spo2: 98 }, appointmentTime: "09:30", ward: "Neurology", room: "105", bed: "B", status: "waiting" },
+    { id: "p003", name: "Rajesh Pillai", age: 72, gender: "M", problem: "Post-operative wound check", medicalHistory: "Hip replacement surgery (3 weeks ago), mild anaemia", allergies: ["Sulfa Drugs", "Latex"], vitals: { bp: "130/85", hr: 82, temp: 37.0, spo2: 96 }, appointmentTime: "10:00", ward: "Orthopaedics", room: "302", bed: "A", status: "in-progress", nurseNote: "Vitals stable. Wound dressing changed. Patient is mobile.", nurseNoteAt: "09:52" },
+    { id: "p004", name: "Kavitha Nair", age: 45, gender: "F", problem: "Fever, sore throat, difficulty swallowing", medicalHistory: "Tonsillitis (recurring), no chronic conditions", allergies: [], vitals: { bp: "110/70", hr: 95, temp: 38.5, spo2: 97 }, appointmentTime: "10:30", ward: "ENT", room: "108", bed: "C", status: "waiting" },
+    { id: "p005", name: "Suresh Mohan", age: 61, gender: "M", problem: "Uncontrolled blood sugar, dizziness", medicalHistory: "Type-1 Diabetes (20 yrs), CKD Stage 2", allergies: ["Ibuprofen"], vitals: { bp: "150/95", hr: 88, temp: 36.9, spo2: 95 }, appointmentTime: "11:00", ward: "Endocrinology", room: "204", bed: "A", status: "waiting" },
   ]
 }
 
@@ -80,8 +84,17 @@ function PatientCard({ patient, onCallNurse, onStatusChange, onDismissDischarge 
         <div className="flex-1 min-w-0">
           <div className="font-bold text-sm leading-tight" style={{ color: "#1a2744" }}>
             {patient.name}
-            <span className="ml-2 text-xs font-normal" style={{ color: "#8c7e6a" }}>{patient.age} yrs · {patient.gender} · {patient.ward}</span>
+            <span className="ml-2 text-xs font-normal" style={{ color: "#8c7e6a" }}>{patient.age} yrs · {patient.gender} · {patient.ward} {patient.room ? `· Rm ${patient.room}-${patient.bed}` : ''}</span>
           </div>
+          {patient.allergies && patient.allergies.length > 0 && (
+            <div className="flex gap-1 mt-1 mb-0.5">
+              {patient.allergies.map(a => (
+                <span key={a} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-50 text-red-700 border border-red-100 flex items-center gap-0.5">
+                  <AlertTriangle size={10} /> {a}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="text-xs mt-0.5 font-medium" style={{ color: "#dc4a00" }}>{patient.problem}</div>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl flex-shrink-0" style={{ background: "#fef3c7", border: "1px solid #fde68a" }}>
@@ -121,19 +134,43 @@ function PatientCard({ patient, onCallNurse, onStatusChange, onDismissDischarge 
               <div className="flex items-center gap-1.5 mb-2"><ClipboardList size={14} style={{ color: "#6b5c40" }} /><span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#6b5c40" }}>Medical History</span></div>
               <p className="text-sm leading-relaxed" style={{ color: "#374151" }}>{patient.medicalHistory}</p>
             </div>
-            <div className="rounded-xl p-4" style={{ background: "#fff8f5", border: "1px solid #fddccc" }}>
+            <div className="rounded-xl p-4" style={{ background: "#f0f9ff", border: "1px solid #bae6fd" }}>
+              <div className="flex items-center gap-1.5 mb-2"><Activity size={14} style={{ color: "#0369a1" }} /><span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#0369a1" }}>Latest Vitals</span></div>
+              {patient.vitals ? (
+                <div className="grid grid-cols-2 gap-2 text-sm mt-2">
+                  <div><span className="text-slate-500">BP:</span> <strong className={parseInt(patient.vitals.bp) > 130 ? "text-red-600" : ""}>{patient.vitals.bp}</strong></div>
+                  <div><span className="text-slate-500">HR:</span> <strong className={patient.vitals.hr > 100 ? "text-red-600" : ""}>{patient.vitals.hr} bpm</strong></div>
+                  <div><span className="text-slate-500">Temp:</span> <strong className={patient.vitals.temp > 37.5 ? "text-orange-600" : ""}>{patient.vitals.temp} °C</strong></div>
+                  <div><span className="text-slate-500">SpO2:</span> <strong className={patient.vitals.spo2 < 95 ? "text-red-600" : ""}>{patient.vitals.spo2}%</strong></div>
+                </div>
+              ) : <p className="text-sm text-slate-500">No vitals recorded</p>}
+            </div>
+            <div className="rounded-xl p-4 md:col-span-2" style={{ background: "#fff8f5", border: "1px solid #fddccc" }}>
               <div className="flex items-center gap-1.5 mb-2"><Stethoscope size={14} style={{ color: "#b45309" }} /><span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#b45309" }}>Current Complaint</span></div>
               <p className="text-sm leading-relaxed" style={{ color: "#374151" }}>{patient.problem}</p>
             </div>
           </div>
           {!isDischarged && (
-            <div className="mt-4 flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold" style={{ color: "#6b5c40" }}>Mark as:</span>
-              {(["waiting", "in-progress", "done", "discharged"] as DoctorPatient["status"][]).map(s => (
-                <button key={s} onClick={() => onStatusChange(patient.id, s)} className="text-xs font-bold px-3 py-1.5 rounded-lg border transition-all" style={{ background: patient.status === s ? "#1e3a6e" : "transparent", color: patient.status === s ? "#fff" : "#1a2744", borderColor: "#e0d5c0" }}>
-                  {s === "in-progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)}
+            <div className="mt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-t pt-4" style={{ borderColor: "#f0e8d8" }}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold" style={{ color: "#6b5c40" }}>Mark as:</span>
+                {(["waiting", "in-progress", "done", "discharged"] as DoctorPatient["status"][]).map(s => (
+                  <button key={s} onClick={() => onStatusChange(patient.id, s)} className="text-xs font-bold px-3 py-1.5 rounded-lg border transition-all" style={{ background: patient.status === s ? "#1e3a6e" : "transparent", color: patient.status === s ? "#fff" : "#1a2744", borderColor: "#e0d5c0" }}>
+                    {s === "in-progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border bg-white hover:bg-slate-50 transition-all text-slate-700 border-slate-200">
+                  <FileText size={14} className="text-blue-600" /> Order Lab
                 </button>
-              ))}
+                <button className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border bg-white hover:bg-slate-50 transition-all text-slate-700 border-slate-200">
+                  <Pill size={14} className="text-purple-600" /> Prescription
+                </button>
+                <button onClick={() => onStatusChange(patient.id, "discharged")} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border bg-red-50 hover:bg-red-100 transition-all text-red-700 border-red-200">
+                  <LogOut size={14} /> Discharge Order
+                </button>
+              </div>
             </div>
           )}
         </div>
