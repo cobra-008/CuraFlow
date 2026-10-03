@@ -408,7 +408,6 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PATCH, PUT, DELETE')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.end_headers()
@@ -458,9 +457,31 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             }})
 
         elif p.startswith('/api/sessions'):
-            self._send(200, {
-                "session_id": str(uuid.uuid4()), "status": "pending", "autonomous": False,
-                "pipeline": {
+            goal = body.get('goal', '').lower()
+            
+            if 'simple' in goal or 'one' in goal:
+                pipeline_data = {
+                    "understood_goal": "Mock goal - generating a simple pipeline",
+                    "priority": "normal",
+                    "agents": [{"id": "er_agent", "task_type": "triage"}],
+                    "edges": []
+                }
+            elif 'surgery' in goal or 'ot' in goal:
+                pipeline_data = {
+                    "understood_goal": "Mock goal - generating an OT pipeline",
+                    "priority": "high",
+                    "agents": [
+                        {"id": "ot_agent", "task_type": "scheduling"},
+                        {"id": "lab_agent", "task_type": "results_expedite"},
+                        {"id": "bed_agent", "task_type": "allocation"}
+                    ],
+                    "edges": [
+                        {"source": "ot_agent", "target": "lab_agent"},
+                        {"source": "ot_agent", "target": "bed_agent"}
+                    ]
+                }
+            else:
+                pipeline_data = {
                     "understood_goal": "Mock goal - generating a complex pipeline",
                     "priority": "normal",
                     "agents": [
@@ -478,6 +499,10 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
                         {"source": "bed_agent", "target": "revenue_agent"}
                     ]
                 }
+
+            self._send(200, {
+                "session_id": str(uuid.uuid4()), "status": "pending", "autonomous": False,
+                "pipeline": pipeline_data
             })
 
         elif p.startswith('/api/ops/'):

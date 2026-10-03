@@ -11,11 +11,7 @@ export function OrchestrationView() {
   const pipelineGenerated = useStore((s) => s.pipelineGenerated)
   const generatePipeline = useStore((s) => s.generatePipeline)
 
-  useEffect(() => {
-    if (!pipelineGenerated && executionStatus === 'idle') {
-      generatePipeline()
-    }
-  }, [pipelineGenerated, executionStatus, generatePipeline])
+  // Removed auto-generation on mount so the user can enter a prompt first
 
   const hasExecuted = pipelineGenerated || executionStatus !== 'idle'
 
