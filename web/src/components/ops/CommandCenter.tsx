@@ -409,126 +409,426 @@ function LiveActivityFeed({ state, bottlenecks }: { state: HospitalState | null;
 }
 
 // ── AI Assistant ───────────────────────────────────────────────────────────────
-function AIAssistant({ recommendations, bottlenecks }: { recommendations: Recommendation[]; bottlenecks: Bottleneck[] }) {
-  const [msg, setMsg] = useState('')
-  const [activeTab, setActiveTab] = useState<'ask' | 'recs' | 'analyze' | 'simulate' | 'capacity'>('ask')
+type TabId = 'ask' | 'recs' | 'analyze' | 'simulate' | 'capacity' | 'emergency'
 
-  const TABS = [
-    { id: 'ask',      icon: '💬', label: 'Ask Anything' },
-    { id: 'recs',     icon: '🎯', label: 'Get Recommendations' },
-    { id: 'analyze',  icon: '📊', label: 'Analyze Situations' },
-    { id: 'simulate', icon: '🔄', label: 'Run Simulations' },
-    { id: 'capacity', icon: '📋', label: 'Check Capacity' },
-  ] as const
+interface ChatMsg { role: 'user' | 'ai'; text: string; ts: string }
 
-  const pendingRecs = recommendations.filter(r => r.status === 'pending')
-  const topBn = bottlenecks[0]
+const TABS: { id: TabId; icon: string; label: string }[] = [
+  { id: 'ask',       icon: '💬', label: 'Ask Anything' },
+  { id: 'recs',      icon: '🎯', label: 'Get Recommendations' },
+  { id: 'analyze',   icon: '📊', label: 'Analyze Situations' },
+  { id: 'simulate',  icon: '🔄', label: 'Run Simulations' },
+  { id: 'capacity',  icon: '📋', label: 'Check Capacity' },
+  { id: 'emergency', icon: '🚨', label: 'Emergency Support' },
+]
 
-  const aiMessage = topBn
-    ? `ICU occupancy is currently at ${topBn.current_value?.toFixed(0) ?? 'elevated'} levels. The system has detected: ${topBn.description ?? topBn.bottleneck_type.replace(/_/g, ' ')}. `
-    : 'All hospital systems are operating within normal parameters. No critical bottlenecks detected.'
-
-  const recActions = pendingRecs.slice(0, 4).map(r => r.title)
-
+function TypingDots() {
   return (
-    <div className="cf-card flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0"
-        style={{ borderColor: '#f0e8d8', background: 'linear-gradient(to right, #f5f9ff, #ffffff)' }}>
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#1e3a6e' }}>
-            <Sparkles size={13} className="text-white" />
+    <div className="flex items-center gap-1 px-3 py-2">
+      {[0,1,2].map(i => (
+        <div key={i} className="w-2 h-2 rounded-full animate-bounce"
+          style={{ background: '#1e3a6e', animationDelay: `${i * 0.15}s` }} />
+      ))}
+    </div>
+  )
+}
+
+function Skeleton({ lines = 3 }: { lines?: number }) {
+  return (
+    <div className="space-y-2 animate-pulse">
+      {Array.from({ length: lines }).map((_, i) => (
+        <div key={i} className="h-3 rounded" style={{
+          background: '#f0e8d8',
+          width: i === lines - 1 ? '60%' : '100%'
+        }} />
+      ))}
+    </div>
+  )
+}
+
+function AIAssistant({ state }: { state: HospitalState | null }) {
+  const [activeTab, setActiveTab] = useState<TabId>('ask')
+  const [input, setInput]         = useState('')
+  const [sending, setSending]     = useState(false)
+  const [tabLoading, setTabLoading] = useState(false)
+  const [messages, setMessages]   = useState<ChatMsg[]>([{
+    role: 'ai',
+    text: "Hello! I'm CuraFlow AI. Ask me about any department — ICU status, ER queue, bed availability, staff, diagnostics, or request recommendations.",
+    ts: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+  }])
+
+  // Tab-specific data
+  const [recs, setRecs] = useState<Recommendation[]>([])
+  const [bottlenecks, setBottlenecks] = useState<Bottleneck[]>([])
+  const [scenarios, setScenarios] = useState<{ id: string; name: string; description: string; type: string }[]>([])
+  const [simRunning, setSimRunning] = useState<string | null>(null)
+  const [simResult, setSimResult] = useState<Record<string, unknown> | null>(null)
+
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to bottom on new message
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, sending])
+
+  // Load tab data when switching
+  useEffect(() => {
+    let cancelled = false
+    async function loadTab() {
+      setTabLoading(true)
+      try {
+        if (activeTab === 'recs') {
+          const d = await opsApi.getRecommendations()
+          if (!cancelled) setRecs(d.recommendations ?? [])
+        } else if (activeTab === 'analyze') {
+          const d = await opsApi.getBottlenecks()
+          if (!cancelled) setBottlenecks(d.bottlenecks ?? [])
+        } else if (activeTab === 'simulate') {
+          const d = await opsApi.getScenarios()
+          if (!cancelled) setScenarios(d.scenarios ?? [])
+        } else if (activeTab === 'capacity') {
+          // capacity uses state prop — already available
+        }
+      } catch { /* ignore */ }
+      finally { if (!cancelled) setTabLoading(false) }
+    }
+    if (activeTab !== 'ask' && activeTab !== 'emergency') loadTab()
+    else setTabLoading(false)
+    return () => { cancelled = true }
+  }, [activeTab])
+
+  // ── Send message ────────────────────────────────────────────────
+  async function sendMessage() {
+    const text = input.trim()
+    if (!text || sending) return
+    setInput('')
+    const ts = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    setMessages(m => [...m, { role: 'user', text, ts }])
+    setSending(true)
+    try {
+      const res = await opsApi.chat(text)
+      setMessages(m => [...m, { role: 'ai', text: res.response, ts: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }])
+    } catch {
+      setMessages(m => [...m, { role: 'ai', text: 'Unable to connect to CuraFlow AI. Please check the server connection.', ts }])
+    } finally {
+      setSending(false)
+    }
+  }
+
+  function onKey(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
+  }
+
+  // ── Run simulation ──────────────────────────────────────────────
+  async function runSim(type: string) {
+    setSimRunning(type)
+    setSimResult(null)
+    try {
+      const r = await opsApi.runSimulation({ scenario_type: type, with_curaflow: true }) as Record<string, unknown>
+      setSimResult(r)
+    } catch { /* ignore */ }
+    finally { setSimRunning(null) }
+  }
+
+  // ── Tab content ─────────────────────────────────────────────────
+  function TabContent() {
+    if (activeTab === 'ask') {
+      return (
+        <>
+          {/* Chat messages */}
+          <div className="flex-1 overflow-auto p-3 space-y-3">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'items-start gap-2'}`}>
+                {m.role === 'ai' && (
+                  <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: '#1e3a6e' }}>
+                    <Sparkles size={11} className="text-white" />
+                  </div>
+                )}
+                <div className={`max-w-[80%] ${m.role === 'user' ? '' : 'flex-1 min-w-0'}`}>
+                  <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed ${
+                    m.role === 'user'
+                      ? 'rounded-br-sm'
+                      : 'rounded-bl-sm'
+                  }`} style={{
+                    background: m.role === 'user' ? '#1e3a6e' : '#f5f0e8',
+                    color: m.role === 'user' ? '#fff' : '#1a2744',
+                  }}>
+                    {m.text}
+                  </div>
+                  <div className="text-xs mt-0.5 px-1" style={{ color: '#c0b8a8', fontSize: '10px' }}>{m.ts}</div>
+                </div>
+              </div>
+            ))}
+            {sending && (
+              <div className="flex items-start gap-2">
+                <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: '#1e3a6e' }}>
+                  <Sparkles size={11} className="text-white" />
+                </div>
+                <div className="rounded-2xl rounded-bl-sm" style={{ background: '#f5f0e8' }}>
+                  <TypingDots />
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
           </div>
-          <div>
-            <div className="font-bold text-sm" style={{ color: '#1a2744' }}>CuraFlow AI Assistant</div>
-            <div className="text-xs" style={{ color: '#9aa3b2' }}>Ask questions, get insights, and take action across hospital operations</div>
+
+          {/* Quick prompts */}
+          <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+            {['ICU status', 'ER queue', 'Bed availability', 'Staff utilization'].map(q => (
+              <button key={q} onClick={() => { setInput(q); }}
+                className="text-xs px-2 py-1 rounded-full border transition-colors hover:border-blue-300"
+                style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#5a6475' }}>
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {/* Input bar */}
+          <div className="flex items-center gap-2 px-3 py-2.5 border-t flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
+            <input
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="Ask about ICU, beds, staff, ER..."
+              className="flex-1 py-2 px-3 text-xs rounded-lg outline-none"
+              style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#1a2744' }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || sending}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white flex-shrink-0 disabled:opacity-40 transition-opacity"
+              style={{ background: '#1e3a6e' }}
+            >
+              <Send size={13} />
+            </button>
+          </div>
+        </>
+      )
+    }
+
+    if (activeTab === 'recs') {
+      return (
+        <div className="flex-1 overflow-auto p-3">
+          {tabLoading ? <Skeleton lines={4} /> : recs.length === 0 ? (
+            <div className="text-xs text-center py-6" style={{ color: '#9aa3b2' }}>No active recommendations</div>
+          ) : recs.map(r => (
+            <div key={r.id} className="mb-3 rounded-lg p-3" style={{ background: '#f5f0e8', border: '1px solid #e8e1d4' }}>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <span className="text-xs font-bold" style={{ color: '#1a2744' }}>{r.title}</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                  r.priority === 'critical' ? 'bg-red-100 text-red-700' :
+                  r.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                  'bg-amber-100 text-amber-700'
+                }`}>{r.priority}</span>
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: '#5a6475' }}>{r.summary}</p>
+              <div className="mt-2 text-xs font-semibold" style={{ color: '#1e3a6e' }}>
+                Confidence: {(r.confidence * 100).toFixed(0)}%
+              </div>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('curaflow:navigate', { detail: 'approvals' }))}
+                className="mt-2 flex items-center gap-1 text-xs font-semibold"
+                style={{ color: '#1e3a6e' }}
+              >
+                Review in Approvals <ArrowRight size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    if (activeTab === 'analyze') {
+      return (
+        <div className="flex-1 overflow-auto p-3">
+          {tabLoading ? <Skeleton lines={5} /> : bottlenecks.length === 0 ? (
+            <div className="text-xs text-center py-6" style={{ color: '#9aa3b2' }}>
+              ✅ No bottlenecks detected. All systems nominal.
+            </div>
+          ) : bottlenecks.map(bn => (
+            <div key={bn.id} className="mb-3 rounded-lg p-3" style={{ background: '#f5f0e8', border: '1px solid #e8e1d4' }}>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
+                  background: bn.severity === 'critical' ? '#dc2626' : bn.severity === 'high' ? '#ea580c' : '#d97706'
+                }} />
+                <span className="text-xs font-bold" style={{ color: '#1a2744' }}>
+                  {bn.bottleneck_type.replace(/_/g, ' ')}
+                </span>
+                <span className="ml-auto text-xs font-bold px-1.5 py-0.5 rounded" style={{
+                  background: bn.severity === 'critical' ? '#fef2f2' : '#fff7ed',
+                  color: bn.severity === 'critical' ? '#dc2626' : '#ea580c',
+                }}>
+                  {bn.severity.toUpperCase()}
+                </span>
+              </div>
+              <p className="text-xs" style={{ color: '#5a6475' }}>{bn.description}</p>
+              <div className="mt-2 flex items-center gap-2 text-xs" style={{ color: '#9aa3b2' }}>
+                <span>Current: <b style={{ color: '#1a2744' }}>{bn.current_value?.toFixed(1)}</b></span>
+                <span>Threshold: <b style={{ color: '#1a2744' }}>{bn.threshold_value?.toFixed(1)}</b></span>
+                <span>Confidence: <b style={{ color: '#1a2744' }}>{(bn.confidence * 100).toFixed(0)}%</b></span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    if (activeTab === 'simulate') {
+      return (
+        <div className="flex-1 overflow-auto p-3">
+          {tabLoading ? <Skeleton lines={4} /> : (
+            <>
+              {simResult && (
+                <div className="mb-3 p-3 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                  <div className="text-xs font-bold mb-1" style={{ color: '#166534' }}>Simulation Complete</div>
+                  {(() => {
+                    const r = simResult as Record<string, unknown>
+                    const improvement = r.improvement_summary as Record<string, number> | undefined
+                    return improvement ? (
+                      <div className="text-xs space-y-0.5" style={{ color: '#166534' }}>
+                        <div>Wait time reduction: <b>{improvement.wait_time_reduction_pct?.toFixed(1)}%</b></div>
+                        <div>Bottleneck reduction: <b>{improvement.bottleneck_duration_reduction_pct?.toFixed(1)}%</b></div>
+                      </div>
+                    ) : null
+                  })()}
+                </div>
+              )}
+              {scenarios.map(s => (
+                <div key={s.id} className="mb-2 rounded-lg p-3 flex items-start justify-between gap-2"
+                  style={{ background: '#f5f0e8', border: '1px solid #e8e1d4' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold" style={{ color: '#1a2744' }}>{s.name}</div>
+                    <div className="text-xs mt-0.5" style={{ color: '#5a6475' }}>{s.description}</div>
+                  </div>
+                  <button
+                    disabled={simRunning !== null}
+                    onClick={() => runSim(s.type)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0 disabled:opacity-50"
+                    style={{ background: '#1e3a6e', color: '#fff' }}
+                  >
+                    {simRunning === s.type ? '⏳' : '▶ Run'}
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )
+    }
+
+    if (activeTab === 'capacity') {
+      if (!state) return <div className="flex-1 flex items-center justify-center"><Skeleton lines={3} /></div>
+      const rows = [
+        { label: 'Beds', used: state.beds.occupied, total: state.beds.total, pct: state.beds.occupancy_pct },
+        { label: 'ICU', used: state.icu.occupied, total: state.icu.total, pct: state.icu.occupancy_pct },
+        { label: 'Staff', used: state.staff.on_duty, total: state.staff.total, pct: state.staff.utilization_pct },
+        { label: 'OT Rooms', used: state.operating_rooms.occupied, total: state.operating_rooms.total, pct: state.operating_rooms.utilization_pct },
+        { label: 'Diag Devices', used: state.diagnostics.total_devices - state.diagnostics.available_devices, total: state.diagnostics.total_devices, pct: ((state.diagnostics.total_devices - state.diagnostics.available_devices) / state.diagnostics.total_devices) * 100 },
+        { label: 'ER Queue', used: state.emergency.waiting, total: state.emergency.capacity, pct: (state.emergency.waiting / state.emergency.capacity) * 100 },
+      ]
+      return (
+        <div className="flex-1 overflow-auto p-3 space-y-2">
+          {rows.map(r => {
+            const pct = Math.min(100, Math.round(r.pct))
+            const color = pct >= 90 ? '#dc2626' : pct >= 75 ? '#ea580c' : '#16a34a'
+            return (
+              <div key={r.label}>
+                <div className="flex items-center justify-between mb-1 text-xs">
+                  <span style={{ color: '#1a2744', fontWeight: 600 }}>{r.label}</span>
+                  <span style={{ color }}><b>{r.used}</b> / {r.total} ({pct}%)</span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: '#f0e8d8' }}>
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />
+                </div>
+              </div>
+            )
+          })}
+          <div className="mt-3 pt-2 border-t text-xs" style={{ borderColor: '#f0e8d8', color: '#9aa3b2' }}>
+            Data refreshed every 5 seconds from live hospital state.
           </div>
         </div>
-        <button className="text-xs font-semibold px-3 py-1 rounded-lg" style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#5a6475' }}>
-          Examples ↓
-        </button>
+      )
+    }
+
+    if (activeTab === 'emergency') {
+      const protocols = [
+        { code: 'Code Blue', desc: 'Cardiac/respiratory arrest — all available staff respond', color: '#1e3a6e' },
+        { code: 'Code Red', desc: 'Fire / mass casualty — initiate evacuation protocol', color: '#dc2626' },
+        { code: 'Code Black', desc: 'Bomb threat — secure ward, contact security immediately', color: '#374151' },
+        { code: 'Code Orange', desc: 'Hazmat / chemical spill — isolate and contact HAZMAT', color: '#ea580c' },
+        { code: 'Code White', desc: 'Violent patient/person — alert security, do not intervene alone', color: '#9aa3b2' },
+      ]
+      return (
+        <div className="flex-1 overflow-auto p-3 space-y-2">
+          <div className="text-xs font-semibold mb-2" style={{ color: '#1a2744' }}>Emergency Protocols</div>
+          {protocols.map(p => (
+            <div key={p.code} className="flex items-start gap-2 p-2.5 rounded-lg"
+              style={{ background: '#f5f0e8', border: '1px solid #e8e1d4' }}>
+              <div className="w-2 h-2 rounded-full mt-1 flex-shrink-0" style={{ background: p.color }} />
+              <div>
+                <div className="text-xs font-bold" style={{ color: p.color }}>{p.code}</div>
+                <div className="text-xs mt-0.5" style={{ color: '#5a6475' }}>{p.desc}</div>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('curaflow:navigate', { detail: 'simulation' }))}
+            className="w-full mt-2 py-2 text-xs font-bold rounded-lg"
+            style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
+          >
+            🚨 Run Emergency Simulation
+          </button>
+        </div>
+      )
+    }
+
+    return null
+  }
+
+  return (
+    <div className="cf-card flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0"
+        style={{ borderColor: '#f0e8d8', background: 'linear-gradient(to right, #f5f9ff, #ffffff)' }}>
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#1e3a6e' }}>
+            <Sparkles size={12} className="text-white" />
+          </div>
+          <div className="font-bold text-sm" style={{ color: '#1a2744' }}>CuraFlow AI Assistant</div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-xs" style={{ color: '#9aa3b2' }}>Live</span>
+        </div>
       </div>
 
+      {/* Body */}
       <div className="flex flex-1 min-h-0">
         {/* Left tabs */}
-        <div className="flex flex-col border-r flex-shrink-0" style={{ width: '160px', borderColor: '#f0e8d8' }}>
+        <div className="flex flex-col border-r flex-shrink-0" style={{ width: '148px', borderColor: '#f0e8d8' }}>
           {TABS.map(t => (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id as typeof activeTab)}
-              className="flex items-center gap-2 px-3 py-2.5 text-left text-xs transition-colors"
+              onClick={() => setActiveTab(t.id)}
+              className="flex items-center gap-2 px-2.5 py-2 text-left text-xs transition-colors flex-shrink-0"
               style={{
                 background: activeTab === t.id ? '#f0f6ff' : 'transparent',
                 color: activeTab === t.id ? '#1e3a6e' : '#5a6475',
                 fontWeight: activeTab === t.id ? 600 : 400,
                 borderLeft: activeTab === t.id ? '3px solid #1e3a6e' : '3px solid transparent',
+                fontSize: '11px',
               }}
             >
-              <span>{t.icon}</span>
+              <span style={{ fontSize: '13px' }}>{t.icon}</span>
               <span className="leading-tight">{t.label}</span>
             </button>
           ))}
         </div>
 
-        {/* Right: AI response */}
-        <div className="flex flex-col flex-1 min-w-0">
-          <div className="flex-1 overflow-auto p-4">
-            {/* Simulated user question */}
-            <div className="flex justify-end mb-3">
-              <div className="px-3 py-2 rounded-2xl rounded-br-sm text-xs max-w-xs"
-                style={{ background: '#1e3a6e', color: '#fff' }}>
-                What is causing the ICU occupancy to increase and what are the possible actions?
-              </div>
-            </div>
-
-            {/* AI Response */}
-            <div className="flex gap-2 mb-3">
-              <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: '#1e3a6e' }}>
-                <Sparkles size={11} className="text-white" />
-              </div>
-              <div className="flex-1 min-w-0 text-xs" style={{ color: '#1a2744' }}>
-                <p className="mb-2">{aiMessage}</p>
-                {recActions.length > 0 && (
-                  <>
-                    <p className="font-semibold mb-1.5">Recommended Actions:</p>
-                    <ul className="space-y-1">
-                      {recActions.map((a, i) => (
-                        <li key={i} className="flex items-start gap-1.5">
-                          <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 mt-0.5" style={{ fontSize: '8px' }}>
-                            {i + 1}
-                          </span>
-                          <span>{a}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      className="mt-3 flex items-center gap-1.5 text-xs font-semibold"
-                      style={{ color: '#1e3a6e' }}
-                      onClick={() => window.dispatchEvent(new CustomEvent('curaflow:navigate', { detail: 'approvals' }))}
-                    >
-                      Review all recommendations <ArrowRight size={12} />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Input */}
-          <div className="flex items-center gap-2 px-4 py-3 border-t flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
-            <input
-              type="text"
-              value={msg}
-              onChange={e => setMsg(e.target.value)}
-              placeholder="Type your question or request here..."
-              className="flex-1 py-2 px-3 text-xs rounded-lg outline-none"
-              style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#1a2744' }}
-            />
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-white flex-shrink-0"
-              style={{ background: '#1e3a6e' }}>
-              <Send size={13} />
-            </button>
-          </div>
+        {/* Right: tab content */}
+        <div className="flex flex-col flex-1 min-w-0 min-h-0">
+          <TabContent />
         </div>
       </div>
     </div>
@@ -541,21 +841,18 @@ export function CommandCenter() {
 
   const [state, setState] = useState<HospitalState | null>(null)
   const [bottlenecks, setBottlenecks] = useState<Bottleneck[]>([])
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
   const [crisisLoading, setCrisisLoading] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
-      const [s, b, r] = await Promise.all([
+      const [s, b] = await Promise.all([
         opsApi.getHospitalState(),
         opsApi.getBottlenecks(),
-        opsApi.getRecommendations(),
       ])
       setState(s)
       setBottlenecks(b.bottlenecks)
-      setRecommendations(r.recommendations)
     } catch (e) {
       console.error('CommandCenter fetch error:', e)
     } finally {
@@ -706,10 +1003,10 @@ export function CommandCenter() {
       </div>
 
       {/* ── Middle row: AI Assistant + Live Activity ──────────────────────── */}
-      <div className="flex gap-4" style={{ minHeight: '320px' }}>
+      <div className="flex gap-4" style={{ minHeight: '400px' }}>
         {/* AI Assistant */}
-        <div className="flex-1 min-w-0">
-          <AIAssistant recommendations={recommendations} bottlenecks={bottlenecks} />
+        <div className="flex-1 min-w-0" style={{ minHeight: 0 }}>
+          <AIAssistant state={state} />
         </div>
 
         {/* Live Activity */}

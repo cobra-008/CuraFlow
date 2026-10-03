@@ -554,6 +554,102 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             _sim_runs[run_id] = result
             self._send(200, result)
 
+        elif p == '/api/ops/chat':
+            message = (body.get("message") or "").strip().lower()
+            snap = _snap()
+
+            # Build context from live data
+            beds_pct   = snap["beds"]["occupancy_pct"]
+            icu_pct    = snap["icu"]["occupancy_pct"]
+            staff_pct  = snap["staff"]["utilization_pct"]
+            er_wait    = snap["emergency"]["waiting"]
+            diag_q     = snap["diagnostics"]["queue_length"]
+            ot_pct     = snap["operating_rooms"]["utilization_pct"]
+            pressure   = snap["pressure"]["label"]
+
+            # Keyword-based contextual responses
+            if any(k in message for k in ["icu", "intensive", "critical care"]):
+                response = (
+                    f"ICU is currently at {icu_pct:.1f}% occupancy ({snap['icu']['occupied']}/{snap['icu']['total']} beds). "
+                    f"{'⚠️ This is above the 85% safety threshold — escalation recommended.' if icu_pct >= 85 else 'Occupancy is within safe limits.'} "
+                    f"Staff utilization stands at {staff_pct:.0f}%. "
+                    + ("Recommended: Activate float pool nurses and review discharge eligibility for stable ICU patients." if icu_pct >= 85 else
+                       "Continue monitoring. No immediate action required.")
+                )
+            elif any(k in message for k in ["er", "emergency", "waiting", "queue"]):
+                response = (
+                    f"Emergency department currently has {er_wait} patients waiting against a capacity of {snap['emergency']['capacity']}. "
+                    f"Demand score: {snap['emergency']['demand_score']:.0f}%. "
+                    + ("⚠️ High demand — consider fast-tracking triage and opening overflow bays." if er_wait > 20 else
+                       "ER demand is manageable at current staffing levels.")
+                )
+            elif any(k in message for k in ["bed", "ward", "admission", "discharge"]):
+                response = (
+                    f"General ward occupancy is at {beds_pct:.1f}% ({snap['beds']['occupied']}/{snap['beds']['total']} beds). "
+                    f"Available: {snap['beds']['available']} | Cleaning: {snap['beds']['cleaning']} | Blocked: {snap['beds']['blocked']}. "
+                    + ("⚠️ Bed pressure is elevated — expedite discharge planning for medically stable patients." if beds_pct >= 85 else
+                       "Bed availability is adequate. Continue standard discharge planning.")
+                )
+            elif any(k in message for k in ["staff", "nurse", "doctor", "staffing"]):
+                response = (
+                    f"Staff utilization is currently {staff_pct:.1f}% with {snap['staff']['on_duty']} of {snap['staff']['total']} staff on duty. "
+                    f"Available staff: {snap['staff']['available']}. "
+                    + ("⚠️ High utilization — consider activating float pool or requesting overtime shifts." if staff_pct >= 85 else
+                       "Staffing levels are within expected range for current patient load.")
+                )
+            elif any(k in message for k in ["diagnostic", "lab", "ct", "scan", "test", "imaging"]):
+                response = (
+                    f"Diagnostic queue has {diag_q} pending orders across {snap['diagnostics']['total_devices']} devices "
+                    f"({snap['diagnostics']['available_devices']} available). "
+                    + ("⚠️ Queue is above threshold — route non-urgent orders to available devices and consider extended hours." if diag_q > 15 else
+                       "Diagnostic throughput is keeping up with demand.")
+                )
+            elif any(k in message for k in ["ot", "operation", "surgery", "theatre", "theater"]):
+                response = (
+                    f"Operating theatres: {snap['operating_rooms']['occupied']}/{snap['operating_rooms']['total']} in use ({ot_pct:.0f}% utilization). "
+                    f"Available rooms: {snap['operating_rooms']['available']}. "
+                    + ("⚠️ High OT utilization — review elective surgery scheduling." if ot_pct >= 85 else
+                       "OT utilization is within normal parameters.")
+                )
+            elif any(k in message for k in ["pressure", "status", "summary", "overview", "report"]):
+                response = (
+                    f"Hospital operational pressure: {pressure.upper()}. "
+                    f"Beds {beds_pct:.0f}% | ICU {icu_pct:.0f}% | Staff {staff_pct:.0f}% | ER {er_wait} waiting | Diag queue {diag_q}. "
+                    f"Overall pressure score: {snap['pressure']['overall']:.0f}/100. "
+                    + ("Immediate attention required across multiple departments." if snap['pressure']['overall'] >= 75 else
+                       "Operations are running smoothly. Continue monitoring key metrics.")
+                )
+            elif any(k in message for k in ["recommend", "action", "suggest", "what should", "what to"]):
+                recs = _gen_recommendations()
+                top = recs[:2] if recs else []
+                if top:
+                    actions = " | ".join([r["title"] for r in top])
+                    response = (
+                        f"Based on current hospital state (pressure: {pressure}), CuraFlow recommends: {actions}. "
+                        f"Review and approve these in the Approval Center to execute actions."
+                    )
+                else:
+                    response = "No active recommendations at this time. All systems are within operational parameters."
+            elif any(k in message for k in ["hi", "hello", "help", "what can you"]):
+                response = (
+                    f"Hello! I'm CuraFlow AI. Current hospital pressure is {pressure.upper()}. "
+                    f"You can ask me about: ICU status, ER queue, bed availability, staff utilization, diagnostics, OT status, "
+                    f"recommendations, or request a full summary. How can I help?"
+                )
+            else:
+                response = (
+                    f"Hospital state snapshot — Pressure: {pressure.upper()} | "
+                    f"Beds: {beds_pct:.0f}% | ICU: {icu_pct:.0f}% | Staff: {staff_pct:.0f}% | "
+                    f"ER waiting: {er_wait} | Diag queue: {diag_q}. "
+                    f"Ask me about any specific department, staffing, recommendations, or operational status."
+                )
+
+            self._send(200, {
+                "response": response,
+                "context": {"pressure": pressure, "timestamp": NOW()},
+                "timestamp": NOW(),
+            })
+
         else:
             self._send(404, {"detail": f"Not found: {p}"})
 

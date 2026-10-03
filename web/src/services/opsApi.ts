@@ -213,4 +213,8 @@ export const opsApi = {
   getSystemHealth: () => opsGet<{ overall_status: string; components: SystemComponent[] }>('system-health'),
   getDataQuality: () => opsGet<{ sources: DataSource[]; overall_confidence: number }>('data-quality'),
   getAgentPerformance: () => opsGet<{ agents: AgentPerf[] }>('agents/performance'),
+
+  // AI Chat
+  chat: (message: string) =>
+    opsPost<{ response: string; context: { pressure: string; timestamp: string }; timestamp: string }>('chat', { message }),
 }
