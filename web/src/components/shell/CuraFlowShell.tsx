@@ -3,7 +3,7 @@ import { useStore } from '../../store'
 import {
   LayoutDashboard, Activity, Bed, GitBranch, FlaskConical,
   Package, AlertTriangle, Bot, BarChart3, Settings,
-  ChevronRight
+  ChevronRight, CheckCircle2
 } from 'lucide-react'
 import { CommandCenter } from '../ops/CommandCenter'
 import { ApprovalCenter } from '../ops/ApprovalCenter'
@@ -42,6 +42,53 @@ const NAV_GROUPS = [
     ],
   },
 ]
+
+function GlobalNewAdmissionModal() {
+  const [patient, setPatient] = useState<any>(null)
+
+  useEffect(() => {
+    const handler = (e: CustomEvent) => setPatient(e.detail)
+    window.addEventListener('curaflow:new_admission', handler as EventListener)
+    return () => window.removeEventListener('curaflow:new_admission', handler as EventListener)
+  }, [])
+
+  if (!patient) return null
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col items-center p-8 text-center animate-in fade-in zoom-in duration-300">
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-6 shadow-sm border border-blue-200">
+          <CheckCircle2 className="w-8 h-8 text-blue-600 animate-pulse" />
+        </div>
+        <h2 className="text-2xl font-extrabold text-slate-800 mb-2">New Patient Assigned</h2>
+        <p className="text-slate-500 mb-6 font-medium tracking-wide">You have been allocated to a newly admitted patient.</p>
+        
+        <div className="w-full bg-slate-50 rounded-xl p-5 mb-6 text-left border border-slate-100 shadow-inner space-y-3">
+           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Patient</span>
+              <span className="font-bold text-slate-800">{patient.name}</span>
+           </div>
+           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Destination</span>
+              <span className="font-bold text-blue-600">{patient.location}</span>
+           </div>
+           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Assigned Doctor</span>
+              <span className="font-bold text-slate-700">Dr. {patient.assigned_doctor}</span>
+           </div>
+           <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Assigned Nurse</span>
+              <span className="font-bold text-slate-700">{patient.assigned_nurse}</span>
+           </div>
+        </div>
+        
+        <button onClick={() => setPatient(null)} className="w-full py-3.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.98]">
+          Acknowledge & Proceed
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // ── Sidebar content ────────────────────────────────────────────────────────────
 function Sidebar({
@@ -314,6 +361,7 @@ export function CuraFlowShell() {
       </div>
 
       {/* Global transient notification popups */}
+      <GlobalNewAdmissionModal />
       <Toaster />
     </div>
   )

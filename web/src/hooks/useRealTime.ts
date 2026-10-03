@@ -29,14 +29,10 @@ export function useRealTime() {
             if (navigator.vibrate) {
               navigator.vibrate([400, 200, 400])
             }
-            // Trigger an actionable toast via custom event
+            // Trigger a global modal event for other logged-in staff (e.g. nurses)
             window.dispatchEvent(
-              new CustomEvent('curaflow:toast', {
-                detail: {
-                  title: 'New Patient Assigned',
-                  message: `${data.data.name} has been admitted to ${data.data.location}. Action required.`,
-                  type: 'success',
-                },
+              new CustomEvent('curaflow:new_admission', {
+                detail: data.data,
               })
             )
             // Trigger re-fetch of patients list
