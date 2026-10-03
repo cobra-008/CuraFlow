@@ -181,7 +181,7 @@ function PatientFlowChart({ state }: { state: HospitalState | null }) {
   const gridTicks = [0.25, 0.5, 0.75, 1.0]
 
   return (
-    <div className="cf-card" style={{ overflow: 'hidden' }}>
+    <div className="cf-card h-full flex flex-col justify-between" style={{ overflow: 'hidden' }}>
       {/* Header with accent bar */}
       <div style={{ height: '3px', background: 'linear-gradient(90deg, #4e8ef7 0%, #f5a623 50%, #4caf82 100%)' }} />
       <div className="p-4">
@@ -324,7 +324,7 @@ function DeptTable({ state }: { state: HospitalState | null }) {
   ]
 
   return (
-    <div className="cf-card overflow-hidden">
+    <div className="cf-card h-full overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#f0e8d8' }}>
         <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Department Status</h3>
         <button className="text-xs font-semibold" style={{ color: '#1e3a6e' }}>
@@ -1067,11 +1067,11 @@ export function CommandCenter() {
       </div>
 
       {/* ── Bottom row: Patient Flow Chart + Department Table ─────────────── */}
-      <div className="flex gap-2">
-        <div className="flex-1 min-w-0">
+      <div className="flex gap-2 items-stretch">
+        <div className="flex-1 min-w-0 h-full">
           <PatientFlowChart state={state} />
         </div>
-        <div className="flex-shrink-0" style={{ width: '360px' }}>
+        <div className="flex-shrink-0 h-full" style={{ width: '360px' }}>
           <DeptTable state={state} />
         </div>
       </div>
