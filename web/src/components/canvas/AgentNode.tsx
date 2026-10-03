@@ -176,11 +176,25 @@ export const AgentNode = memo(function AgentNode({ data, id }: NodeProps) {
               <span
                 key={sa.id}
                 title={sa.role || sa.label}
-                className="text-sm font-medium px-2 py-1 rounded-md cursor-default"
+                className="nodrag text-sm font-medium px-2 py-1 rounded-md cursor-pointer hover:brightness-110 transition-all"
                 style={{
                   background: color + '25',
                   color,
                   border: `1px solid ${color}40`,
+                }}
+                onClick={(e) => {
+                  if (disableClick) return
+                  e.stopPropagation()
+                  
+                  const baseAgent = id.split(':')[0]
+                  let targetRoute = 'command'
+                  if (['icu_agent', 'bed_agent'].includes(baseAgent)) targetRoute = 'capacity'
+                  else if (['er_agent', 'discharge_agent', 'patient_verification_agent', 'imaging_agent', 'lab_agent'].includes(baseAgent)) targetRoute = 'flow'
+                  else if (['staff_agent', 'pharmacy_agent'].includes(baseAgent)) targetRoute = 'resources'
+                  else if (baseAgent === 'ambulance_agent') targetRoute = 'emergency'
+                  else if (['revenue_agent', 'billing_agent'].includes(baseAgent)) targetRoute = 'reports'
+                  
+                  window.dispatchEvent(new CustomEvent('curaflow:navigate', { detail: targetRoute }))
                 }}
               >
                 {sa.label}
