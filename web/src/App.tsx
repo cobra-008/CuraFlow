@@ -1,23 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useStore } from './store'
+import { AuthScreen } from './components/AuthScreen'
+import { CuraFlowShell } from './components/shell/CuraFlowShell'
 import { useSessionWebSocket } from './hooks/useSessionWebSocket'
-import { Header } from './components/Header'
-import { Sidebar } from './components/Sidebar'
-import { PipelineCanvas } from './components/canvas/PipelineCanvas'
-import { AgentFindings } from './components/execution/AgentFindings'
-import { Toaster } from './components/execution/Toaster'
 import { ApprovalModal } from './components/execution/ApprovalModal'
 import { PatientIdentificationModal } from './components/execution/PatientIdentificationModal'
-import { SubAgentView } from './components/subagent/SubAgentView'
-import { CheckpointEditorScreen } from './components/canvas/CheckpointEditorScreen'
-import { AgentCapabilitiesView } from './components/capabilities/AgentCapabilitiesView'
-import { WorkflowsPage } from './components/WorkflowsPage'
-import { ApprovalsPage } from './components/ApprovalsPage'
-import { AdminPage } from './components/admin/AdminPage'
-import { AuthScreen } from './components/AuthScreen'
-import { CommandCenter } from './components/ops/CommandCenter'
 import { getToken, setToken, getMe, type AuthUser } from './services/api'
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 // Embedded in the widget's overlay iframe -- a widget_init handshake carrying a
 // fresh token is expected shortly (see below), so the boot-check must not
@@ -30,93 +19,25 @@ function AppShell() {
   const loadAgentRegistry = useStore((s) => s.loadAgentRegistry)
   useEffect(() => { loadAgentRegistry() }, [loadAgentRegistry])
 
-  const panelOpen = useStore((s) => s.panelOpen)
-  const subAgentNodeId = useStore((s) => s.subAgentNodeId)
-  const checkpointEditorOpen = useStore((s) => s.checkpointEditorOpen)
-  const activeView = useStore((s) => s.activeView)
-  const setActiveView = useStore((s) => s.setActiveView)
-  const currentUser = useStore((s) => s.currentUser)
   const sessionId = useStore((s) => s.sessionId)
   const patientIdentificationPending = useStore((s) => s.patientIdentificationPending)
   const patientIdentificationCount = useStore((s) => s.patientIdentificationCount)
   const clearPatientIdentification = useStore((s) => s.clearPatientIdentification)
+  const activeView = useStore((s) => s.activeView)
+  const currentUser = useStore((s) => s.currentUser)
+  const setActiveView = useStore((s) => s.setActiveView)
 
   const isApprover = currentUser?.role === 'approver'
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
 
-  // Role-gated views: approvals is approver-only; admin console is admin/super_admin-only.
   useEffect(() => {
-    if (activeView === 'approvals' && !isApprover) setActiveView('orchestrator')
-    if (activeView === 'admin' && !isAdmin) setActiveView('orchestrator')
-    if ((activeView === 'orchestrator' || activeView === 'capabilities' || activeView === 'workflows') && isApprover) setActiveView('approvals')
+    if (activeView === 'approvals' && !isApprover) setActiveView('command')
+    if (activeView === 'admin' && !isAdmin) setActiveView('command')
   }, [activeView, isApprover, isAdmin, setActiveView])
 
-  const isSubAgentView = !!subAgentNodeId
-
-  // User-collapsed state for the Agent Output panel — independent of `panelOpen`
-  // (which tracks whether there's output *to* show, not whether the user wants
-  // to see it right now).
-  const [outputCollapsed, setOutputCollapsed] = useState(false)
-
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
-      <Header />
-      <Toaster />
-
-      {['/', '/command-center', '/approvals', '/simulation', '/system-health', '/agent-operations'].includes(window.location.pathname) || activeView === 'command' ? (
-        <div className="flex flex-1 w-full overflow-hidden">
-          <CommandCenter />
-        </div>
-      ) : activeView === 'approvals' && isApprover ? (
-        <ApprovalsPage />
-      ) : activeView === 'admin' && isAdmin ? (
-        <AdminPage />
-      ) : activeView === 'capabilities' ? (
-        <AgentCapabilitiesView />
-      ) : activeView === 'workflows' ? (
-        <WorkflowsPage />
-      ) : isSubAgentView ? (
-        <div className="flex flex-1 overflow-hidden">
-          <SubAgentView />
-        </div>
-      ) : checkpointEditorOpen ? (
-        <CheckpointEditorScreen />
-      ) : (
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 min-w-0 relative overflow-hidden">
-            <PipelineCanvas />
-          </main>
-          {panelOpen && (
-            outputCollapsed ? (
-              <button
-                onClick={() => setOutputCollapsed(false)}
-                title="Show Agent Output"
-                className="w-7 flex-shrink-0 bg-[var(--bg-base)] border-l border-[var(--border)] flex items-center justify-center hover:bg-[var(--bg-surface)] transition-colors"
-              >
-                <ChevronLeft size={14} className="text-slate-500" />
-              </button>
-            ) : (
-              <aside className="w-80 2xl:w-96 flex-shrink-0 bg-[var(--bg-base)] border-l border-[var(--border)] flex flex-col overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-[var(--border)] flex-shrink-0 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Agent Output</span>
-                  <button
-                    onClick={() => setOutputCollapsed(true)}
-                    title="Collapse Agent Output"
-                    className="text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <AgentFindings />
-                </div>
-              </aside>
-            )
-          )}
-        </div>
-      )}
-
+    <>
+      <CuraFlowShell />
       {activeView === 'orchestrator' && <ApprovalModal />}
       {patientIdentificationPending && sessionId && (
         <PatientIdentificationModal
@@ -127,7 +48,7 @@ function AppShell() {
           onCancel={clearPatientIdentification}
         />
       )}
-    </div>
+    </>
   )
 }
 

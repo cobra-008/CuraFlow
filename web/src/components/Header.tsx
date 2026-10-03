@@ -71,7 +71,7 @@ export function Header() {
             onClick={() => saveNow()}
             disabled={pipelineSaveStatus === 'saving'}
             title={pipelineSaveStatus === 'saved' ? 'Pipeline saved — click to save again' : 'Save pipeline'}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium border transition-colors ${
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-sm text-[10px] font-medium border transition-colors ${
               pipelineSaveStatus === 'unsaved'
                 ? 'border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 cursor-pointer'
                 : pipelineSaveStatus === 'saving'
@@ -136,7 +136,7 @@ export function Header() {
           onClick={() => setActiveView('capabilities')}
           title="Agent Capabilities"
           aria-label="Agent Capabilities"
-          className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors flex-shrink-0 ${
+          className={`w-8 h-8 rounded-sm flex items-center justify-center border transition-colors flex-shrink-0 ${
             activeView === 'capabilities'
               ? 'bg-blue-600 border-blue-600 text-white'
               : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-slate-400 hover:bg-[var(--bg-hover)] hover:text-slate-200'
@@ -148,7 +148,7 @@ export function Header() {
           onClick={() => setActiveView('workflows')}
           title="Workflows"
           aria-label="Workflows"
-          className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors flex-shrink-0 ${
+          className={`w-8 h-8 rounded-sm flex items-center justify-center border transition-colors flex-shrink-0 ${
             activeView === 'workflows'
               ? 'bg-blue-600 border-blue-600 text-white'
               : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-slate-400 hover:bg-[var(--bg-hover)] hover:text-slate-200'
@@ -160,7 +160,7 @@ export function Header() {
           onClick={() => setActiveView('command')}
           title="Command Center — Hospital Operations"
           aria-label="Command Center"
-          className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors flex-shrink-0 ${
+          className={`w-8 h-8 rounded-sm flex items-center justify-center border transition-colors flex-shrink-0 ${
             activeView === 'command'
               ? 'bg-blue-600 border-blue-600 text-white'
               : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-slate-400 hover:bg-[var(--bg-hover)] hover:text-slate-200'
@@ -171,7 +171,7 @@ export function Header() {
         {!isEmbedded && (
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-8 h-8 rounded-lg flex items-center justify-center border border-[var(--border-a)] bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
+            className="w-8 h-8 rounded-sm flex items-center justify-center border border-[var(--border-a)] bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark'
@@ -185,11 +185,11 @@ export function Header() {
         <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setUserMenuOpen((o) => !o)}
-            className={`flex items-center gap-2 pl-1 pr-1.5 py-1 rounded-lg border transition-colors ${
+            className={`flex items-center gap-2 pl-1 pr-1.5 py-1 rounded-sm border transition-colors ${
               userMenuOpen ? 'bg-[var(--bg-raised)] border-[var(--border-a)]' : 'border-transparent hover:bg-[var(--bg-raised)]'
             }`}
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+            <div className="w-8 h-8 rounded-sm bg-blue-800 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
               {initials}
             </div>
             <div className="hidden sm:block max-w-[160px] text-left">
@@ -206,7 +206,7 @@ export function Header() {
           </button>
 
           {userMenuOpen && (
-            <div className="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-[var(--border-a)] bg-[var(--bg-surface)] shadow-2xl z-[70] py-1.5 overflow-hidden">
+            <div className="absolute right-0 top-full mt-1.5 w-52 rounded-sm border border-[var(--border-a)] bg-[var(--bg-surface)] shadow-2xl z-[70] py-1.5 overflow-hidden">
               {/* Identity header — also carries the name/role on small screens where the badge hides them */}
               <div className="px-3 py-2 border-b border-[var(--border)] mb-1">
                 <div className="text-xs font-semibold text-slate-200 truncate">{currentUser?.display_name ?? ''}</div>

@@ -1,25 +1,11 @@
-/**
- * CuraFlow Command Center
- * Hospital Operations Command & Orchestration Layer
- *
- * Design: Restrained, dense, professional operations-centre aesthetic.
- * Font: IBM Plex Sans. No decorative effects. Colour = operational state only.
- */
-
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
-import { ApprovalCenter } from './ApprovalCenter'
-import { SimulationView } from './SimulationView'
-import { AgentOpsView } from './AgentOpsView'
-import { SystemHealthView } from './SystemHealthView'
 
-// ── Design tokens (operations colours) ────────────────────────────────────────
-// Normal: #1a7a4a (deep green)
-// Attention: #b07d2a (muted amber)
-// Critical: #c0392b (deep red)
-// Info: #1e4a7a (deep blue)
-
-type OpsView = 'command' | 'approvals' | 'simulation' | 'agents' | 'system'
+// ── Design tokens ─────────────────────────────────────────────────────────────
+// Normal: #1a7a4a (deep green) -> text-emerald-400
+// Attention: #b07d2a (muted amber) -> text-amber-400
+// Critical: #c0392b (deep red) -> text-red-500
+// Info: #1e4a7a (deep blue) -> text-blue-400
 
 function pressureColor(label: string) {
   if (label === 'CRITICAL') return 'text-red-500'
@@ -29,7 +15,6 @@ function pressureColor(label: string) {
   return 'text-emerald-400'
 }
 
-
 function severityColor(sev: string) {
   if (sev === 'critical') return 'text-red-400'
   if (sev === 'high') return 'text-orange-400'
@@ -37,40 +22,13 @@ function severityColor(sev: string) {
   return 'text-slate-400'
 }
 
-function priorityColor(p: string) {
-  if (p === 'critical') return 'border-red-600 bg-red-900/10'
-  if (p === 'high') return 'border-orange-600 bg-orange-900/10'
-  if (p === 'medium') return 'border-amber-600/60 bg-amber-900/10'
-  return 'border-slate-600 bg-slate-800/40'
-}
 
-function priorityLabel(p: string) {
-  if (p === 'critical') return 'CRITICAL'
-  if (p === 'high') return 'HIGH'
-  if (p === 'medium') return 'MEDIUM'
-  return 'LOW'
-}
 
 function MetricBar({ value, max = 100, color }: { value: number; max?: number; color: string }) {
   const pct = Math.min(100, (value / max) * 100)
   return (
-    <div className="h-1 bg-slate-800 rounded-sm overflow-hidden">
+    <div className="h-1 bg-slate-800 overflow-hidden w-full">
       <div className={`h-full ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
-    </div>
-  )
-}
-
-function UtilGauge({ label, value, sublabel }: { label: string; value: number; sublabel?: string }) {
-  const color = value >= 90 ? 'bg-red-500' : value >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
-  const textColor = value >= 90 ? 'text-red-400' : value >= 75 ? 'text-amber-400' : 'text-emerald-400'
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex justify-between items-baseline">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">{label}</span>
-        <span className={`font-mono text-lg font-bold ${textColor}`}>{value.toFixed(0)}<span className="text-xs font-normal text-slate-500">%</span></span>
-      </div>
-      <MetricBar value={value} color={color} />
-      {sublabel && <span className="text-[10px] text-slate-600">{sublabel}</span>}
     </div>
   )
 }
@@ -79,176 +37,17 @@ function TimestampPill({ ts }: { ts: string }) {
   const dt = new Date(ts)
   const secs = Math.floor((Date.now() - dt.getTime()) / 1000)
   const label = secs < 10 ? 'Just now' : secs < 60 ? `${secs}s ago` : `${Math.floor(secs / 60)}m ago`
-  return <span className="text-[10px] text-slate-600 font-mono">{label}</span>
+  return <span className="text-[10px] text-slate-500 font-mono">{label}</span>
 }
-
-// ── Stat Block ────────────────────────────────────────────────────────────────
-
-function StatBlock({
-  label, value, sub, alert
-}: { label: string; value: string | number; sub?: string; alert?: boolean }) {
-  return (
-    <div className={`flex flex-col gap-0.5 px-3 py-2.5 border rounded-sm ${alert ? 'border-amber-800/40 bg-amber-950/10' : 'border-slate-800 bg-slate-900/40'}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">{label}</span>
-      <span className={`font-mono text-xl font-bold leading-tight ${alert ? 'text-amber-300' : 'text-slate-100'}`}>{value}</span>
-      {sub && <span className="text-[10px] text-slate-600">{sub}</span>}
-    </div>
-  )
-}
-
-// ── Bottleneck Row ────────────────────────────────────────────────────────────
-
-function BottleneckRow({ bn }: { bn: Bottleneck }) {
-  const label = bn.bottleneck_type.replace(/_/g, ' ').toUpperCase()
-  return (
-    <div className="flex items-start gap-3 py-2 border-b border-slate-800/60 last:border-0">
-      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
-        bn.severity === 'critical' ? 'bg-red-500' :
-        bn.severity === 'high' ? 'bg-orange-500' : 'bg-amber-400'
-      }`} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-slate-200 truncate">{label}</span>
-          <span className={`text-[10px] font-mono font-bold uppercase ${severityColor(bn.severity)}`}>{bn.severity}</span>
-        </div>
-        <div className="flex gap-3 mt-0.5">
-          <span className="text-[10px] text-slate-500">
-            Value: <span className="text-slate-300 font-mono">{bn.current_value?.toFixed(1)}</span>
-          </span>
-          <span className="text-[10px] text-slate-500">
-            Threshold: <span className="text-slate-300 font-mono">{bn.threshold_value}</span>
-          </span>
-          <span className="text-[10px] text-slate-500">
-            Status: <span className="text-slate-400 uppercase">{bn.status}</span>
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Recommendation Card ───────────────────────────────────────────────────────
-
-function RecommendationCard({
-  rec,
-  onAction,
-}: {
-  rec: Recommendation
-  onAction: (id: string) => void
-}) {
-  return (
-    <div className={`border rounded-sm p-3 ${priorityColor(rec.priority)}`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2 min-w-0">
-          <span className="text-[10px] font-mono text-slate-500 mt-0.5 flex-shrink-0">
-            {String(rec.recommendation_number).padStart(2, '0')}
-          </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-slate-100">{rec.title}</span>
-              <span className={`text-[10px] font-bold font-mono ${
-                rec.priority === 'critical' ? 'text-red-400' :
-                rec.priority === 'high' ? 'text-orange-400' : 'text-amber-400'
-              }`}>{priorityLabel(rec.priority)}</span>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed line-clamp-2">{rec.summary}</p>
-          </div>
-        </div>
-        <div className="flex gap-1.5 flex-shrink-0">
-          <button
-            onClick={() => onAction(rec.id)}
-            className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-blue-900/40 text-blue-300 border border-blue-700/50 rounded-sm hover:bg-blue-900/60 transition-colors"
-          >
-            Review
-          </button>
-        </div>
-      </div>
-
-      {rec.verification && (
-        <div className="mt-3 pt-2 border-t border-slate-800/60 flex flex-col gap-1">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Outcome</span>
-            <span className={`text-[10px] font-bold uppercase ${
-              rec.verification.outcome === 'SUCCESS' ? 'text-emerald-400' :
-              rec.verification.outcome === 'PARTIAL' ? 'text-amber-400' :
-              rec.verification.outcome === 'FAILED' ? 'text-red-400' :
-              'text-blue-400 animate-pulse'
-            }`}>
-              {rec.verification.outcome}
-            </span>
-          </div>
-          {rec.verification.outcome !== 'PENDING' && rec.verification.actual_impact && (
-            <div className="flex flex-col gap-1 mt-1">
-              {Object.entries(rec.verification.expected_impact).map(([k, expectedVal]) => {
-                const actualVal = rec.verification!.actual_impact![k]
-                const variance = rec.verification!.variance![k]
-                const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-                return (
-                  <div key={k} className="flex justify-between items-center text-[10px]">
-                    <span className="text-slate-400">{label}</span>
-                    <div className="flex gap-2 font-mono">
-                      <span className="text-slate-500" title="Expected">Exp: {expectedVal}</span>
-                      <span className="text-slate-300" title="Actual">Act: {actualVal?.toFixed(1) ?? 'N/A'}</span>
-                      <span className={variance >= 0 ? 'text-emerald-500' : 'text-red-500'} title="Variance">
-                        Var: {variance > 0 ? '+' : ''}{variance?.toFixed(1) ?? 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {rec._is_synthetic && (
-        <div className="mt-2 text-[9px] text-slate-600 font-mono">
-          SYNTHETIC — prototype recommendation, not for clinical use
-        </div>
-      )}
-    </div>
-  )
-}
-
-
-
-// ── Main Command Center ───────────────────────────────────────────────────────
 
 export function CommandCenter() {
-  const getPathView = useCallback((): OpsView => {
-    const p = window.location.pathname
-    if (p === '/approvals') return 'approvals'
-    if (p === '/simulation') return 'simulation'
-    if (p === '/system-health') return 'system'
-    if (p === '/agent-operations') return 'agents'
-    return 'command'
-  }, [])
-
-  const [view, setView] = useState<OpsView>(getPathView())
   const [state, setState] = useState<HospitalState | null>(null)
   const [bottlenecks, setBottlenecks] = useState<Bottleneck[]>([])
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
-  const [selectedRec, setSelectedRec] = useState<Recommendation | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [crisisLoading, setCrisisLoading] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    const onPopState = () => setView(getPathView())
-    window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
-  }, [getPathView])
-
-  const navigateTo = (newView: OpsView) => {
-    setView(newView)
-    let path = '/command-center'
-    if (newView === 'approvals') path = '/approvals'
-    if (newView === 'simulation') path = '/simulation'
-    if (newView === 'system') path = '/system-health'
-    if (newView === 'agents') path = '/agent-operations'
-    window.history.pushState(null, '', path)
-  }
 
   const fetchData = useCallback(async () => {
     try {
@@ -262,7 +61,7 @@ export function CommandCenter() {
       setRecommendations(r.recommendations)
       setLastUpdated(new Date().toISOString())
     } catch (e) {
-      // keep stale state on error
+      console.error('Failed to fetch ops data:', e)
     } finally {
       setLoading(false)
     }
@@ -270,8 +69,10 @@ export function CommandCenter() {
 
   useEffect(() => {
     fetchData()
-    intervalRef.current = setInterval(fetchData, 15000)
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+    intervalRef.current = setInterval(fetchData, 2000)
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
   }, [fetchData])
 
   const triggerCrisis = async () => {
@@ -294,123 +95,85 @@ export function CommandCenter() {
     }
   }
 
-  const handleReviewRec = (id: string) => {
-    const rec = recommendations.find(r => r.id === id)
-    if (rec) {
-      setSelectedRec(rec)
-      navigateTo('approvals')
-    }
-  }
 
-  // ── Nav ───────────────────────────────────────────────────────────────────
-  const navItems: { id: OpsView; label: string }[] = [
-    { id: 'command', label: 'Command Center' },
-    { id: 'approvals', label: `Approvals${recommendations.filter(r=>r.status==='pending').length > 0 ? ` (${recommendations.filter(r=>r.status==='pending').length})` : ''}` },
-    { id: 'simulation', label: 'Simulation' },
-    { id: 'agents', label: 'Agents' },
-    { id: 'system', label: 'System' },
-  ]
 
   const criticalCount = bottlenecks.filter(b => b.severity === 'critical').length
   const highCount = bottlenecks.filter(b => b.severity === 'high').length
 
   return (
-    <div className="flex flex-col flex-1 w-full min-w-0 h-full bg-[#07090f] text-slate-200" style={{ fontFamily: "'IBM Plex Sans', 'IBM Plex Mono', system-ui, sans-serif" }}>
+    <div className="flex flex-col flex-1 w-full min-w-0 h-full bg-[#060b18] text-slate-200" style={{ fontFamily: "'IBM Plex Sans', 'IBM Plex Mono', system-ui, sans-serif" }}>
 
       {/* ── Top bar ──────────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 border-b border-slate-800/60 bg-[#070b14]">
-        <div className="px-4 py-2 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <div className="flex-shrink-0 border-b border-slate-800 bg-[#0a1628]">
+        <div className="px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
             <div className="flex flex-col">
-              <span className="text-[11px] font-bold tracking-[0.15em] uppercase text-slate-300">CURAFLOW</span>
-              <span className="text-[9px] text-slate-600 uppercase tracking-widest">Hospital Operations Command</span>
+              <span className="text-[12px] font-bold tracking-[0.2em] uppercase text-slate-100">CURAFLOW</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest">Hospital Operations Command</span>
+            </div>
+            <div className="h-6 w-px bg-slate-800 mx-2" />
+            <div className="flex items-center gap-3">
+              {state?.is_synthetic ? (
+                <span className="text-[10px] text-slate-400 font-mono border border-slate-700 px-2 py-0.5 uppercase tracking-wider">
+                  SYNTHETIC ENVIRONMENT
+                </span>
+              ) : (
+                <span className="text-[10px] text-emerald-400 font-mono border border-emerald-900 px-2 py-0.5 uppercase tracking-wider">
+                  PRODUCTION
+                </span>
+              )}
+              <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
+                DEMO HOSPITAL · 120 BEDS
+              </span>
+              <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-wider">
+                SYSTEM HEALTH · NOMINAL
+              </span>
             </div>
             {state?.crisis_mode && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-900/30 border border-red-700/50 rounded-sm">
-                <div className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
-                <span className="text-[10px] font-bold text-red-300 uppercase tracking-wider">Crisis Mode</span>
+              <div className="flex items-center gap-2 px-2 py-0.5 bg-red-950/50 border border-red-900/50">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-none" />
+                <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">CRISIS MODE</span>
               </div>
-            )}
-            {state?.is_synthetic && (
-              <span className="text-[9px] text-slate-600 font-mono border border-slate-800 px-1.5 py-0.5 rounded-sm">
-                SYNTHETIC DATA
-              </span>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             {lastUpdated && <TimestampPill ts={lastUpdated} />}
             {state?.crisis_mode ? (
               <button
                 onClick={resolveCrisis}
                 disabled={crisisLoading}
-                className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700 rounded-sm hover:bg-slate-700 transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-colors disabled:opacity-50"
               >
-                {crisisLoading ? 'Working…' : 'Resolve Crisis'}
+                {crisisLoading ? 'WORKING…' : 'RESOLVE CRISIS'}
               </button>
             ) : (
               <button
                 onClick={triggerCrisis}
                 disabled={crisisLoading}
-                className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider bg-red-900/30 text-red-300 border border-red-800/50 rounded-sm hover:bg-red-900/50 transition-colors disabled:opacity-50"
-                title="Activate hospital crisis demo scenario (synthetic)"
+                className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-red-950/50 text-red-400 border border-red-900/50 hover:bg-red-900/50 transition-colors disabled:opacity-50"
               >
-                {crisisLoading ? 'Working…' : 'Demo Crisis'}
+                {crisisLoading ? 'WORKING…' : 'DEMO CRISIS'}
               </button>
             )}
           </div>
-        </div>
-
-        {/* Nav */}
-        <div className="flex border-t border-slate-800/40 px-4">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => navigateTo(item.id)}
-              className={`px-3 py-2 text-[11px] font-semibold uppercase tracking-wider border-b-2 transition-colors ${
-                view === item.id
-                  ? 'border-blue-500 text-slate-200'
-                  : 'border-transparent text-slate-500 hover:text-slate-400'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
         </div>
       </div>
 
       {/* ── Main content ─────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-auto">
-
-        {view === 'command' && (
-          <CommandView
-            state={state}
-            bottlenecks={bottlenecks}
-            recommendations={recommendations}
-            loading={loading}
-            criticalCount={criticalCount}
-            highCount={highCount}
-            onReviewRec={handleReviewRec}
-          />
-        )}
-
-        {view === 'approvals' && (
-          <ApprovalCenter
-            recommendations={recommendations}
-            initialSelectedRec={selectedRec}
-            onDecision={fetchData}
-          />
-        )}
-
-        {view === 'simulation' && <SimulationView />}
-        {view === 'agents' && <AgentOpsView />}
-        {view === 'system' && <SystemHealthView />}
+        <CommandView
+          state={state}
+          bottlenecks={bottlenecks}
+          recommendations={recommendations}
+          loading={loading}
+          criticalCount={criticalCount}
+          highCount={highCount}
+        />
       </div>
     </div>
   )
 }
-
-// ── Command View (main dashboard) ─────────────────────────────────────────────
 
 function CommandView({
   state,
@@ -419,7 +182,6 @@ function CommandView({
   loading,
   criticalCount,
   highCount,
-  onReviewRec,
 }: {
   state: HospitalState | null
   bottlenecks: Bottleneck[]
@@ -427,11 +189,10 @@ function CommandView({
   loading: boolean
   criticalCount: number
   highCount: number
-  onReviewRec: (id: string) => void
 }) {
   if (loading && !state) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-600 text-sm">
+      <div className="flex items-center justify-center h-full text-slate-500 font-mono text-sm uppercase tracking-widest">
         Connecting to hospital state engine…
       </div>
     )
@@ -439,7 +200,7 @@ function CommandView({
 
   if (!state) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-600 text-sm">
+      <div className="flex items-center justify-center h-full text-slate-500 font-mono text-sm uppercase tracking-widest">
         Hospital state unavailable. Ensure the mock server is running.
       </div>
     )
@@ -447,137 +208,106 @@ function CommandView({
 
   const pressure = state.pressure
 
-  // Synthetic timeline data not needed in the new layout
-
   return (
-    <div className="p-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-
-      {/* ── Column 1: Hospital State + Bottlenecks + Decision Trace ───────── */}
-      <div className="flex flex-col gap-3">
-        {/* Hospital State header */}
-        <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
-          <div className="px-3 py-2 border-b border-slate-800/60">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Hospital State</span>
+    <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
+      
+      {/* ── Column 1: Hospital Operational State ───────────────────────────── */}
+      <div className="flex flex-col gap-6">
+        <div className="border border-slate-800 bg-[#0a1628]">
+          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Hospital Operational State</span>
+            <span className={`text-[11px] font-mono font-bold uppercase tracking-widest ${pressureColor(pressure.label)}`}>
+              {pressure.overall.toFixed(0)} / 100
+            </span>
           </div>
-          <div className="p-3 grid grid-cols-2 lg:grid-cols-3 gap-2">
-            <StatBlock
-              label="Beds"
-              value={`${state.beds.occupancy_pct.toFixed(0)}%`}
-              sub={`${state.beds.occupied}/${state.beds.total} occupied`}
-              alert={state.beds.occupancy_pct >= 88}
-            />
-            <StatBlock
-              label="ICU"
-              value={`${state.icu.occupancy_pct.toFixed(0)}%`}
-              sub={`${state.icu.occupied}/${state.icu.total} occupied`}
-              alert={state.icu.occupancy_pct >= 85}
-            />
-            <StatBlock
-              label="Staff"
-              value={`${state.staff.utilization_pct.toFixed(0)}%`}
-              sub={`${state.staff.available} available`}
-              alert={state.staff.utilization_pct >= 80}
-            />
-            <StatBlock
-              label="ER Waiting"
-              value={state.emergency.waiting}
-              sub={`/ ${state.emergency.capacity} capacity`}
-              alert={state.emergency.waiting > 12}
-            />
-            <StatBlock
-              label="OT Rooms"
-              value={`${state.operating_rooms.utilization_pct.toFixed(0)}%`}
-              sub={`${state.operating_rooms.available} available`}
-            />
-            <StatBlock
-              label="Diag Queue"
-              value={state.diagnostics.queue_length}
-              sub={`${state.diagnostics.available_devices} devices free`}
-              alert={state.diagnostics.queue_length > 12}
-            />
+          <div className="p-4">
+            <h2 className={`text-xl font-bold uppercase tracking-wide leading-tight mb-4 ${pressureColor(pressure.label)}`}>
+              {pressure.label} OPERATIONAL PRESSURE
+            </h2>
+            <div className="flex flex-col gap-2 font-mono text-xs text-slate-400 uppercase">
+              {pressure.icu > 80 && <div>· ICU CAPACITY CONSTRAINED</div>}
+              {pressure.emergency > 80 && <div>· ER VOLUME ELEVATED</div>}
+              {state.diagnostics.queue_length > 10 && <div>· DIAGNOSTIC BACKLOG INCREASING</div>}
+              {state.staff.utilization_pct > 80 && <div>· STAFF UTILIZATION HIGH</div>}
+              {pressure.overall < 70 && <div>· ALL SYSTEMS NOMINAL</div>}
+            </div>
+          </div>
+          <div className="border-t border-slate-800 p-4 flex flex-col gap-3">
+             <UtilBar label="Emergency" value={pressure.emergency} />
+             <UtilBar label="ICU" value={pressure.icu} />
+             <UtilBar label="Beds" value={pressure.beds} />
+             <UtilBar label="Staff" value={pressure.staff} />
+          </div>
+        </div>
+
+        {/* DECISION PIPELINE */}
+        <DecisionTrace state={state} bottlenecks={bottlenecks} recommendations={recommendations} />
+      </div>
+
+      {/* ── Column 2: Capacity Overview ─────────────────────────────────────── */}
+      <div className="flex flex-col gap-6">
+        <div className="border border-slate-800 bg-[#0a1628]">
+          <div className="px-4 py-3 border-b border-slate-800">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Capacity Overview</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+                  <th className="py-3 px-4 font-normal">Resource</th>
+                  <th className="py-3 px-4 font-normal text-right">Current</th>
+                  <th className="py-3 px-4 font-normal text-right">Capacity</th>
+                  <th className="py-3 px-4 font-normal text-right">Util</th>
+                  <th className="py-3 px-4 font-normal">State</th>
+                </tr>
+              </thead>
+              <tbody className="text-xs font-mono text-slate-300">
+                <CapacityRow name="Beds" current={state.beds.occupied} max={state.beds.total} util={state.beds.occupancy_pct} threshold={85} />
+                <CapacityRow name="ICU" current={state.icu.occupied} max={state.icu.total} util={state.icu.occupancy_pct} threshold={80} />
+                <CapacityRow name="ER" current={state.emergency.waiting} max={state.emergency.capacity} util={(state.emergency.waiting/state.emergency.capacity)*100} threshold={75} />
+                <CapacityRow name="Staff" current={state.staff.on_duty} max={state.staff.total} util={state.staff.utilization_pct} threshold={80} />
+                <CapacityRow name="OT" current={state.operating_rooms.occupied} max={state.operating_rooms.total} util={state.operating_rooms.utilization_pct} threshold={90} />
+                <CapacityRow name="Diag" current={state.diagnostics.queue_length} max={state.diagnostics.available_devices * 5} util={(state.diagnostics.queue_length / (state.diagnostics.available_devices * 5))*100} threshold={80} />
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Column 3: Patient Flow & Active Bottlenecks ───────────────────── */}
+      <div className="flex flex-col gap-6">
+        {/* Hospital Flow */}
+        <div className="border border-slate-800 bg-[#0a1628]">
+          <div className="px-4 py-3 border-b border-slate-800">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Hospital Flow</span>
+          </div>
+          <div className="p-4 flex flex-col gap-2">
+            <FlowStage name="ER Intake" val={state.emergency.waiting} total={state.emergency.capacity} />
+            <div className="w-px h-3 bg-slate-700 ml-5" />
+            <FlowStage name="Admission" val={state.beds.occupied} total={state.beds.total} />
+            <div className="w-px h-3 bg-slate-700 ml-5" />
+            <FlowStage name="ICU Transfer" val={state.icu.occupied} total={state.icu.total} />
+            <div className="w-px h-3 bg-slate-700 ml-5" />
+            <FlowStage name="Diagnostics" val={state.diagnostics.queue_length} total={state.diagnostics.available_devices * 5} />
+            <div className="w-px h-3 bg-slate-700 ml-5" />
+            <FlowStage name="Discharge" val={Math.floor(state.beds.total * 0.05)} total={Math.floor(state.beds.total * 0.1)} />
           </div>
         </div>
 
         {/* Bottlenecks */}
-        <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
-          <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Active Bottlenecks</span>
+        <div className="border border-slate-800 bg-[#0a1628]">
+          <div className="px-4 py-3 border-b border-slate-800 flex justify-between items-center">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Active Bottlenecks</span>
             <div className="flex gap-2">
-              {criticalCount > 0 && (
-                <span className="text-[10px] font-mono text-red-400 font-bold">{criticalCount} CRITICAL</span>
-              )}
-              {highCount > 0 && (
-                <span className="text-[10px] font-mono text-orange-400 font-bold">{highCount} HIGH</span>
-              )}
-              {bottlenecks.length === 0 && (
-                <span className="text-[10px] font-mono text-emerald-400">NONE</span>
-              )}
+               {criticalCount > 0 && <span className="text-[10px] font-mono text-red-500 font-bold">{criticalCount} CRIT</span>}
+               {highCount > 0 && <span className="text-[10px] font-mono text-orange-400 font-bold">{highCount} HIGH</span>}
             </div>
           </div>
-          <div className="p-3">
+          <div className="flex flex-col divide-y divide-slate-800/50">
             {bottlenecks.length === 0 ? (
-              <p className="text-xs text-slate-600 text-center py-2">No active bottlenecks</p>
+              <div className="p-4 text-xs font-mono text-slate-500 uppercase">No active bottlenecks</div>
             ) : (
               bottlenecks.map(bn => <BottleneckRow key={bn.id} bn={bn} />)
-            )}
-          </div>
-        </div>
-
-        {/* AI Decision Trace */}
-        <DecisionTrace state={state} bottlenecks={bottlenecks} recommendations={recommendations} />
-      </div>
-
-      {/* ── Column 2: Operational Pressure + Recommendations ───────────────── */}
-      <div className="flex flex-col gap-3">
-        {/* Operational Pressure */}
-        <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
-          <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Operational Pressure</span>
-            <span className={`text-[10px] font-bold font-mono uppercase ${pressureColor(pressure.label)}`}>
-              {pressure.label}
-            </span>
-          </div>
-          <div className="p-3 flex flex-col gap-2.5">
-            <UtilGauge
-              label="Emergency"
-              value={pressure.emergency}
-              sublabel={pressure.emergency >= 70 ? 'Above threshold' : undefined}
-            />
-            <UtilGauge
-              label="ICU"
-              value={pressure.icu}
-              sublabel={pressure.icu >= 85 ? 'Critical zone' : undefined}
-            />
-            <UtilGauge label="Beds" value={pressure.beds} />
-            <UtilGauge label="Staff" value={pressure.staff} />
-            <div className="pt-1 border-t border-slate-800/60">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] text-slate-500 uppercase tracking-widest">Overall</span>
-                <span className={`text-base font-mono font-bold ${pressureColor(pressure.label)}`}>
-                  {pressure.overall.toFixed(0)}<span className="text-xs text-slate-500 font-normal">/100</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recommendations */}
-        <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm flex flex-col min-h-0">
-          <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between flex-shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Active Recommendations</span>
-            <span className="text-[10px] font-mono text-slate-500">{recommendations.filter(r => r.status === 'pending').length} active</span>
-          </div>
-          <div className="p-3 flex flex-col gap-2 overflow-auto">
-            {recommendations.length === 0 ? (
-              <p className="text-xs text-slate-600 text-center py-4">No active recommendations</p>
-            ) : (
-              recommendations.map(rec => (
-                <RecommendationCard
-                  key={rec.id}
-                  rec={rec}
-                  onAction={onReviewRec}
-                />
-              ))
             )}
           </div>
         </div>
@@ -586,13 +316,69 @@ function CommandView({
   )
 }
 
+function UtilBar({ label, value }: { label: string; value: number }) {
+  const color = value >= 90 ? 'bg-red-500' : value >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
+  const textColor = value >= 90 ? 'text-red-400' : value >= 75 ? 'text-amber-400' : 'text-emerald-400'
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex justify-between items-baseline font-mono">
+        <span className="text-[10px] uppercase text-slate-500">{label}</span>
+        <span className={`text-[11px] font-bold ${textColor}`}>{value.toFixed(0)}%</span>
+      </div>
+      <MetricBar value={value} color={color} />
+    </div>
+  )
+}
 
+function CapacityRow({ name, current, max, util, threshold }: { name: string; current: number; max: number; util: number; threshold: number }) {
+  const isHigh = util >= threshold
+  const isCrit = util >= 95
+  const statusColor = isCrit ? 'text-red-400' : isHigh ? 'text-amber-400' : 'text-emerald-400'
+  const statusText = isCrit ? 'CRITICAL' : isHigh ? 'ELEVATED' : 'NOMINAL'
+  
+  return (
+    <tr className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/20">
+      <td className="py-3 px-4">{name}</td>
+      <td className="py-3 px-4 text-right text-slate-100">{current}</td>
+      <td className="py-3 px-4 text-right text-slate-500">{max}</td>
+      <td className={`py-3 px-4 text-right ${statusColor}`}>{util.toFixed(1)}%</td>
+      <td className={`py-3 px-4 ${statusColor} text-[10px]`}>{statusText}</td>
+    </tr>
+  )
+}
 
-// ── AI Decision Trace ─────────────────────────────────────────────────────────
+function FlowStage({ name, val, total }: { name: string, val: number, total: number }) {
+  const pct = total > 0 ? (val / total) * 100 : 0
+  const color = pct >= 90 ? 'border-red-900 bg-red-950/30' : pct >= 75 ? 'border-amber-900 bg-amber-950/30' : 'border-slate-800 bg-slate-900/30'
+  const textColor = pct >= 90 ? 'text-red-400' : pct >= 75 ? 'text-amber-400' : 'text-emerald-400'
+  
+  return (
+    <div className={`border ${color} p-3 flex justify-between items-center`}>
+      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">{name}</span>
+      <div className="flex items-baseline gap-2 font-mono">
+        <span className={`text-[12px] ${textColor}`}>{val}</span>
+        <span className="text-[10px] text-slate-600">/ {total}</span>
+      </div>
+    </div>
+  )
+}
+
+function BottleneckRow({ bn }: { bn: Bottleneck }) {
+  const label = bn.bottleneck_type.replace(/_/g, ' ').toUpperCase()
+  return (
+    <div className="flex flex-col gap-1 p-4">
+      <div className="flex justify-between items-baseline">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-200">{label}</span>
+        <span className={`text-[10px] font-mono font-bold ${severityColor(bn.severity)}`}>{bn.severity.toUpperCase()}</span>
+      </div>
+      <div className="text-[11px] text-slate-500">{bn.description || 'No detailed assessment provided.'}</div>
+    </div>
+  )
+}
 
 function DecisionTrace({ state, bottlenecks, recommendations }: { state: HospitalState | null, bottlenecks: Bottleneck[], recommendations: Recommendation[] }) {
   const ts = state ? new Date(state.timestamp).getTime() : 0
-  const isRecent = Date.now() - ts < 45000 // consider observe done if state < 45s old
+  const isRecent = Date.now() - ts < 45000 
   const hasBottlenecks = bottlenecks.length > 0
   const hasRecs = recommendations.length > 0
   
@@ -607,7 +393,7 @@ function DecisionTrace({ state, bottlenecks, recommendations }: { state: Hospita
       approvalDesc = `DONE — ${totalCount} decisions complete`
       approvalStatus = 'done'
     } else {
-      approvalDesc = `WAITING — ${pendingCount} decision${pendingCount !== 1 ? 's' : ''} remaining`
+      approvalDesc = `WAITING — ${pendingCount} remaining`
       approvalStatus = 'waiting'
     }
   }
@@ -616,7 +402,7 @@ function DecisionTrace({ state, bottlenecks, recommendations }: { state: Hospita
   let executeStatus = 'pending'
   if (totalCount > 0) {
     if (executableCount > 0) {
-      executeDesc = `${executableCount} execution${executableCount !== 1 ? 's' : ''} logged`
+      executeDesc = `${executableCount} logged`
       executeStatus = pendingCount === 0 ? 'done' : 'waiting'
     } else if (pendingCount === 0) {
       executeDesc = 'No actions to execute'
@@ -637,19 +423,14 @@ function DecisionTrace({ state, bottlenecks, recommendations }: { state: Hospita
     const anyVerified = hasSuccess || hasPartial || hasFailed || hasNotMeasurable
 
     if (measuring) {
-      verifyDesc = 'MEASURING — outcome window active'
+      verifyDesc = 'MEASURING — active'
       verifyStatus = 'waiting'
     } else if (anyVerified) {
       verifyStatus = pendingCount === 0 ? 'done' : 'waiting'
-      if (hasFailed) {
-        verifyDesc = 'FAILED — target not achieved'
-      } else if (hasPartial) {
-        verifyDesc = 'PARTIAL — improvement below target'
-      } else if (hasSuccess) {
-        verifyDesc = 'SUCCESS — target achieved'
-      } else if (hasNotMeasurable) {
-        verifyDesc = 'NOT MEASURABLE — required data unavailable'
-      }
+      if (hasFailed) verifyDesc = 'FAILED'
+      else if (hasPartial) verifyDesc = 'PARTIAL'
+      else if (hasSuccess) verifyDesc = 'SUCCESS'
+      else if (hasNotMeasurable) verifyDesc = 'NOT MEASURABLE'
     }
   } else if (totalCount > 0 && pendingCount === 0) {
     verifyDesc = 'No actions to verify'
@@ -661,41 +442,39 @@ function DecisionTrace({ state, bottlenecks, recommendations }: { state: Hospita
     { label: 'PREDICT', desc: 'Demand forecast generated', status: isRecent ? 'done' : 'waiting' },
     { label: 'DETECT', desc: 'Bottlenecks identified', status: hasBottlenecks ? 'done' : (isRecent ? 'pending' : 'waiting') },
     { label: 'OPTIMIZE', desc: 'CP-SAT constraints solved', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
-    { label: 'RECOMMEND', desc: 'Plan with explanations ready', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
+    { label: 'RECOMMEND', desc: 'Plan ready', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
     { label: 'APPROVAL', desc: approvalDesc, status: approvalStatus },
     { label: 'EXECUTE', desc: executeDesc, status: executeStatus },
     { label: 'VERIFY', desc: verifyDesc, status: verifyStatus },
   ]
 
   return (
-    <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm">
-      <div className="px-3 py-2 border-b border-slate-800/60">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">AI Decision Pipeline</span>
+    <div className="border border-slate-800 bg-[#0a1628]">
+      <div className="px-4 py-3 border-b border-slate-800 flex justify-between items-center">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Decision Pipeline</span>
       </div>
-      <div className="p-3 flex flex-col gap-1">
+      <div className="p-4 flex flex-col">
         {stages.map((s, i) => (
-          <div key={s.label} className="flex items-start gap-2">
-            <div className="flex flex-col items-center">
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-0.5 ${
+          <div key={s.label} className="flex items-start gap-4 h-12">
+            <div className="flex flex-col items-center h-full">
+              <div className={`w-2 h-2 mt-1 flex-shrink-0 ${
                 s.status === 'done' ? 'bg-emerald-500' :
                 s.status === 'waiting' ? 'bg-amber-400 animate-pulse' :
-                'bg-slate-700'
+                'bg-slate-800'
               }`} />
               {i < stages.length - 1 && (
-                <div className={`w-px flex-1 mt-0.5 ${
-                  s.status === 'done' ? 'bg-emerald-800' : 'bg-slate-800'
-                }`} style={{ minHeight: '8px' }} />
+                <div className={`w-px flex-1 my-1 ${
+                  s.status === 'done' ? 'bg-emerald-900' : 'bg-slate-800'
+                }`} />
               )}
             </div>
-            <div className="pb-1">
-              <div className="flex items-center gap-1.5">
-                <span className={`text-[10px] font-bold font-mono uppercase ${
-                  s.status === 'done' ? 'text-emerald-400' :
-                  s.status === 'waiting' ? 'text-amber-400' :
-                  'text-slate-600'
-                }`}>{s.label}</span>
-              </div>
-              <span className={`text-[10px] ${
+            <div className="flex flex-col -mt-0.5">
+              <span className={`text-[10px] font-bold font-mono uppercase tracking-widest ${
+                s.status === 'done' ? 'text-emerald-400' :
+                s.status === 'waiting' ? 'text-amber-400' :
+                'text-slate-600'
+              }`}>{s.label}</span>
+              <span className={`text-[10px] font-mono uppercase ${
                 s.status === 'done' ? 'text-slate-400' :
                 s.status === 'waiting' ? 'text-amber-500/70' :
                 'text-slate-700'
