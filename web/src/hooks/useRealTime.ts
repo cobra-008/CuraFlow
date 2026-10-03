@@ -15,9 +15,19 @@ export function useRealTime() {
     const wsUrl = `${wsProtocol}//${window.location.host}/ws/ops/stream?token=${token}`
     let ws: WebSocket | null = null
     let reconnectTimer: number
+    let pingInterval: number
 
     const connect = () => {
       ws = new WebSocket(wsUrl)
+
+      ws.onopen = () => {
+        // actively ping the backend every 15s to prevent timeouts
+        pingInterval = window.setInterval(() => {
+          if (ws?.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }))
+          }
+        }, 15000)
+      }
 
       ws.onmessage = (event) => {
         try {
@@ -42,6 +52,7 @@ export function useRealTime() {
       }
 
       ws.onclose = () => {
+        clearInterval(pingInterval)
         // Attempt to reconnect after 3 seconds
         reconnectTimer = window.setTimeout(connect, 3000)
       }
@@ -51,6 +62,7 @@ export function useRealTime() {
 
     return () => {
       clearTimeout(reconnectTimer)
+      if (pingInterval) clearInterval(pingInterval)
       if (ws) {
         ws.onclose = null // Prevent reconnect on unmount
         ws.close()
