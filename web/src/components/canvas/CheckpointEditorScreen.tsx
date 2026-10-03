@@ -49,7 +49,7 @@ function backendIdFor(frontendAgentId: string): string {
 }
 
 const nodeTypes = { agentNode: AgentNode, checkpointGroup: CheckpointGroupNode }
-const isCheckpointGroupId = (id: string) => id.startsWith('ckpt-group-')
+const isCheckpointGroupId = (id?: string) => id?.startsWith('ckpt-group-')
 
 export function CheckpointEditorScreen() {
   const sessionId = useStore((s) => s.sessionId)

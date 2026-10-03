@@ -288,6 +288,7 @@ const subNodeTypes = { subAgentNode: SubAgentCanvasNode, decisionNode: DecisionN
 
 export function SubAgentView() {
 	const subAgentNodeId = useStore((s) => s.subAgentNodeId)
+	const setFocusedSubAgentId = useStore((s) => s.setFocusedSubAgentId)
 	const closeSubAgent = useStore((s) => s.closeSubAgent)
 	const storeNodes = useStore((s) => s.nodes)
 	const executionStatus = useStore((s) => s.executionStatus)
@@ -622,8 +623,12 @@ export function SubAgentView() {
 	}
 
 	// ── Task editor navigation ────────────────────────────────────────────────
-	const [taskEditorId, setTaskEditorId] = useState<string | null>(null)
-
+	const focusedSubAgentId = useStore((s) => s.focusedSubAgentId)
+	const [taskEditorId, setTaskEditorId] = useState<string | null>(focusedSubAgentId)
+	
+	useEffect(() => {
+		if (focusedSubAgentId) setTaskEditorId(focusedSubAgentId)
+	}, [focusedSubAgentId])
 	// ── Catalog / add state ───────────────────────────────────────────────────
 	const [showCatalog, setShowCatalog] = useState(false)
 
@@ -769,7 +774,10 @@ export function SubAgentView() {
 					taskConditions={taskConditions}
 					onTasksChange={(tasks) => handleTasksChange(taskEditorSA.id, tasks)}
 					onEdgesChange={(edges) => setTaskEdgeOverrides((prev) => ({ ...prev, [taskEditorSA.id]: edges }))}
-					onBack={() => setTaskEditorId(null)}
+					onBack={() => {
+						setTaskEditorId(null)
+						setFocusedSubAgentId(null)
+					}}
 					onReorchestrate={(feedback) => reorchestrateWithFeedback(feedback, subAgentNodeId, taskEditorSA.id)}
 					reorchestrateLoading={reorchestrateLoading}
 				/>

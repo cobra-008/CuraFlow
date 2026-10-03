@@ -171,6 +171,7 @@ export interface AppState {
   clearPatientIdentification: () => void
 
   subAgentNodeId: string | null
+  focusedSubAgentId: string | null
 
   sessionRecommendation: { headline: string; actions: string[]; risk: string; summary: string } | null
   synthesisRunning: boolean
@@ -247,7 +248,8 @@ export interface AppState {
   focusApproval: (approvalId: string) => void
   setApprovalMinimized: (minimized: boolean) => void
   dismissExternalApproval: (approvalId: string) => void
-  openSubAgent: (nodeId: string) => void
+  openSubAgent: (nodeId: string, subAgentId?: string) => void
+  setFocusedSubAgentId: (id: string | null) => void
   closeSubAgent: () => void
   reorchestrateLoading: boolean
   reorchestrateWithFeedback: (feedback?: string, agentId?: string, subagentId?: string) => Promise<void>
@@ -446,6 +448,7 @@ export const useStore = create<AppState>((set, get) => {
     patientIdentificationPending: false,
     patientIdentificationCount: null,
     subAgentNodeId: null,
+    focusedSubAgentId: null,
     sessionRecommendation: null,
     synthesisRunning: false,
     committedSession: false,
@@ -563,31 +566,6 @@ export const useStore = create<AppState>((set, get) => {
         
         let finalPipeline = pipeline
 
-        if (!finalPipeline || !finalPipeline.agents || finalPipeline.agents.length <= 1) {
-          const { scenario } = get()
-          const nodeIdMap = Object.fromEntries(
-            scenario.nodes.map(n => [n.id, (FRONTEND_TO_BACKEND[n.agentId] || n.agentId) + ':' + n.id])
-          )
-          
-          finalPipeline = {
-            understood_goal: finalPipeline?.understood_goal || scenario.promptText,
-            priority: "normal",
-            agents: scenario.nodes.map(n => ({ 
-              id: nodeIdMap[n.id], 
-              label: (n as any).name || (n as any).label || n.agentId,
-              color: (n as any).color || '#3b82f6',
-              role: (n as any).role || 'agent',
-              sub_agents: (n as any).sub_agents || [],
-              task_type: n.taskType || "default" 
-            })) as any,
-            edges: scenario.edges.map(e => ({
-              source: nodeIdMap[e.source] || e.source,
-              target: nodeIdMap[e.target] || e.target,
-              condition: e.condition,
-              condition_label: e.condition_label
-            }))
-          }
-        }
 
         if (!finalPipeline?.agents) {
           // Async planning: set sessionId so WS connects and receives plan_awaiting_approval
@@ -1143,8 +1121,9 @@ export const useStore = create<AppState>((set, get) => {
 
     clearPatientIdentification() { set({ patientIdentificationPending: false, patientIdentificationCount: null }) },
 
-    openSubAgent(nodeId) { set({ subAgentNodeId: nodeId }) },
-    closeSubAgent() { set({ subAgentNodeId: null }) },
+    openSubAgent(nodeId, subAgentId) { set({ subAgentNodeId: nodeId, focusedSubAgentId: subAgentId || null }) },
+    setFocusedSubAgentId(id) { set({ focusedSubAgentId: id }) },
+    closeSubAgent() { set({ subAgentNodeId: null, focusedSubAgentId: null }) },
     setActiveView(view) { set({ activeView: view }) },
     setExecutionMode(mode) { set({ executionMode: mode }) },
 

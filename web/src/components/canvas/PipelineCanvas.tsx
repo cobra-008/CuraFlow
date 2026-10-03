@@ -164,7 +164,7 @@ export function PipelineCanvas() {
 	// Checkpoint-group boxes live only in displayNodes (never in the store-backed
 	// `nodes`), so any change event referencing one (e.g. a dimension measurement)
 	// is dropped here before it can reach useNodesState/the store.
-	const isCheckpointGroupId = (id: string) => id.startsWith('ckpt-group-')
+	const isCheckpointGroupId = (id?: string) => id?.startsWith('ckpt-group-')
 
 	const handleNodesChange = useCallback(
 		(changes: NodeChange[]) => {
