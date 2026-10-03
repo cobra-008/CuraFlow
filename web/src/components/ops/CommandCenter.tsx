@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Users, BedDouble, HeartPulse, Scissors, FlaskConical,
   TrendingUp, TrendingDown, ArrowRight, Sparkles, Send,
-  Target, BarChart2, RefreshCw, ClipboardList, AlertTriangle, AlertCircle, Bed, MessageSquare
+  Target, BarChart2, RefreshCw, ClipboardList, AlertTriangle, AlertCircle, Bed, MessageSquare, CheckCircle2
 } from 'lucide-react'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 import { useStore } from '../../store'
@@ -770,6 +770,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
 function AdmitPatientModal({ onClose }: { onClose: () => void }) {
   const [formData, setFormData] = useState({ name: '', phone: '', type: 'IP', dept: 'Cardiology', needsBed: true })
   const [submitting, setSubmitting] = useState(false)
+  const [successData, setSuccessData] = useState<any>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -784,24 +785,55 @@ function AdmitPatientModal({ onClose }: { onClose: () => void }) {
       
       // Dispatch events to update local Admin UI
       window.dispatchEvent(new Event('curaflow:patients_updated'))
-      window.dispatchEvent(new CustomEvent('curaflow:toast', {
-        detail: {
-          title: 'Patient Admitted & Assigned',
-          message: `${p.name} routed to ${p.assigned_doctor} & ${p.assigned_nurse} in ${p.location}`,
-          type: 'success'
-        }
-      }))
       
-      onClose()
+      setSuccessData(p)
+      setSubmitting(false)
     } catch (err) {
       console.error(err)
       setSubmitting(false)
     }
   }
 
+  if (successData) {
+    return (
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col items-center p-8 text-center animate-in fade-in zoom-in duration-300">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Patient Admitted</h2>
+          <p className="text-slate-500 mb-6">Notifications have been dispatched to the assigned care team.</p>
+          
+          <div className="w-full bg-slate-50 rounded-xl p-5 mb-6 text-left border border-slate-100 space-y-3">
+             <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                <span className="text-xs font-bold text-slate-400 uppercase">Patient</span>
+                <span className="font-semibold text-slate-700">{successData.name}</span>
+             </div>
+             <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                <span className="text-xs font-bold text-slate-400 uppercase">Next Destination</span>
+                <span className="font-semibold text-blue-600">{successData.location}</span>
+             </div>
+             <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                <span className="text-xs font-bold text-slate-400 uppercase">Assigned Doctor</span>
+                <span className="font-semibold text-slate-700">Dr. {successData.assigned_doctor}</span>
+             </div>
+             <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400 uppercase">Assigned Nurse</span>
+                <span className="font-semibold text-slate-700">{successData.assigned_nurse}</span>
+             </div>
+          </div>
+          
+          <button onClick={onClose} className="w-full py-3 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            Done
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-[#faf7f2]">
           <h2 className="text-lg font-bold text-[#1a2744]">Admit New Patient</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
