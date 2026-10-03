@@ -9,6 +9,13 @@ import { ApprovalCenter } from '../ops/ApprovalCenter'
 import { SimulationView } from '../ops/SimulationView'
 import { AgentOpsView } from '../ops/AgentOpsView'
 import { SystemHealthView } from '../ops/SystemHealthView'
+import { PatientFlowView } from '../ops/PatientFlowView'
+import { CapacityManagementView } from '../ops/CapacityManagementView'
+import { OrchestrationView } from '../ops/OrchestrationView'
+import { ResourcesView } from '../ops/ResourcesView'
+import { EmergencyCommandView } from '../ops/EmergencyCommandView'
+import { ReportsView } from '../ops/ReportsView'
+import { SettingsView } from '../ops/SettingsView'
 import { TopBar } from '../TopBar'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 
@@ -260,13 +267,13 @@ export function CuraFlowShell() {
       case 'simulation':    return <SimulationView />
       case 'agents':        return <AgentOpsView />
       case 'system':        return <SystemHealthView />
-      case 'capacity':      return <PlaceholderView title="Capacity Management" status="PLANNED" />
-      case 'flow':          return <PlaceholderView title="Patient Flow" status="PLANNED" />
-      case 'orchestration': return <PlaceholderView title="Orchestration Pipeline" status="PLANNED" />
-      case 'resources':     return <PlaceholderView title="Resources & Allocation" status="PLANNED" />
-      case 'emergency':     return <PlaceholderView title="Emergency Command" status="PLANNED" />
-      case 'reports':       return <PlaceholderView title="Reports & Analytics" status="PLANNED" />
-      case 'settings':      return <PlaceholderView title="Settings" status="PLANNED" />
+      case 'capacity':      return <CapacityManagementView />
+      case 'flow':          return <PatientFlowView />
+      case 'orchestration': return <OrchestrationView />
+      case 'resources':     return <ResourcesView />
+      case 'emergency':     return <EmergencyCommandView />
+      case 'reports':       return <ReportsView />
+      case 'settings':      return <SettingsView />
       default:              return <CommandCenter />
     }
   }
