@@ -162,7 +162,7 @@ export function Sidebar() {
   }, [turns])
 
   function handleRunMission() {
-    if (!promptText.trim()) return
+    if (!(promptText || '').trim()) return
     setTurns([{ id: `u-${Date.now()}`, role: 'user', text: promptText, constraint: constraintText || undefined }])
     pendingSystemTurn.current = { isUpdate: false }
     generatePipeline()
@@ -357,7 +357,7 @@ export function Sidebar() {
             ) : (
               <button
                 onClick={handleRunMission}
-                disabled={!promptText.trim()}
+                disabled={!(promptText || '').trim()}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors shadow-lg shadow-blue-900/40"
               >
                 <Play size={15} />

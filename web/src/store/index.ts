@@ -1267,7 +1267,7 @@ export const useStore = create<AppState>((set, get) => {
 
         set((s) => ({
           sessionId,
-          promptText: session.goal,
+          promptText: session.goal || '',
           constraintText: session.constraints ?? '',
           // Mode is a fixed fact of this session (baked in at creation), not the live
           // dropdown preference — reflect the truth so the header's read-only badge
