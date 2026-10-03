@@ -13,6 +13,7 @@ import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from
 import { useStore } from '../../store'
 import { DoctorDashboard } from './DoctorDashboard'
 import { NurseDashboard } from './NurseDashboard'
+import { useData } from '../../hooks/useData'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface LiveActivity {
@@ -38,23 +39,6 @@ function statusBadge(val: number, warn: number, crit: number) {
   return { text: 'Normal', bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' }
 }
 
-// ── Tiny sparkline SVG ─────────────────────────────────────────────────────────
-function Sparkline({ values, color }: { values: number[]; color: string }) {
-  const h = 28; const w = 72
-  const min = Math.min(...values); const max = Math.max(...values)
-  const rng = max - min || 1
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * w
-    const y = h - ((v - min) / rng) * h
-    return `${x},${y}`
-  }).join(' ')
-  return (
-    <svg width={w} height={h} className="sparkline">
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 // ── KPI Card ───────────────────────────────────────────────────────────────────
 function KpiCard({
   icon: Icon,
@@ -66,8 +50,6 @@ function KpiCard({
   pct,
   pctLabel,
   trend,
-  sparkValues,
-  sparkColor,
 }: {
   icon: React.ElementType
   iconColor: string
@@ -78,8 +60,6 @@ function KpiCard({
   pct?: string | null
   pctLabel?: string
   trend?: 'up' | 'down' | null
-  sparkValues: number[]
-  sparkColor: string
 }) {
   const trendUp = trend === 'up'
   const trendColor = trendUp ? '#dc2626' : '#16a34a'  // up = bad for ER/ICU
@@ -116,180 +96,12 @@ function KpiCard({
             {pctLabel && <span className="text-xs text-gray-400">{pctLabel}</span>}
           </div>
         </div>
-        <div className="flex-shrink-0">
-          <Sparkline values={sparkValues} color={sparkColor} />
-        </div>
       </div>
     </div>
   )
 }
 
-// ── Area Chart for Patient Flow ────────────────────────────────────────────────
-function PatientFlowChart({ state }: { state: HospitalState | null }) {
-  const hours = ['6 AM','8 AM','10 AM','12 PM','2 PM','4 PM','6 PM','8 PM','10 PM']
 
-  const er = state ? [
-    Math.floor(state.emergency.waiting * 0.4),
-    Math.floor(state.emergency.waiting * 0.65),
-    Math.floor(state.emergency.waiting * 0.85),
-    Math.floor(state.emergency.waiting * 1.0),
-    Math.floor(state.emergency.waiting * 1.15),
-    Math.floor(state.emergency.waiting * 0.95),
-    Math.floor(state.emergency.waiting * 0.72),
-    Math.floor(state.emergency.waiting * 0.5),
-    Math.floor(state.emergency.waiting * 0.28),
-  ] : [3,6,9,12,15,11,8,5,2]
-
-  const adm = state ? [
-    Math.floor(state.beds.occupied * 0.30),
-    Math.floor(state.beds.occupied * 0.52),
-    Math.floor(state.beds.occupied * 0.70),
-    Math.floor(state.beds.occupied * 0.88),
-    Math.floor(state.beds.occupied * 0.92),
-    Math.floor(state.beds.occupied * 0.88),
-    Math.floor(state.beds.occupied * 0.76),
-    Math.floor(state.beds.occupied * 0.60),
-    Math.floor(state.beds.occupied * 0.42),
-  ] : [25,42,58,72,76,68,60,48,33]
-
-  const disc = adm.map(v => Math.floor(v * 0.14))
-
-  const W = 520; const H = 130
-  const PAD_L = 30; const PAD_B = 24
-  const chartW = W - PAD_L
-  const maxVal = Math.max(...er, ...adm, 1)
-
-  // Smooth cubic bezier path
-  function smoothPath(values: number[], fill = false) {
-    const pts = values.map((v, i) => ({
-      x: PAD_L + (i / (values.length - 1)) * chartW,
-      y: H - PAD_B - (v / maxVal) * (H - PAD_B - 8),
-    }))
-    let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`
-    for (let i = 1; i < pts.length; i++) {
-      const cp1x = (pts[i-1].x + pts[i].x) / 2
-      d += ` C${cp1x.toFixed(1)},${pts[i-1].y.toFixed(1)} ${cp1x.toFixed(1)},${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)},${pts[i].y.toFixed(1)}`
-    }
-    if (fill) {
-      d += ` L${pts[pts.length-1].x.toFixed(1)},${H - PAD_B} L${pts[0].x.toFixed(1)},${H - PAD_B} Z`
-    }
-    return d
-  }
-
-  function getPoints(values: number[]) {
-    return values.map((v, i) => ({
-      x: PAD_L + (i / (values.length - 1)) * chartW,
-      y: H - PAD_B - (v / maxVal) * (H - PAD_B - 8),
-      v,
-    }))
-  }
-
-  const gridTicks = [0.25, 0.5, 0.75, 1.0]
-
-  return (
-    <div
-      className="p-6 rounded-2xl flex flex-col justify-between"
-      style={{
-        background: '#ffffff',
-        border: '1px solid #e8e1d4',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-      }}
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-        <div>
-          <h3 className="font-bold text-base" style={{ color: '#1a2744' }}>Today's Patient Flow</h3>
-          <p className="text-xs mt-0.5" style={{ color: '#8c7e6a' }}>Live emergency and admission throughput — updated continuously</p>
-        </div>
-        <div className="flex items-center gap-4">
-          {[
-            { label: 'ER Arrivals', color: '#4e8ef7', value: er[4] },
-            { label: 'Admissions', color: '#f5a623', value: adm[4] },
-            { label: 'Discharges', color: '#4caf82', value: disc[4] },
-          ].map(({ label, color, value }) => (
-            <div key={label} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border"
-              style={{ background: '#fdfbf7', borderColor: '#ede6da' }}>
-              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
-              <div>
-                <div className="text-[10px] uppercase font-bold tracking-wider" style={{ color: '#8c7e6a', lineHeight: 1 }}>{label}</div>
-                <div className="text-sm font-bold mt-0.5" style={{ color, lineHeight: 1.1 }}>{value}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="w-full">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: '170px' }}>
-            <defs>
-              <linearGradient id="gr-er" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4e8ef7" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#4e8ef7" stopOpacity="0.0" />
-              </linearGradient>
-              <linearGradient id="gr-adm" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f5a623" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#f5a623" stopOpacity="0.0" />
-              </linearGradient>
-              <linearGradient id="gr-disc" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4caf82" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#4caf82" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-
-            {/* Y-axis grid lines with labels */}
-            {gridTicks.map(t => {
-              const y = H - PAD_B - t * (H - PAD_B - 8)
-              const label = Math.round(t * maxVal)
-              return (
-                <g key={t}>
-                  <line x1={PAD_L} y1={y} x2={W} y2={y}
-                    stroke="#ede8e0" strokeWidth="1" strokeDasharray="4,3" />
-                  <text x={PAD_L - 4} y={y + 4} textAnchor="end" fontSize="8" fill="#c0b8a8">{label}</text>
-                </g>
-              )
-            })}
-
-            {/* Bottom axis line */}
-            <line x1={PAD_L} y1={H - PAD_B} x2={W} y2={H - PAD_B} stroke="#ddd5c4" strokeWidth="1" />
-
-            {/* Filled areas */}
-            <path d={smoothPath(adm, true)} fill="url(#gr-adm)" />
-            <path d={smoothPath(er, true)} fill="url(#gr-er)" />
-            <path d={smoothPath(disc, true)} fill="url(#gr-disc)" />
-
-            {/* Smooth lines */}
-            <path d={smoothPath(adm)} fill="none" stroke="#f5a623" strokeWidth="2.5" strokeLinecap="round" />
-            <path d={smoothPath(er)} fill="none" stroke="#4e8ef7" strokeWidth="2.5" strokeLinecap="round" />
-            <path d={smoothPath(disc)} fill="none" stroke="#4caf82" strokeWidth="2" strokeLinecap="round" />
-
-            {/* Data dots on ER line */}
-            {getPoints(er).map(({ x, y }, i) => (
-              <circle key={i} cx={x} cy={y} r={i === 4 ? 4 : 2.5}
-                fill="#fff" stroke="#4e8ef7" strokeWidth={i === 4 ? 2.5 : 1.5} />
-            ))}
-
-            {/* Peak label on ER */}
-            {(() => { const p = getPoints(er)[4]; return (
-              <g>
-                <rect x={p.x - 15} y={p.y - 18} width="30" height="13" rx="3" fill="#4e8ef7" />
-                <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="9" fill="#fff" fontWeight="700">{p.v}</text>
-              </g>
-            )})()}
-
-            {/* X-axis labels */}
-            {hours.map((h, i) => (
-              <text key={h}
-                x={PAD_L + (i / (hours.length - 1)) * chartW}
-                y={H - 6}
-                textAnchor="middle"
-                fontSize="9"
-                fill="#9aa3b2"
-              >{h}</text>
-            ))}
-          </svg>
-        </div>
-      </div>
-  )
-}
 
 // ── Department Status Table ────────────────────────────────────────────────────
 function DeptTable({ state }: { state: HospitalState | null }) {
@@ -335,7 +147,7 @@ function DeptTable({ state }: { state: HospitalState | null }) {
 
   return (
     <div
-      className="p-6 rounded-2xl flex flex-col justify-between h-full"
+      className="p-6 rounded-2xl flex flex-col"
       style={{
         background: '#ffffff',
         border: '1px solid #e8e1d4',
@@ -953,63 +765,218 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
   )
 }
 
+// ── Quick Actions & Admit Patient Modal ─────────────────────────────────────────
+
+function AdmitPatientModal({ onClose }: { onClose: () => void }) {
+  const [formData, setFormData] = useState({ name: '', phone: '', type: 'IP', dept: 'Cardiology', needsBed: true })
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    
+    try {
+      const res = await opsApi.admitPatient(formData)
+      const p = res.patient as any
+      
+      // Local physical feedback for Admin
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+      
+      // Dispatch events to update local Admin UI
+      window.dispatchEvent(new Event('curaflow:patients_updated'))
+      window.dispatchEvent(new CustomEvent('curaflow:toast', {
+        detail: {
+          title: 'Patient Admitted & Assigned',
+          message: `${p.name} routed to ${p.assigned_doctor} & ${p.assigned_nurse} in ${p.location}`,
+          type: 'success'
+        }
+      }))
+      
+      onClose()
+    } catch (err) {
+      console.error(err)
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-[#faf7f2]">
+          <h2 className="text-lg font-bold text-[#1a2744]">Admit New Patient</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Patient Name</label>
+            <input required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
+              value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} placeholder="e.g. John Doe" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Contact Number</label>
+            <input required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
+              value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} placeholder="+1 234 567 890" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Admission Type</label>
+              <select className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none bg-white"
+                value={formData.type} onChange={e => setFormData(f => ({ ...f, type: e.target.value }))}>
+                <option value="OP">Outpatient</option>
+                <option value="IP">Inpatient</option>
+                <option value="ER">Emergency</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Department</label>
+              <select className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none bg-white"
+                value={formData.dept} onChange={e => setFormData(f => ({ ...f, dept: e.target.value }))}>
+                <option>Cardiology</option>
+                <option>Orthopedics</option>
+                <option>Neurology</option>
+                <option>General</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-2">
+            <input type="checkbox" id="needsBed" checked={formData.needsBed} 
+              onChange={e => setFormData(f => ({ ...f, needsBed: e.target.checked }))} className="w-4 h-4 rounded border-slate-300 text-[#1e3a6e]" />
+            <label htmlFor="needsBed" className="text-sm font-semibold text-slate-700">Request Bed / Room Allocation</label>
+          </div>
+          <div className="pt-4 flex gap-3">
+            <button type="button" onClick={onClose} disabled={submitting} className="flex-1 py-2.5 rounded-xl font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Cancel</button>
+            <button type="submit" disabled={submitting} className="flex-1 py-2.5 rounded-xl font-semibold text-white bg-[#1e3a6e] hover:bg-[#152a50] transition-colors disabled:opacity-50">
+              {submitting ? 'Admitting...' : 'Confirm Admission'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function QuickActionsBar() {
+  const [showAdmit, setShowAdmit] = useState(false)
+  
+  return (
+    <div className="bg-white p-6 rounded-2xl shadow-sm flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
+      style={{ border: '1px solid #e8e1d4' }}>
+      <div>
+        <h3 className="font-bold text-base" style={{ color: '#1a2744' }}>Operations Quick Actions</h3>
+        <p className="text-xs mt-0.5" style={{ color: '#8c7e6a' }}>Execute high-priority workflows and assignments</p>
+      </div>
+      <div className="flex gap-3 w-full sm:w-auto">
+        <button
+          onClick={() => setShowAdmit(true)}
+          className="flex-1 sm:flex-none px-4 py-2.5 bg-[#1e3a6e] hover:bg-[#152a50] text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+        >
+          <Users size={16} />
+          Admit Patient
+        </button>
+        <button 
+          onClick={() => {
+            if (navigator.vibrate) navigator.vibrate([400, 200, 400])
+            window.dispatchEvent(new CustomEvent('curaflow:toast', {
+              detail: { title: 'Code Blue Initiated', message: 'All available staff alerted.', type: 'error' }
+            }))
+          }}
+          className="flex-1 sm:flex-none px-4 py-2.5 bg-[#fef2f2] hover:bg-[#fee2e2] text-[#dc2626] rounded-xl text-sm font-semibold transition-colors border border-[#fecaca] flex items-center justify-center gap-2"
+        >
+          <AlertTriangle size={16} />
+          Code Blue
+        </button>
+      </div>
+      
+      {showAdmit && <AdmitPatientModal onClose={() => setShowAdmit(false)} />}
+    </div>
+  )
+}
+
+// ── Recent Admissions Tracker ──────────────────────────────────────────────────
+function RecentAdmissions() {
+  const [patients, setPatients] = useState<any[]>([])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await opsApi.getPatients()
+        // API returns newest first in this array
+        setPatients(res.patients.slice(0, 5))
+      } catch (e) {}
+    }
+    load()
+    window.addEventListener('curaflow:patients_updated', load)
+    return () => window.removeEventListener('curaflow:patients_updated', load)
+  }, [])
+
+  if (patients.length === 0) return null
+
+  return (
+    <div className="bg-white p-6 rounded-2xl shadow-sm flex flex-col"
+      style={{ border: '1px solid #e8e1d4' }}>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h3 className="font-bold text-base" style={{ color: '#1a2744' }}>Recently Admitted Patients</h3>
+          <p className="text-xs mt-0.5" style={{ color: '#8c7e6a' }}>Live tracking of auto-assigned admissions</p>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b" style={{ borderColor: '#ede6da' }}>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-left" style={{ color: '#8c7e6a' }}>Patient</th>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-left" style={{ color: '#8c7e6a' }}>MRN</th>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-left" style={{ color: '#8c7e6a' }}>Department</th>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-left" style={{ color: '#8c7e6a' }}>Location</th>
+              <th className="pb-3 text-xs font-bold uppercase tracking-wider text-left" style={{ color: '#8c7e6a' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y" style={{ borderColor: '#f4efe6' }}>
+            {patients.map((p, i) => (
+              <tr key={i} className="hover:bg-[#faf7f2] transition-colors">
+                <td className="py-3.5 font-semibold text-sm" style={{ color: '#1a2744' }}>{p.name}</td>
+                <td className="py-3.5 text-sm" style={{ color: '#8c7e6a' }}>{p.mrn}</td>
+                <td className="py-3.5 text-sm" style={{ color: '#8c7e6a' }}>{p.department}</td>
+                <td className="py-3.5 text-sm" style={{ color: '#1a2744' }}>{p.location}</td>
+                <td className="py-3.5">
+                  <span className="px-2 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {p.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 // ── Admin/Operator Command Center (full graph+KPI layout) ──────────────────────
 function AdminCommandCenter() {
   const currentUser = useStore((s) => s.currentUser)
 
-  const [state, setState] = useState<HospitalState | null>(null)
-  const [bottlenecks, setBottlenecks] = useState<Bottleneck[]>([])
-  const [loading, setLoading] = useState(true)
   const [crisisLoading, setCrisisLoading] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [s, b] = await Promise.all([
-        opsApi.getHospitalState(),
-        opsApi.getBottlenecks(),
-      ])
-      setState(s)
-      setBottlenecks(b.bottlenecks)
-    } catch (e) {
-      console.error('CommandCenter fetch error:', e)
-    } finally {
-      setLoading(false)
-    }
+  const fetchDashboardData = useCallback(async () => {
+    const [s, b] = await Promise.all([
+      opsApi.getHospitalState(),
+      opsApi.getBottlenecks(),
+    ])
+    return { state: s, bottlenecks: b.bottlenecks }
   }, [])
 
-  useEffect(() => {
-    fetchData()
-    intervalRef.current = setInterval(fetchData, 5000)
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [fetchData])
+  const { data, loading: dataLoading } = useData(fetchDashboardData, 15000)
+  const state = data?.state ?? null
+  const bottlenecks = data?.bottlenecks ?? []
+  const loading = dataLoading && !state
 
   const resolveCrisis = async () => {
     setCrisisLoading(true)
-    try { await opsApi.resolveCrisis(); await fetchData() }
+    try { await opsApi.resolveCrisis() }
     finally { setCrisisLoading(false) }
   }
 
-  // Generate sparkline data from current state
-  const erSpark = state
-    ? Array.from({ length: 8 }, (_) => Math.max(5, state.emergency.waiting - Math.random() * 8))
-    : [10, 15, 12, 20, 18, 25, 30, 40]
 
-  const bedSpark = state
-    ? Array.from({ length: 8 }, (_, i) => Math.max(60, state.beds.occupied - (7 - i) * 3 + Math.random() * 5))
-    : [80, 90, 95, 100, 105, 102, 108, 109]
-
-  const icuSpark = state
-    ? Array.from({ length: 8 }, (_, i) => Math.max(8, state.icu.occupied - (7 - i) + Math.random() * 2))
-    : [10, 12, 14, 15, 16, 17, 17, 18]
-
-  const otSpark = state
-    ? Array.from({ length: 8 }, () => Math.max(1, state.operating_rooms.occupied))
-    : [4, 5, 6, 5, 6, 6, 5, 6]
-
-  const diagSpark = state
-    ? Array.from({ length: 8 }, (_, i) => Math.max(5, state.diagnostics.queue_length - (7 - i) * 2 + Math.random() * 3))
-    : [5, 8, 12, 15, 20, 22, 25, 28]
 
   const displayName = currentUser?.display_name ?? 'Doctor'
 
@@ -1067,8 +1034,6 @@ function AdminCommandCenter() {
           pct={state?.pressure.emergency ? `${Math.round(state.pressure.emergency)}%` : null}
           pctLabel=""
           trend="up"
-          sparkValues={erSpark}
-          sparkColor="#dc2626"
         />
         <KpiCard
           icon={BedDouble} iconColor="#1e50a0" iconBg="#dbeafe"
@@ -1076,8 +1041,6 @@ function AdminCommandCenter() {
           value={state ? `${state.beds.occupied} / ${state.beds.total}` : '—'}
           pct={state ? `${Math.round(state.beds.occupancy_pct)}%` : null}
           trend={state?.beds.occupancy_pct && state.beds.occupancy_pct > 85 ? 'up' : 'down'}
-          sparkValues={bedSpark}
-          sparkColor="#1e50a0"
         />
         <KpiCard
           icon={HeartPulse} iconColor="#ea580c" iconBg="#fff7ed"
@@ -1085,8 +1048,6 @@ function AdminCommandCenter() {
           value={state ? `${state.icu.occupied} / ${state.icu.total}` : '—'}
           pct={state ? `${Math.round(state.icu.occupancy_pct)}%` : null}
           trend={state?.icu.occupancy_pct && state.icu.occupancy_pct > 80 ? 'up' : 'down'}
-          sparkValues={icuSpark}
-          sparkColor={state?.icu.occupancy_pct && state.icu.occupancy_pct >= 85 ? '#dc2626' : '#ea580c'}
         />
         <KpiCard
           icon={Scissors} iconColor="#1e50a0" iconBg="#dbeafe"
@@ -1094,8 +1055,6 @@ function AdminCommandCenter() {
           value={state ? `${state.operating_rooms.occupied} / ${state.operating_rooms.total}` : '—'}
           pct={state ? `${Math.round(state.operating_rooms.utilization_pct)}%` : null}
           trend="down"
-          sparkValues={otSpark}
-          sparkColor="#1e50a0"
         />
         <KpiCard
           icon={FlaskConical} iconColor="#1e50a0" iconBg="#dbeafe"
@@ -1104,19 +1063,16 @@ function AdminCommandCenter() {
           subValue="pending"
           pct={state ? `${Math.round((state.diagnostics.queue_length / (state.diagnostics.available_devices * 5)) * 100)}%` : null}
           trend="up"
-          sparkValues={diagSpark}
-          sparkColor="#dc2626"
         />
       </div>
 
       {/* ── Main Operations 2-Column Grid with Generous Breathing Space ─────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Left Column (8 cols): Primary Flow Chart + Capacity Table */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column (8 cols): Quick Actions + Capacity Table */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          <PatientFlowChart state={state} />
-          <div className="flex-1 min-h-0 flex flex-col">
-            <DeptTable state={state} />
-          </div>
+          <QuickActionsBar />
+          <DeptTable state={state} />
+          <RecentAdmissions />
         </div>
 
         {/* Right Column (4 cols): AI Assistant + Live Activity Feed */}

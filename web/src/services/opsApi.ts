@@ -217,4 +217,9 @@ export const opsApi = {
   // AI Chat
   chat: (message: string) =>
     opsPost<{ response: string; context: { pressure: string; timestamp: string }; timestamp: string }>('chat', { message }),
+
+  // Patients
+  getPatients: () => opsGet<{ patients: unknown[] }>('patients'),
+  admitPatient: (body: { name: string; phone: string; type: string; dept: string; needsBed: boolean }) =>
+    opsPost<{ status: string; patient: unknown }>('patients/admit', body),
 }

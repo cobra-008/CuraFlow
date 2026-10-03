@@ -35,26 +35,9 @@ export interface DoctorPatient {
   nurseCalled?: boolean
 }
 
-const STORAGE_KEY = "curaflow_doctor_patients"
+import { opsApi } from '../../services/opsApi'
 
-function loadPatients(): DoctorPatient[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : defaultPatients()
-  } catch { return defaultPatients() }
-}
-function savePatients(pts: DoctorPatient[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pts))
-}
-function defaultPatients(): DoctorPatient[] {
-  return [
-    { id: "p001", name: "Arun Kumar", age: 58, gender: "M", problem: "Chest pain with breathlessness", medicalHistory: "Hypertension (10 yrs), Type-2 Diabetes, Prior MI (2019)", allergies: ["Penicillin"], vitals: { bp: "145/90", hr: 110, temp: 37.2, spo2: 92 }, appointmentTime: "09:00", ward: "Cardiology", room: "201", bed: "A", status: "waiting" },
-    { id: "p002", name: "Meena Shetty", age: 34, gender: "F", problem: "Recurrent migraine, vomiting", medicalHistory: "Chronic migraine diagnosed 2021, no prior surgeries", allergies: [], vitals: { bp: "120/80", hr: 75, temp: 36.8, spo2: 98 }, appointmentTime: "09:30", ward: "Neurology", room: "105", bed: "B", status: "waiting" },
-    { id: "p003", name: "Rajesh Pillai", age: 72, gender: "M", problem: "Post-operative wound check", medicalHistory: "Hip replacement surgery (3 weeks ago), mild anaemia", allergies: ["Sulfa Drugs", "Latex"], vitals: { bp: "130/85", hr: 82, temp: 37.0, spo2: 96 }, appointmentTime: "10:00", ward: "Orthopaedics", room: "302", bed: "A", status: "in-progress", nurseNote: "Vitals stable. Wound dressing changed. Patient is mobile.", nurseNoteAt: "09:52" },
-    { id: "p004", name: "Kavitha Nair", age: 45, gender: "F", problem: "Fever, sore throat, difficulty swallowing", medicalHistory: "Tonsillitis (recurring), no chronic conditions", allergies: [], vitals: { bp: "110/70", hr: 95, temp: 38.5, spo2: 97 }, appointmentTime: "10:30", ward: "ENT", room: "108", bed: "C", status: "waiting" },
-    { id: "p005", name: "Suresh Mohan", age: 61, gender: "M", problem: "Uncontrolled blood sugar, dizziness", medicalHistory: "Type-1 Diabetes (20 yrs), CKD Stage 2", allergies: ["Ibuprofen"], vitals: { bp: "150/95", hr: 88, temp: 36.9, spo2: 95 }, appointmentTime: "11:00", ward: "Endocrinology", room: "204", bed: "A", status: "waiting" },
-  ]
-}
+// ── Doctor Status Badge ────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: DoctorPatient["status"] }) {
   const map = {
@@ -182,10 +165,21 @@ function PatientCard({ patient, onCallNurse, onStatusChange, onDismissDischarge 
 export function DoctorDashboard() {
   const currentUser = useStore(s => s.currentUser)
   const pushToast = useStore(s => s.pushToast)
-  const [patients, setPatients] = useState<DoctorPatient[]>(loadPatients)
+  const [patients, setPatients] = useState<any[]>([])
   const [dischargedQueue, setDischargedQueue] = useState<string[]>([])
 
-  useEffect(() => { savePatients(patients) }, [patients])
+  const loadPatients = async () => {
+    try {
+      const res = await opsApi.getPatients()
+      setPatients(res.patients)
+    } catch (e) {}
+  }
+
+  useEffect(() => {
+    loadPatients()
+    window.addEventListener("curaflow:patients_updated", loadPatients)
+    return () => window.removeEventListener("curaflow:patients_updated", loadPatients)
+  }, [])
 
   useEffect(() => {
     const handler = (e: CustomEvent) => {
