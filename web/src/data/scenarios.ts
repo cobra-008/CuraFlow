@@ -44,6 +44,12 @@ export interface ScenarioDef {
   edges: PipelineEdgeDef[]
   approvalGates: ApprovalGate[]
   streamingOutputs: StreamingOutputs
+  recommendation?: {
+    headline: string
+    actions: string[]
+    risk: string
+    summary: string
+  }
 }
 
 export const SCENARIOS: ScenarioDef[] = [
@@ -133,6 +139,16 @@ export const SCENARIOS: ScenarioDef[] = [
         'Housekeeping Agent complete — ICU-3 will be ready before ambulance arrives.',
       ],
     },
+    recommendation: {
+      headline: 'Bed reallocation successful. Critical patient admission staged.',
+      actions: [
+        'Transferred Patient Rajesh Gupta (ICU-3) to HDU.',
+        'Dispatched Housekeeping to ICU bed 3 (ETA 8m).',
+        'Notified ER attending of incoming patient (ETA 18m).'
+      ],
+      risk: 'medium',
+      summary: 'ICU capacity has been managed to accommodate the incoming critical patient without violating safety constraints.'
+    }
   },
   {
     id: 'surgery_optimization',

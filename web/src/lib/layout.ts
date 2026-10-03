@@ -175,7 +175,26 @@ export function computeLayout(
   const topoOrder: string[] = []
   const tempDeg = { ...inDegree }
 
-  while (queue.length) {
+  while (topoOrder.length < ids.length) {
+    if (queue.length === 0) {
+      // Handle cycles by forcing a node with the smallest incoming degree into the queue
+      let minId: string | null = null
+      let minDeg = Infinity
+      for (const id of ids) {
+        if (!topoOrder.includes(id) && tempDeg[id] < minDeg) {
+          minDeg = tempDeg[id]
+          minId = id
+        }
+      }
+      if (minId) {
+        const maxCol = Object.values(col).length > 0 ? Math.max(...Object.values(col)) : 0
+        col[minId] = maxCol + 1
+        queue.push(minId)
+      } else {
+        break
+      }
+    }
+
     const cur = queue.shift()!
     topoOrder.push(cur)
     for (const child of children[cur]) {
