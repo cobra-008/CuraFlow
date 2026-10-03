@@ -12,8 +12,9 @@ _ASSESS_TASK_ID = "exec__assess_discharge"
 _ASSESS_SCHEMA = {
     "pending_task_count": "int — number of incomplete nursing tasks",
     "vitals": "dict or null — keys: temperature (float °C), pulse (int bpm), spo2 (float %), bp_systolic (int mmHg), respiratory_rate (int /min)",
+    "expected_discharge_at": "string or null — expected discharge date/time",
 }
-_ASSESS_OUTPUT = ["discharge_ready", "blocked_reason", "assessment"]
+_ASSESS_OUTPUT = ["discharge_ready", "blocked_reason", "assessment", "priority_score"]
 _ASSESS_DESC = (
     "Assess whether a hospital patient is clinically ready for discharge. "
     "NOT ready if pending_task_count > 0 → blocked_reason='pending_tasks'. "
@@ -21,7 +22,10 @@ _ASSESS_DESC = (
     "NOT ready if temperature >38 or <36°C, pulse <50 or >120, spo2 <94%, "
     "bp_systolic <90 or >160, respiratory_rate <10 or >25 → blocked_reason='vitals_unstable'. "
     "Otherwise discharge_ready=True. "
-    "assessment is one concise clinical sentence."
+    "assessment is one concise clinical sentence. "
+    "Also provide a priority_score (integer 1-100) for discharging the patient: "
+    "Higher score means they should be discharged sooner. "
+    "Factors for high priority: 0 pending tasks, highly stable vitals, and passed expected discharge time."
 )
 
 
@@ -42,6 +46,7 @@ async def assess_discharge(
         input_data={
             "pending_task_count": len(pending_tasks),
             "vitals": vitals_clean,
+            "expected_discharge_at": admission.get("expected_discharge_at"),
         },
     )
     logger.info(

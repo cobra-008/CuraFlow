@@ -162,7 +162,7 @@ export function Sidebar() {
   }, [turns])
 
   function handleRunMission() {
-    if (!promptText.trim()) return
+    if (!(promptText || '').trim()) return
     setTurns([{ id: `u-${Date.now()}`, role: 'user', text: promptText, constraint: constraintText || undefined }])
     pendingSystemTurn.current = { isUpdate: false }
     generatePipeline()
@@ -194,7 +194,7 @@ export function Sidebar() {
   const inConversation = turns.length > 0 || pipelineLoading
 
   return (
-    <div className="w-full flex-shrink-0 bg-white flex flex-col overflow-hidden" style={{ minHeight: '30%', maxHeight: '50%' }}>
+    <div className="w-full h-full bg-white flex flex-col overflow-hidden">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="px-4 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
@@ -220,7 +220,7 @@ export function Sidebar() {
               value={promptText}
               onChange={(e) => setPrompt(e.target.value)}
               rows={5}
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-a)] rounded-lg px-3 py-2 text-xs text-slate-300 resize-none placeholder-slate-700 focus:outline-none focus:border-blue-500 leading-relaxed"
+              className="w-full bg-[var(--bg-surface)] border border-[var(--border-a)] rounded-lg px-3 py-2 text-xs text-black resize-none placeholder-slate-700 focus:outline-none focus:border-blue-500 leading-relaxed"
               placeholder="Describe the situation and what you need the AI to coordinate..."
             />
           </div>
@@ -234,7 +234,7 @@ export function Sidebar() {
               value={constraintText}
               onChange={(e) => setConstraint(e.target.value)}
               rows={3}
-              className="w-full bg-[var(--bg-surface)] border border-amber-900/40 rounded-lg px-3 py-2 text-xs text-slate-300 resize-none placeholder-slate-700 focus:outline-none focus:border-amber-500 leading-relaxed"
+              className="w-full bg-[var(--bg-surface)] border border-amber-900/40 rounded-lg px-3 py-2 text-xs text-black resize-none placeholder-slate-700 focus:outline-none focus:border-amber-500 leading-relaxed"
               placeholder="Safety rules and approval requirements..."
             />
           </div>
@@ -247,7 +247,7 @@ export function Sidebar() {
           {/* Mission goal read-only card */}
           <div className="w-full bg-blue-600/10 border border-blue-600/25 rounded-xl px-3 py-2.5">
             <div className="text-[11px] font-bold text-blue-400/70 uppercase tracking-widest mb-1">Mission</div>
-            <p className="text-xs text-blue-100 leading-relaxed">{promptText}</p>
+            <p className="text-xs text-black leading-relaxed">{promptText}</p>
           </div>
 
           {/* Agent chips */}
@@ -285,7 +285,7 @@ export function Sidebar() {
                 /* User card — prompt + optional constraints */
                 <div className="w-full bg-blue-600/10 border border-blue-600/25 rounded-xl px-3 py-2.5">
                   <div className="text-[11px] font-bold text-blue-400/70 uppercase tracking-widest mb-1">Prompt</div>
-                  <p className="text-xs text-blue-100 leading-relaxed">{turn.text}</p>
+                  <p className="text-xs text-black leading-relaxed">{turn.text}</p>
                   {turn.constraint && (
                     <div className="mt-2 pt-2 border-t border-blue-600/15">
                       <div className="flex items-center gap-1 text-[11px] font-bold text-amber-500/70 uppercase tracking-widest mb-1">
@@ -305,7 +305,7 @@ export function Sidebar() {
                     </div>
                     <span className="text-xs font-semibold text-slate-400">CuraFlow</span>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed mb-2">{turn.text}</p>
+                  <p className="text-xs text-black leading-relaxed mb-2">{turn.text}</p>
                   {turn.agents && turn.agents.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {turn.agents.map((a) => (
@@ -357,7 +357,7 @@ export function Sidebar() {
             ) : (
               <button
                 onClick={handleRunMission}
-                disabled={!promptText.trim()}
+                disabled={!(promptText || '').trim()}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors shadow-lg shadow-blue-900/40"
               >
                 <Play size={15} />
@@ -384,7 +384,7 @@ export function Sidebar() {
                     disabled={isRunning || pipelineLoading}
                     placeholder="Describe changes to make…"
                     rows={3}
-                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-a)] rounded-xl px-3 py-2 text-xs text-slate-300 resize-none placeholder-slate-700 focus:outline-none focus:border-blue-500 disabled:opacity-50 transition-colors leading-relaxed"
+                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-a)] rounded-xl px-3 py-2 text-xs text-black resize-none placeholder-slate-700 focus:outline-none focus:border-blue-500 disabled:opacity-50 transition-colors leading-relaxed"
                   />
                 </div>
 
@@ -399,7 +399,7 @@ export function Sidebar() {
                     onChange={(e) => setConstraint(e.target.value)}
                     disabled={isRunning || pipelineLoading}
                     rows={2}
-                    className="w-full bg-[var(--bg-surface)] border border-amber-900/40 rounded-xl px-3 py-2 text-xs text-slate-300 resize-none placeholder-slate-700 focus:outline-none focus:border-amber-500 disabled:opacity-50 transition-colors leading-relaxed"
+                    className="w-full bg-[var(--bg-surface)] border border-amber-900/40 rounded-xl px-3 py-2 text-xs text-black resize-none placeholder-slate-700 focus:outline-none focus:border-amber-500 disabled:opacity-50 transition-colors leading-relaxed"
                     placeholder="Safety rules and approval requirements…"
                   />
                 </div>

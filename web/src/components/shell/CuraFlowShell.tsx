@@ -236,23 +236,29 @@ export function CuraFlowShell() {
   }, [])
 
   const renderView = () => {
-    switch (activeRoute) {
-      case 'command':       return <CommandCenter />
-      case 'approvals':     return (role === 'doctor' || role === 'nurse') 
-                              ? <MobileApprovalsView recommendations={recommendations} /> 
-                              : <ApprovalCenter recommendations={recommendations} />
-      case 'simulation':    return <SimulationView />
-      case 'agents':        return <AgentOpsView />
-      case 'system':        return <SystemHealthView />
-      case 'capacity':      return <CapacityManagementView />
-      case 'flow':          return <PatientFlowView />
-      case 'orchestration': return <OrchestrationView />
-      case 'resources':     return <ResourcesView />
-      case 'emergency':     return <EmergencyCommandView />
-      case 'reports':       return <ReportsView />
-      case 'settings':      return <SettingsView />
-      default:              return <CommandCenter />
-    }
+    // Orchestration needs full h-full for the ReactFlow canvas — no scroll wrapper
+    if (activeRoute === 'orchestration') return <OrchestrationView />
+    // All other views scroll normally inside a full-height scroll container
+    return (
+      <div className="flex-1 overflow-auto h-full">
+        {(() => { switch (activeRoute) {
+          case 'command':    return <CommandCenter />
+          case 'approvals':  return (role === 'doctor' || role === 'nurse')
+                               ? <MobileApprovalsView recommendations={recommendations} />
+                               : <ApprovalCenter recommendations={recommendations} />
+          case 'simulation': return <SimulationView />
+          case 'agents':     return <AgentOpsView />
+          case 'system':     return <SystemHealthView />
+          case 'capacity':   return <CapacityManagementView />
+          case 'flow':       return <PatientFlowView />
+          case 'resources':  return <ResourcesView />
+          case 'emergency':  return <EmergencyCommandView />
+          case 'reports':    return <ReportsView />
+          case 'settings':   return <SettingsView />
+          default:           return <CommandCenter />
+        }})()}
+      </div>
+    )
   }
 
   return (
@@ -269,7 +275,7 @@ export function CuraFlowShell() {
       {/* Right: TopBar + Content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-auto" style={{ background: '#f5f0e8' }}>
+        <main className="flex-1 min-h-0 overflow-hidden flex flex-col" style={{ background: '#f5f0e8' }}>
           {renderView()}
         </main>
       </div>

@@ -408,7 +408,6 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PATCH, PUT, DELETE')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.end_headers()
@@ -458,9 +457,52 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             }})
 
         elif p.startswith('/api/sessions'):
+            goal = body.get('goal', '').lower()
+            
+            if 'simple' in goal or 'one' in goal:
+                pipeline_data = {
+                    "understood_goal": "Mock goal - generating a simple pipeline",
+                    "priority": "normal",
+                    "agents": [{"id": "er_agent", "task_type": "triage"}],
+                    "edges": []
+                }
+            elif 'surgery' in goal or 'ot' in goal:
+                pipeline_data = {
+                    "understood_goal": "Mock goal - generating an OT pipeline",
+                    "priority": "high",
+                    "agents": [
+                        {"id": "ot_agent", "task_type": "scheduling"},
+                        {"id": "lab_agent", "task_type": "results_expedite"},
+                        {"id": "bed_agent", "task_type": "allocation"}
+                    ],
+                    "edges": [
+                        {"source": "ot_agent", "target": "lab_agent"},
+                        {"source": "ot_agent", "target": "bed_agent"}
+                    ]
+                }
+            else:
+                pipeline_data = {
+                    "understood_goal": "Mock goal - generating a complex pipeline",
+                    "priority": "normal",
+                    "agents": [
+                        {"id": "er_agent", "task_type": "triage"},
+                        {"id": "icu_agent", "task_type": "capacity_check"},
+                        {"id": "discharge_agent", "task_type": "expedite"},
+                        {"id": "bed_agent", "task_type": "allocation"},
+                        {"id": "revenue_agent", "task_type": "impact_analysis"}
+                    ],
+                    "edges": [
+                        {"source": "er_agent", "target": "icu_agent"},
+                        {"source": "icu_agent", "target": "discharge_agent", "condition": "icu_full", "condition_label": "if ICU full"},
+                        {"source": "icu_agent", "target": "bed_agent", "condition": "icu_not_full", "condition_label": "if ICU has capacity"},
+                        {"source": "discharge_agent", "target": "bed_agent"},
+                        {"source": "bed_agent", "target": "revenue_agent"}
+                    ]
+                }
+
             self._send(200, {
                 "session_id": str(uuid.uuid4()), "status": "pending", "autonomous": False,
-                "pipeline": {"understood_goal": "Mock goal", "priority": "normal", "agents": [], "edges": []}
+                "pipeline": pipeline_data
             })
 
         elif p.startswith('/api/ops/'):
@@ -658,10 +700,37 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
 
         if p == '/api/auth/me':
             self._send(200, {"id": "00000000-0000-0000-0000-000000000000", "username": "admin", "display_name": "Mock Admin", "role": "super_admin", "org_id": None, "org_name": "System"})
-        elif p == '/api/orgs/public':
-            self._send(200, {"organizations": []})
+        elif p == '/api/orgs/public' or p == '/api/orgs':
+            self._send(200, {"organizations": [
+                {"id": "org_mock_123", "name": "Mock General Hospital", "slug": "mock-gen", "status": "active"}
+            ]})
         elif p in ('/api/sessions', '/api/sessions?limit=50'):
             self._send(200, {"sessions": []})
+        elif p.startswith('/api/sessions/'):
+            if p.endswith('/pending-approvals'):
+                self._send(200, {"approvals": []})
+            else:
+                self._send(200, {
+                    "session_id": p.split('/')[-1], "status": "pending", "autonomous": False,
+                    "pipeline": {
+                        "understood_goal": "Mock goal - generating a complex pipeline",
+                        "priority": "normal",
+                        "agents": [
+                            {"id": "er_agent", "task_type": "triage"},
+                            {"id": "icu_agent", "task_type": "capacity_check"},
+                            {"id": "discharge_agent", "task_type": "expedite"},
+                            {"id": "bed_agent", "task_type": "allocation"},
+                            {"id": "revenue_agent", "task_type": "impact_analysis"}
+                        ],
+                        "edges": [
+                            {"source": "er_agent", "target": "icu_agent"},
+                            {"source": "icu_agent", "target": "discharge_agent", "condition": "icu_full", "condition_label": "if ICU full"},
+                            {"source": "icu_agent", "target": "bed_agent", "condition": "icu_not_full", "condition_label": "if ICU has capacity"},
+                            {"source": "discharge_agent", "target": "bed_agent"},
+                            {"source": "bed_agent", "target": "revenue_agent"}
+                        ]
+                    }
+                })
         elif p == '/api/queues/paused':
             self._send(200, {"paused": 0, "flows": []})
         elif p == '/api/approvals/pending':

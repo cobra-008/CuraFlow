@@ -128,6 +128,7 @@ async def batch_assess_discharges(inp: BatchAssessInput) -> list:
             "discharge_ready": assessment.get("discharge_ready", False),
             "blocked_reason":  assessment.get("blocked_reason"),
             "assessment":      assessment.get("assessment", ""),
+            "priority_score":  assessment.get("priority_score", 0),
         }
 
     raw = await asyncio.gather(*[_assess_one(a) for a in inp.admissions], return_exceptions=True)
@@ -141,9 +142,13 @@ async def batch_assess_discharges(inp: BatchAssessInput) -> list:
                 "discharge_ready": False,
                 "blocked_reason":  "assessment_error",
                 "assessment":      "Assessment unavailable due to API error",
+                "priority_score":  0,
             })
         else:
             results.append(outcome)
+            
+    # Sort results by priority_score descending to prioritize patients for discharge
+    results.sort(key=lambda x: x.get("priority_score", 0), reverse=True)
 
     ready_count   = sum(1 for r in results if r["discharge_ready"])
     blocked_count = len(results) - ready_count
