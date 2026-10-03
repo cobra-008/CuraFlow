@@ -138,7 +138,7 @@ export function AgentCapabilitiesView() {
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
                       style={{ background: agent.color + '20', border: `1px solid ${agent.color}40` }}
                     >
-                      {agent.emoji}
+                      {agent.icon}
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-slate-200 truncate">{agent.label}</div>
@@ -176,7 +176,7 @@ export function AgentCapabilitiesView() {
               className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm flex-shrink-0"
               style={{ background: selectedAgent.color + '25', border: `2px solid ${selectedAgent.color}50` }}
             >
-              {selectedAgent.emoji}
+              {selectedAgent.icon}
             </div>
             <div className="min-w-0">
               <div className="text-lg font-bold text-slate-100 truncate">{selectedAgent.label}</div>

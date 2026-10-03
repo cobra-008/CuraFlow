@@ -26,7 +26,7 @@ export interface SubAgentDef {
 export interface AgentDef {
   id: string
   label: string
-  emoji: string
+  icon: string
   color: string
   description: string
   subAgents: SubAgentDef[]
@@ -37,7 +37,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'er',
     label: 'ER Coordination',
-    emoji: '🚑',
+    icon: 'Ambulance',
     color: '#ef4444',
     description: 'Monitors emergency patients, assigns urgency scores, and routes patients to the right care setting',
     subAgents: [
@@ -79,7 +79,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'icu',
     label: 'ICU Operations',
-    emoji: '🫀',
+    icon: 'Activity',
     color: '#dc2626',
     description: 'Monitors ICU capacity, tracks ventilated patients, and identifies patients ready for step-down',
     subAgents: [
@@ -107,7 +107,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'bed',
     label: 'Bed Management',
-    emoji: '🛏️',
+    icon: 'Bed',
     color: '#3b82f6',
     description: 'Finds available beds, recommends the best match for each patient, and manages bed reservations',
     subAgents: [
@@ -186,7 +186,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'staffing',
     label: 'Staffing',
-    emoji: '👥',
+    icon: 'Users',
     color: '#f59e0b',
     description: 'Monitors staffing levels across all wards and deploys additional nurses where needed',
     subAgents: [
@@ -214,7 +214,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'discharge',
     label: 'Discharge Planning',
-    emoji: '📤',
+    icon: 'LogOut',
     color: '#10b981',
     description: 'Identifies patients ready for discharge, resolves barriers, and generates discharge documentation',
     subAgents: [
@@ -261,7 +261,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'ot',
     label: 'OT Scheduling',
-    emoji: '⚕️',
+    icon: 'Syringe',
     color: '#7c3aed',
     description: 'Reviews today\'s surgical schedule against available post-op beds and flags any conflicts',
     subAgents: [
@@ -288,7 +288,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'lab',
     label: 'Lab & Diagnostics',
-    emoji: '🧪',
+    icon: 'FlaskConical',
     color: '#0891b2',
     description: 'Lab results, pending tests, critical value alerting',
     subAgents: [
@@ -301,7 +301,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'pharmacy',
     label: 'Pharmacy',
-    emoji: '💊',
+    icon: 'Pill',
     color: '#06b6d4',
     description: 'Drug inventory monitoring, low-stock alerting, and medication reconciliation at discharge',
     subAgents: [
@@ -327,7 +327,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'clinical',
     label: 'Clinical Agent',
-    emoji: '🩺',
+    icon: 'Stethoscope',
     color: '#2563eb',
     description: 'Patient summaries, vitals monitoring, care plans',
     subAgents: [
@@ -338,7 +338,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'patientflow',
     label: 'Patient Flow',
-    emoji: '🔄',
+    icon: 'RefreshCw',
     color: '#f97316',
     description: 'Admissions, transfers, discharge flow coordination',
     subAgents: [
@@ -349,7 +349,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'billing',
     label: 'Billing & Insurance',
-    emoji: '📋',
+    icon: 'ClipboardList',
     color: '#84cc16',
     description: 'Pre-authorization, TPA liaison, deposit management',
     subAgents: [
@@ -361,7 +361,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'revenue',
     label: 'Revenue',
-    emoji: '💰',
+    icon: 'Banknote',
     color: '#f97316',
     description: 'Monitors outstanding invoices, daily collections, and insurance claims to flag financial risks',
     subAgents: [
@@ -417,7 +417,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: 'ambulance',
     label: 'Ambulance Agent',
-    emoji: '🚑',
+    icon: 'Ambulance',
     color: '#0ea5e9',
     description: 'Dispatch available ambulances to intercept and transport the patient',
     subAgents: [],

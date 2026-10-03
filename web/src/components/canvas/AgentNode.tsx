@@ -28,7 +28,7 @@ export const AgentNode = memo(function AgentNode({ data, id }: NodeProps) {
   // Identity, with backend fallback for agents lacking a static catalog entry.
   if (!staticAgent) console.log('[AgentNode] no static entry for agentId:', agentId, 'node id:', id)
   const label       = staticAgent?.label ?? backendAgent?.label ?? agentId
-  const emoji       = staticAgent?.emoji ?? '💳'
+  const emoji       = staticAgent?.icon ?? '💳'
   const color       = staticAgent?.color ?? backendAgent?.color ?? '#94a3b8'
   const description = backendAgent?.role ?? staticAgent?.description ?? ''
   const nodeState = nodeStates[id]

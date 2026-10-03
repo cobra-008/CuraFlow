@@ -1,3 +1,4 @@
+import { DynamicIcon } from '../DynamicIcon'
 import { X } from 'lucide-react'
 import { AGENTS } from '../../data/agents'
 import { useStore } from '../../store'
@@ -52,7 +53,7 @@ export function AgentPalette({ onClose }: Props) {
               usedIds.has(agent.id) ? 'opacity-40' : ''
             }`}
           >
-            <span className="text-sm flex-shrink-0">{agent.emoji}</span>
+            <DynamicIcon name={agent.icon} size={16} className="flex-shrink-0" />
             <div className="min-w-0">
               <div className="truncate font-medium" style={{ color: agent.color }}>{agent.label}</div>
               <div className="text-[9px] text-slate-600 truncate">{agent.description}</div>

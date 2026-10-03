@@ -1,3 +1,4 @@
+import { DynamicIcon } from '../DynamicIcon'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
 	ReactFlow,
@@ -402,7 +403,7 @@ export function SubAgentView() {
 			? {
 				id: backendAgent.id,
 				label: backendAgent.label,
-				emoji: '💳',
+				icon: 'CreditCard',
 				color: backendAgent.color ?? '#94a3b8',
 				description: backendAgent.role ?? '',
 				subAgents: [],
@@ -790,7 +791,7 @@ export function SubAgentView() {
 							Back to Pipeline
 						</button>
 						<div className="w-px h-4 bg-[var(--border-a)]" />
-						<span className="text-base">{agent.emoji}</span>
+						<DynamicIcon name={agent.icon} size={16} className="flex-shrink-0" />
 						<div>
 							<div className="text-base font-bold text-slate-100 leading-tight">{agent.label}</div>
 							<div className="text-sm text-slate-600 leading-tight">{agent.description}</div>

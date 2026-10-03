@@ -1,3 +1,4 @@
+import { DynamicIcon } from '../DynamicIcon'
 import { useEffect, useState } from 'react'
 import { Building2, UserCheck, Users, ArrowLeft } from 'lucide-react'
 import { useStore } from '../../store'
@@ -73,8 +74,7 @@ export function AdminPage() {
                 tab === t.id ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {t.icon}
-              {t.label}
+              {t.icon} {t.label}
               {!!t.badge && (
                 <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                   tab === t.id ? 'bg-white/20 text-white' : 'bg-amber-500/15 text-amber-300'

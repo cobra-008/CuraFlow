@@ -59,7 +59,7 @@ export interface Toast {
 // thread itself (sidebarTurns below) must survive Sidebar unmounting, which happens
 // every time the sub-agent drill-down view opens/closes (App.tsx swaps <Sidebar/>
 // for <SubAgentView/> based on subAgentNodeId).
-export interface SidebarAgentChip { id: string; label: string; emoji: string; color: string }
+export interface SidebarAgentChip { id: string; label: string; icon: string; color: string }
 
 export interface SidebarTurn {
   id: string
@@ -282,7 +282,7 @@ export function pendingApprovalToGate(a: PendingApproval): ApprovalGate & { appr
       }
     }
     case 'icu_admission_request': {
-      const ventNote = p.ventilator_dependent ? '\n\n⚠ Patient is ventilator dependent.' : ''
+      const ventNote = p.ventilator_dependent ? '\n\nPatient is ventilator dependent.' : ''
       return {
         agentId: a.agent_id, approvalId: a.id,
         title: 'ICU Admission Request',
@@ -528,7 +528,7 @@ export const useStore = create<AppState>((set, get) => {
           // rather than whatever cryptic string the browser's fetch implementation used.
           const isNetworkFailure = err instanceof TypeError
           const message = isNetworkFailure
-            ? "Couldn't reach the Hospilot backend. Check that it's running and try again."
+            ? "Couldn't reach the CuraFlow backend. Check that it's running and try again."
             : (err instanceof Error ? err.message : 'Failed to generate workflow.')
           set({ pipelineLoading: false, pipelineGenerated: false, pipelineError: message })
           return
@@ -1476,8 +1476,8 @@ function genericOutput(agentId: string): string[] {
     `Initialising ${agentId} agent...`,
     'Loading relevant patient and system data...',
     'Running analysis sub-routines...',
-    '✓ Analysis complete. Preparing recommendations.',
-    `✓ ${agentId} agent complete.`,
+    'Analysis complete. Preparing recommendations.',
+    `${agentId} agent complete.`,
   ]
 }
 

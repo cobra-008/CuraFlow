@@ -1,3 +1,4 @@
+import { DynamicIcon } from '../DynamicIcon'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   ReactFlow, Background, Controls, MiniMap, addEdge,
@@ -344,7 +345,7 @@ export function CheckpointEditorScreen() {
                         onClick={() => handleAddAgent(agent.id)}
                         className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--bg-raised)] transition-colors text-left"
                       >
-                        <span className="text-sm flex-shrink-0">{agent.emoji}</span>
+                        <DynamicIcon name={agent.icon} size={16} className="flex-shrink-0" />
                         <span className="text-xs text-slate-300 truncate">{agent.label}</span>
                       </button>
                     ))}

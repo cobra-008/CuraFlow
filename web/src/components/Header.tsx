@@ -54,7 +54,7 @@ export function Header() {
       {/* Logo */}
       <div className="flex items-center gap-2.5 col-start-1 justify-self-start min-w-0">
         <div className="min-w-0">
-          <div className="text-sm font-bold text-slate-100 leading-tight truncate">Hospilot</div>
+          <div className="text-sm font-bold text-slate-100 leading-tight truncate">CuraFlow</div>
           <div className="text-[10px] text-slate-500 leading-tight truncate hidden lg:block">Hospital AI Command Center</div>
         </div>
       </div>

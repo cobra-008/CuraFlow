@@ -321,7 +321,7 @@ export interface RegistryAgent {
 	id: string
 	label: string
 	description: string
-	emoji: string
+	icon: string
 	color: string
 	subagents: RegistrySubAgent[]
 }

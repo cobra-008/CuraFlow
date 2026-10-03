@@ -1,3 +1,4 @@
+import { DynamicIcon } from './DynamicIcon'
 import { useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
@@ -26,7 +27,7 @@ function resolveAgentChip(node: { id: string; data: unknown }, backendPipeline: 
   return {
     id: agentId,
     label: staticAgent?.label ?? backendAgent?.label ?? agentId,
-    emoji: staticAgent?.emoji ?? '💳',
+    icon: staticAgent?.icon ?? 'CreditCard',
     color: staticAgent?.color ?? backendAgent?.color ?? '#94a3b8',
   }
 }
@@ -265,7 +266,7 @@ export function Sidebar() {
                       className="text-[11px] px-1.5 py-0.5 rounded font-medium"
                       style={{ background: a.color + '20', color: a.color, border: `1px solid ${a.color}30` }}
                     >
-                      {a.emoji} {a.label}
+                      <DynamicIcon name={a.icon} size={14} className="inline mr-1" /> {a.label}
                     </span>
                   ))}
                 </div>
@@ -302,7 +303,7 @@ export function Sidebar() {
                     <div className="w-3.5 h-3.5 rounded bg-blue-600 flex items-center justify-center flex-shrink-0">
                       <Zap size={8} className="text-white" />
                     </div>
-                    <span className="text-xs font-semibold text-slate-400">Hospilot</span>
+                    <span className="text-xs font-semibold text-slate-400">CuraFlow</span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed mb-2">{turn.text}</p>
                   {turn.agents && turn.agents.length > 0 && (
@@ -313,7 +314,7 @@ export function Sidebar() {
                           className="text-[11px] px-1.5 py-0.5 rounded font-medium"
                           style={{ background: a.color + '20', color: a.color, border: `1px solid ${a.color}30` }}
                         >
-                          {a.emoji} {a.label}
+                          <DynamicIcon name={a.icon} size={14} className="inline mr-1" /> {a.label}
                         </span>
                       ))}
                     </div>
@@ -329,7 +330,7 @@ export function Sidebar() {
               <div className="w-3.5 h-3.5 rounded bg-blue-600 flex items-center justify-center flex-shrink-0">
                 <Zap size={8} className="text-white" />
               </div>
-              <span className="text-xs font-semibold text-slate-400">Hospilot</span>
+              <span className="text-xs font-semibold text-slate-400">CuraFlow</span>
               <div className="flex gap-1 ml-1">
                 {[0, 1, 2].map((i) => (
                   <span key={i} className="w-1 h-1 rounded-full bg-slate-500" style={{ animation: `pulse 1s ${i * 0.2}s infinite` }} />

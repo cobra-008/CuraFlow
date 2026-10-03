@@ -1,3 +1,4 @@
+import { DynamicIcon } from '../DynamicIcon'
 ﻿import { useEffect, useState } from 'react'
 import { ShieldAlert, CheckCircle2, XCircle, Clock, Layers, ChevronRight, Minus } from 'lucide-react'
 import { useStore } from '../../store'
@@ -129,7 +130,7 @@ export function ApprovalModal() {
                           isCurrent ? 'bg-amber-500/10 cursor-default' : 'hover:bg-[var(--bg-hover)]'
                         }`}
                       >
-                        {a && <span className="text-sm flex-shrink-0">{a.emoji}</span>}
+                        {a && <DynamicIcon name={a.icon} size={16} className="flex-shrink-0" />}
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-medium text-slate-200 truncate leading-tight">{gate.title}</div>
                           {a && <div className="text-[10px] leading-tight truncate" style={{ color: a.color }}>{a.label}</div>}
@@ -162,7 +163,7 @@ export function ApprovalModal() {
         {/* Agent badge */}
         {agent && (
           <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg bg-[var(--bg-raised)] border border-[var(--border-a)] w-fit">
-            <span className="text-sm">{agent.emoji}</span>
+            <DynamicIcon name={agent.icon} size={16} className="flex-shrink-0" />
             <span className="text-xs font-medium" style={{ color: agent.color }}>{agent.label}</span>
           </div>
         )}
