@@ -111,9 +111,7 @@ export function AuthScreen({ onAuth }: Props) {
       }}>
         <div style={{ background: 'rgba(255,248,235,0.88)', borderRadius: '12px', padding: '20px', maxWidth: '280px' }}>
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#1e3a6e' }}>
-              <span className="text-white font-bold">CF</span>
-            </div>
+            <img src="/logo.jpeg" alt="CuraFlow" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
             <div>
               <div className="font-bold" style={{ color: '#1a2744' }}>CuraFlow</div>
               <div className="text-xs" style={{ color: '#6b5c40' }}>Hospital Operations Orchestration</div>
@@ -129,9 +127,7 @@ export function AuthScreen({ onAuth }: Props) {
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: '#1e3a6e' }}>
-            <span className="text-white font-bold text-2xl">CF</span>
-          </div>
+          <img src="/logo.jpeg" alt="CuraFlow" className="w-16 h-16 rounded-2xl object-cover mb-3 shadow-md" />
           <h1 className="text-xl font-bold" style={{ color: '#1a2744' }}>CuraFlow</h1>
           <p className="text-xs mt-0.5" style={{ color: '#9aa3b2' }}>Hospital Operations Command Center</p>
         </div>
