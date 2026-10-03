@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState } from 'react'
 import { User, KeyRound, CheckCircle2, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useStore } from '../../store'
@@ -13,6 +14,9 @@ const CF = {
   textSub: '#6b5c40',
   textMuted: '#9aa3b2',
 }
+=======
+import { User, Bell, Shield, Sliders } from 'lucide-react'
+>>>>>>> 7dd6467cf7f1b055d6dfb00e9a517f9639f6b677
 
 export function SettingsView() {
   const currentUser = useStore((s) => s.currentUser)

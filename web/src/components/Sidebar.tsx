@@ -194,7 +194,7 @@ export function Sidebar() {
   const inConversation = turns.length > 0 || pipelineLoading
 
   return (
-    <aside className="w-64 xl:w-72 2xl:w-80 flex-shrink-0 bg-[var(--bg-base)] border-r border-[var(--border)] flex flex-col overflow-hidden">
+    <div className="w-full flex-shrink-0 bg-white flex flex-col overflow-hidden" style={{ minHeight: '30%', maxHeight: '50%' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="px-4 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
@@ -448,6 +448,6 @@ export function Sidebar() {
           </div>
         )}
       </div>
-    </aside>
+    </div>
   )
 }

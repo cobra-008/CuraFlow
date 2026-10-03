@@ -571,7 +571,7 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             if any(k in message for k in ["icu", "intensive", "critical care"]):
                 response = (
                     f"ICU is currently at {icu_pct:.1f}% occupancy ({snap['icu']['occupied']}/{snap['icu']['total']} beds). "
-                    f"{'⚠️ This is above the 85% safety threshold — escalation recommended.' if icu_pct >= 85 else 'Occupancy is within safe limits.'} "
+                    f"{'ALERT: This is above the 85% safety threshold — escalation recommended.' if icu_pct >= 85 else 'Occupancy is within safe limits.'} "
                     f"Staff utilization stands at {staff_pct:.0f}%. "
                     + ("Recommended: Activate float pool nurses and review discharge eligibility for stable ICU patients." if icu_pct >= 85 else
                        "Continue monitoring. No immediate action required.")
@@ -580,35 +580,35 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
                 response = (
                     f"Emergency department currently has {er_wait} patients waiting against a capacity of {snap['emergency']['capacity']}. "
                     f"Demand score: {snap['emergency']['demand_score']:.0f}%. "
-                    + ("⚠️ High demand — consider fast-tracking triage and opening overflow bays." if er_wait > 20 else
+                    + ("ALERT: High demand — consider fast-tracking triage and opening overflow bays." if er_wait > 20 else
                        "ER demand is manageable at current staffing levels.")
                 )
             elif any(k in message for k in ["bed", "ward", "admission", "discharge"]):
                 response = (
                     f"General ward occupancy is at {beds_pct:.1f}% ({snap['beds']['occupied']}/{snap['beds']['total']} beds). "
                     f"Available: {snap['beds']['available']} | Cleaning: {snap['beds']['cleaning']} | Blocked: {snap['beds']['blocked']}. "
-                    + ("⚠️ Bed pressure is elevated — expedite discharge planning for medically stable patients." if beds_pct >= 85 else
+                    + ("ALERT: Bed pressure is elevated — expedite discharge planning for medically stable patients." if beds_pct >= 85 else
                        "Bed availability is adequate. Continue standard discharge planning.")
                 )
             elif any(k in message for k in ["staff", "nurse", "doctor", "staffing"]):
                 response = (
                     f"Staff utilization is currently {staff_pct:.1f}% with {snap['staff']['on_duty']} of {snap['staff']['total']} staff on duty. "
                     f"Available staff: {snap['staff']['available']}. "
-                    + ("⚠️ High utilization — consider activating float pool or requesting overtime shifts." if staff_pct >= 85 else
+                    + ("ALERT: High utilization — consider activating float pool or requesting overtime shifts." if staff_pct >= 85 else
                        "Staffing levels are within expected range for current patient load.")
                 )
             elif any(k in message for k in ["diagnostic", "lab", "ct", "scan", "test", "imaging"]):
                 response = (
                     f"Diagnostic queue has {diag_q} pending orders across {snap['diagnostics']['total_devices']} devices "
                     f"({snap['diagnostics']['available_devices']} available). "
-                    + ("⚠️ Queue is above threshold — route non-urgent orders to available devices and consider extended hours." if diag_q > 15 else
+                    + ("ALERT: Queue is above threshold — route non-urgent orders to available devices and consider extended hours." if diag_q > 15 else
                        "Diagnostic throughput is keeping up with demand.")
                 )
             elif any(k in message for k in ["ot", "operation", "surgery", "theatre", "theater"]):
                 response = (
                     f"Operating theatres: {snap['operating_rooms']['occupied']}/{snap['operating_rooms']['total']} in use ({ot_pct:.0f}% utilization). "
                     f"Available rooms: {snap['operating_rooms']['available']}. "
-                    + ("⚠️ High OT utilization — review elective surgery scheduling." if ot_pct >= 85 else
+                    + ("ALERT: High OT utilization — review elective surgery scheduling." if ot_pct >= 85 else
                        "OT utilization is within normal parameters.")
                 )
             elif any(k in message for k in ["pressure", "status", "summary", "overview", "report"]):

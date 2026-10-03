@@ -21,6 +21,10 @@ import { SettingsView } from '../ops/SettingsView'
 import { TopBar } from '../TopBar'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7dd6467cf7f1b055d6dfb00e9a517f9639f6b677
 // ── Nav items config ───────────────────────────────────────────────────────────
 const NAV_GROUPS = [
   {

@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
+<<<<<<< HEAD
 import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Activity, Hospital } from 'lucide-react'
+=======
+import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Activity, LayoutDashboard } from 'lucide-react'
+>>>>>>> 7dd6467cf7f1b055d6dfb00e9a517f9639f6b677
 import { useTheme } from 'next-themes'
 import { useStore } from '../store'
 import { OrgSwitcher } from './OrgSwitcher'
@@ -132,16 +136,16 @@ export function Header() {
         {/* Mode control moved to the Mission Brief sidebar (below its header). */}
 
         <button
-          onClick={() => setActiveView('hospital')}
-          title="Hospital Overview"
-          aria-label="Hospital Overview"
+          onClick={() => setActiveView('command')}
+          title="Command Center"
+          aria-label="Command Center"
           className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors flex-shrink-0 ${
-            activeView === 'hospital'
+            activeView === 'command'
               ? 'bg-blue-600 border-blue-600 text-white'
               : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-slate-400 hover:bg-[var(--bg-hover)] hover:text-slate-200'
           }`}
         >
-          <Hospital size={15} className="flex-shrink-0" />
+          <LayoutDashboard size={15} className="flex-shrink-0" />
         </button>
         <button
           onClick={() => setActiveView('capabilities')}

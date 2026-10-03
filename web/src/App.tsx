@@ -116,7 +116,7 @@ export default function App() {
           const savedId = localStorage.getItem('hospilot_session_id')
           if (savedId) loadSession(savedId)
         } else {
-          setActiveView('hospital')
+          setActiveView('command')
           const savedId = localStorage.getItem('hospilot_session_id')
           if (savedId) loadSession(savedId)
         }
