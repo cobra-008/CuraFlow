@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import logging
 from collections import defaultdict
 
@@ -11,6 +11,11 @@ logger = logging.getLogger("ws")
 
 # session_id -> set of connected WebSocket clients (this process only)
 _connections: dict[str, set[WebSocket]] = defaultdict(set)
+
+# user_id -> set of connected WebSocket clients (for ops dashboard)
+_ops_connections: dict[str, set[WebSocket]] = defaultdict(set)
+# role -> set of connected WebSocket clients
+_ops_roles: dict[str, set[WebSocket]] = defaultdict(set)
 
 
 async def deliver_local(session_id: str, event: dict) -> None:
@@ -27,6 +32,22 @@ async def deliver_local(session_id: str, event: dict) -> None:
             dead.add(ws)
     for ws in dead:
         _connections[session_id].discard(ws)
+
+
+async def deliver_ops_local(target: str, event: dict, is_role: bool = False) -> None:
+    """Deliver an event to a specific user or role connected to the ops websocket."""
+    dead = set()
+    conns = _ops_roles.get(target, set()) if is_role else _ops_connections.get(target, set())
+    for ws in conns:
+        try:
+            await ws.send_json(event)
+        except Exception:
+            dead.add(ws)
+    for ws in dead:
+        if is_role:
+            _ops_roles[target].discard(ws)
+        else:
+            _ops_connections[target].discard(ws)
 
 
 async def broadcast(session_id: str, event: dict) -> None:
@@ -109,3 +130,36 @@ async def websocket_endpoint(ws: WebSocket, session_id: str):
             await ws.send_json({"type": "ping"})
     except (WebSocketDisconnect, RuntimeError):
         _connections[session_id].discard(ws)
+
+@router.websocket("/ws/ops/stream")
+async def ops_websocket_endpoint(ws: WebSocket):
+    await ws.accept()
+    from api.routes.auth import _decode_token
+    token = ws.query_params.get("token", "")
+    if not token:
+        await ws.close(code=4401)
+        return
+    try:
+        claims = _decode_token(token)
+    except Exception:
+        await ws.close(code=4401)
+        return
+    
+    user_id = claims.get("sub")
+    role = claims.get("role")
+    
+    if user_id:
+        _ops_connections[user_id].add(ws)
+    if role:
+        _ops_roles[role].add(ws)
+        
+    try:
+        while True:
+            data = await ws.receive_json()
+            if data.get("type") == "ping":
+                await ws.send_json({"type": "pong"})
+    except (WebSocketDisconnect, RuntimeError):
+        if user_id:
+            _ops_connections[user_id].discard(ws)
+        if role:
+            _ops_roles[role].discard(ws)

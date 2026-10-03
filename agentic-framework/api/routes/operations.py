@@ -55,7 +55,7 @@ _approvals: dict[str, dict] = {}
 _execution_log: list[dict] = []
 _audit_events: list[dict] = []
 _simulation_runs: dict[str, dict] = {}
-
+_patients: list[dict] = []
 
 def _audit(event_type: str, resource_type: str, resource_id: str,
            action: str, actor_type: str = "system", **kwargs):
@@ -127,6 +127,62 @@ async def resolve_crisis(ctx: AuthContext = Depends(require_active_user)):
     _audit("crisis_resolved", "hospital", "all", "resolve_crisis",
            actor_type="human", actor_id=ctx.user_id, reason="Manual crisis resolution")
     return {"status": "crisis_resolved", "message": "Hospital state restored to pre-crisis baseline"}
+
+# ── Patients & Routing ────────────────────────────────────────────────────────
+class AdmitPatientRequest(BaseModel):
+    name: str
+    phone: str
+    type: str
+    dept: str
+    needsBed: bool
+
+@router.get("/patients", dependencies=[Depends(require_active_user)])
+async def get_patients():
+    return {"patients": list(reversed(_patients))}
+
+@router.post("/patients/admit", dependencies=[Depends(require_active_user)])
+async def admit_patient(req: AdmitPatientRequest, ctx: AuthContext = Depends(require_active_user)):
+    """Admit a patient, store in 'DB', and route WS notifications."""
+    from api.routes.ws import deliver_ops_local
+    import uuid
+    import random
+
+    patient_id = f"pat-{uuid.uuid4().hex[:8]}"
+    room = f"Room {random.randint(100, 200)}" if req.needsBed else "OP Consulting"
+    doctor_name = "Dr. Sarah Mitchell"
+    nurse_name = "Nurse Joy"
+    
+    patient_data = {
+        "id": patient_id,
+        "name": req.name or "Unknown Patient",
+        "mrn": f"MRN-{random.randint(10000, 99999)}",
+        "age": random.randint(20, 80),
+        "gender": random.choice(["M", "F"]),
+        "status": "Admitted" if req.type == "IP" else "Waiting",
+        "severity": "moderate",
+        "wait_time_mins": 0,
+        "department": req.dept,
+        "location": room,
+        "notes": "Auto-assigned by Operations Command",
+        "vitals": {"hr": 80, "bp": "120/80", "spo2": 98, "temp": 98.6},
+        "allergies": ["None"],
+        "assigned_doctor": doctor_name,
+        "assigned_nurse": nurse_name,
+    }
+    
+    _patients.append(patient_data)
+    
+    event_payload = {
+        "type": "NEW_ADMISSION",
+        "data": patient_data,
+        "action_required": True,
+    }
+    
+    # Alert all active nurse and doctor websockets
+    await deliver_ops_local("nurse", event_payload, is_role=True)
+    await deliver_ops_local("doctor", event_payload, is_role=True)
+    
+    return {"status": "success", "patient": patient_data}
 
 
 # ── Predictions ───────────────────────────────────────────────────────────────

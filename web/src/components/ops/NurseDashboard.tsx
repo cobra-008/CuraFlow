@@ -3,15 +3,7 @@ import { User, Clock, Send, BellRing, CheckCircle2, AlertTriangle, Edit3, Save, 
 import { useStore } from "../../store"
 import type { DoctorPatient } from "./DoctorDashboard"
 
-// ── Utilities ─────────────────────────────────────────────────────────────────
-const STORAGE_KEY = "curaflow_doctor_patients"
-
-function loadPatients(): DoctorPatient[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch { return [] }
-}
+import { opsApi } from '../../services/opsApi'
 
 // ── Nurse Status Badge ────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: DoctorPatient["status"] }) {
@@ -165,15 +157,20 @@ function NursePatientRow({ patient, nurseCallActive, onSendUpdate, onUpdateTime,
 export function NurseDashboard() {
   const currentUser = useStore(s => s.currentUser)
   const pushToast = useStore(s => s.pushToast)
-  const [patients, setPatients] = useState<DoctorPatient[]>(loadPatients)
+  const [patients, setPatients] = useState<any[]>([])
   const [nurseCallMap, setNurseCallMap] = useState<Record<string, boolean>>({})
 
-  // Re-sync with localStorage on mount & tab focus
+  const loadPatients = async () => {
+    try {
+      const res = await opsApi.getPatients()
+      setPatients(res.patients)
+    } catch (e) {}
+  }
+
   useEffect(() => {
-    const sync = () => setPatients(loadPatients())
-    window.addEventListener("focus", sync)
-    const interval = setInterval(sync, 4000)
-    return () => { window.removeEventListener("focus", sync); clearInterval(interval) }
+    loadPatients()
+    window.addEventListener("curaflow:patients_updated", loadPatients)
+    return () => window.removeEventListener("curaflow:patients_updated", loadPatients)
   }, [])
 
   // Listen for doctor "call nurse" events
@@ -188,33 +185,19 @@ export function NurseDashboard() {
   }, [pushToast])
 
   const handleSendUpdate = useCallback((patientId: string, note: string) => {
-    // Update localStorage so doctor sees it
-    const all = loadPatients()
-    const updated = all.map(p => p.id === patientId ? { ...p, nurseNote: note, nurseNoteAt: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) } : p)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-    setPatients(updated)
-    // Dispatch event so DoctorDashboard can react if open in same tab
-    window.dispatchEvent(new CustomEvent("curaflow:nurse_update", { detail: { patientId, note } }))
-    // Clear nurse-call indicator
+    // In a real app, this would be an API call like opsApi.updatePatientNote(patientId, note)
+    setPatients(prev => prev.map(p => p.id === patientId ? { ...p, nurseNote: note, nurseNoteAt: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) } : p))
     setNurseCallMap(prev => ({ ...prev, [patientId]: false }))
     pushToast({ severity: "info", title: "Update Sent", message: "Doctor has been notified." })
   }, [pushToast])
 
   const handleUpdateTime = useCallback((patientId: string, time: string) => {
-    const all = loadPatients()
-    const updated = all.map(p => p.id === patientId ? { ...p, appointmentTime: time } : p)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-    setPatients(updated)
-    window.dispatchEvent(new CustomEvent("curaflow:nurse_update", { detail: { patientId, time } }))
+    setPatients(prev => prev.map(p => p.id === patientId ? { ...p, appointmentTime: time } : p))
     pushToast({ severity: "info", title: "Schedule Updated", message: `Appointment time updated for patient.` })
   }, [pushToast])
 
   const handleMarkDischarged = useCallback((patientId: string) => {
-    const all = loadPatients()
-    const updated = all.map(p => p.id === patientId ? { ...p, status: "discharged" as const } : p)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-    setPatients(updated)
-    window.dispatchEvent(new CustomEvent("curaflow:nurse_update", { detail: { patientId, status: "discharged" } }))
+    setPatients(prev => prev.map(p => p.id === patientId ? { ...p, status: "discharged" } : p))
     const pt = patients.find(p => p.id === patientId)
     pushToast({ severity: "info", title: "Patient Discharged", message: `${pt?.name ?? "Patient"} marked as discharged.` })
   }, [patients, pushToast])

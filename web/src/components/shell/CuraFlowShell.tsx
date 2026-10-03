@@ -21,6 +21,7 @@ import { SettingsView } from '../ops/SettingsView'
 import { TopBar } from '../TopBar'
 import { Toaster } from '../execution/Toaster'
 import { useNotificationPipeline } from '../../hooks/useNotificationPipeline'
+import { useRealTime } from '../../hooks/useRealTime'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 
 
@@ -218,6 +219,9 @@ export function CuraFlowShell() {
 
   // Automated notification pipeline hook
   useNotificationPipeline(hospitalState)
+  
+  // Global Real-Time Event Bus (WebSockets)
+  useRealTime()
 
   const fetchSidebarData = useCallback(async () => {
     try {
