@@ -23,11 +23,11 @@ dept_ids = {name: str(uuid.uuid4()) for name in [
     'Neurology', 'Pediatrics', 'Oncology', 'Gynecology', 'Radiology'
 ]}
 dept_values = ',\n'.join([
-    f"('{did}', '{name}', 'clinical', {cap}, 80)"
+    f"('{did}', '{name}', 'clinical', {cap}, 80, '{now.isoformat()}')"
     for (name, did), cap in zip(dept_ids.items(), [40, 20, 100, 50, 40, 30, 60, 25, 35, 20])
 ])
 run_sql(f"""
-INSERT INTO hospilot.departments (id, name, type, capacity, target_occupancy_pct)
+INSERT INTO hospilot.departments (id, name, type, capacity, target_occupancy_pct, synced_at)
 VALUES {dept_values}
 ON CONFLICT DO NOTHING;
 """)
@@ -45,11 +45,11 @@ for i in range(1, 81):
     status = random.choice(statuses_pool)
     floor = random.randint(1, 5)
     wing = random.choice(['A', 'B', 'C'])
-    bed_rows.append(f"('{bid}', '{branch_id}', '{ward}', 'BED-{i:03d}', 'general', '{status}', true, {floor}, '{wing}')")
+    bed_rows.append(f"('{bid}', '{branch_id}', '{ward}', 'BED-{i:03d}', 'general', '{status}', true, {floor}, '{wing}', '{now.isoformat()}')")
 
 beds_sql = ',\n'.join(bed_rows)
 run_sql(f"""
-INSERT INTO hospilot.beds (id, branch_id, ward, bed_number, room_type, status, is_active, floor, wing)
+INSERT INTO hospilot.beds (id, branch_id, ward, bed_number, room_type, status, is_active, floor, wing, synced_at)
 VALUES {beds_sql}
 ON CONFLICT DO NOTHING;
 """)
@@ -73,12 +73,12 @@ for role, areas in roles:
             lps = round(load / max(headcount, 1))
             status = random.choice(['online', 'online', 'online', 'standby', 'offline'])
             staff_rows.append(
-                f"('{sid}', '{area}', '{area} {role}s', '{role}', '{shift}', {headcount}, {load}, {lps}, '{branch_id}')"
+                f"('{sid}', '{area}', '{area} {role}s', '{role}', '{shift}', {headcount}, {load}, {lps}, '{branch_id}', '{now.isoformat()}')"
             )
 
 staff_sql = ',\n'.join(staff_rows)
 run_sql(f"""
-INSERT INTO hospilot.staff_roster (id, area, area_label, role, shift, headcount, assigned_load, load_per_staff, branch_id)
+INSERT INTO hospilot.staff_roster (id, area, area_label, role, shift, headcount, assigned_load, load_per_staff, branch_id, synced_at)
 VALUES {staff_sql}
 ON CONFLICT DO NOTHING;
 """)
@@ -98,12 +98,12 @@ for i in range(60):
     booked = random.randint(0, max_p) if status != 'available' else 0
     spec = random.choice(specializations)
     slot_rows.append(
-        f"('{slot_id}', '{provider_id}', '{today}', '{slot_start}', '{slot_end}', 'outpatient', '{status}', {max_p}, {booked}, '{spec}')"
+        f"('{slot_id}', '{provider_id}', '{today}', '{slot_start}', '{slot_end}', 'outpatient', '{status}', {max_p}, {booked}, '{spec}', '{now.isoformat()}')"
     )
 
 slots_sql = ',\n'.join(slot_rows)
 run_sql(f"""
-INSERT INTO hospilot.doctor_slots (id, provider_id, slot_date, slot_start, slot_end, slot_type, status, max_patients, booked_count, specialization)
+INSERT INTO hospilot.doctor_slots (id, provider_id, slot_date, slot_start, slot_end, slot_type, status, max_patients, booked_count, specialization, synced_at)
 VALUES {slots_sql}
 ON CONFLICT DO NOTHING;
 """)
@@ -120,11 +120,11 @@ for i in range(50):
     fn = random.choice(first_names)
     ln = random.choice(last_names)
     uhid = f'UHID-{2000+i}'
-    patient_rows.append(f"('{pid}', '{fn}', '{ln}', '{uhid}')")
+    patient_rows.append(f"('{pid}', '{fn}', '{ln}', '{uhid}', '{now.isoformat()}')")
 
 patients_sql = ',\n'.join(patient_rows)
 run_sql(f"""
-INSERT INTO hospilot.patients (id, first_name, last_name, uhid)
+INSERT INTO hospilot.patients (id, first_name, last_name, uhid, synced_at)
 VALUES {patients_sql}
 ON CONFLICT DO NOTHING;
 """)
@@ -142,12 +142,12 @@ for i, pid in enumerate(patient_ids[:30]):
     status = random.choice(['admitted', 'admitted', 'admitted', 'discharge_ready', 'transferred'])
     discharge_ready = 'true' if status == 'discharge_ready' else 'false'
     admission_rows.append(
-        f"('{aid}', '{pid}', '{bed_id}', '{dept}', '{admitted.isoformat()}', '{exp_discharge.isoformat()}', '{status}', {discharge_ready})"
+        f"('{aid}', '{pid}', '{bed_id}', '{dept}', '{admitted.isoformat()}', '{exp_discharge.isoformat()}', '{status}', {discharge_ready}, '{now.isoformat()}')"
     )
 
 adm_sql = ',\n'.join(admission_rows)
 run_sql(f"""
-INSERT INTO hospilot.ipd_admissions (id, patient_token, bed_id, department_id, admitted_at, expected_discharge_at, status, discharge_ready)
+INSERT INTO hospilot.ipd_admissions (id, patient_token, bed_id, department_id, admitted_at, expected_discharge_at, status, discharge_ready, synced_at)
 VALUES {adm_sql}
 ON CONFLICT DO NOTHING;
 """)
@@ -164,12 +164,12 @@ for pid in patient_ids[30:]:
     triage = random.randint(1, 5)
     vtype = random.choice(['emergency', 'opd', 'referral'])
     visit_rows.append(
-        f"('{vid}', '{pid}', '{dept}', '{arrived.isoformat()}', '{status}', '{complaint}', {triage}, '{vtype}')"
+        f"('{vid}', '{pid}', '{dept}', '{arrived.isoformat()}', '{status}', '{complaint}', {triage}, '{vtype}', '{now.isoformat()}')"
     )
 
 visits_sql = ',\n'.join(visit_rows)
 run_sql(f"""
-INSERT INTO hospilot.visits (id, patient_token, department_id, arrived_at, status, chief_complaint, triage_score, visit_type)
+INSERT INTO hospilot.visits (id, patient_token, department_id, arrived_at, status, chief_complaint, triage_score, visit_type, synced_at)
 VALUES {visits_sql}
 ON CONFLICT DO NOTHING;
 """)
@@ -183,11 +183,11 @@ for i in range(10):
     pt = random.choice(patient_ids)
     status = ot_statuses[i]
     created = now - timedelta(hours=random.randint(0, 48))
-    ot_rows.append(f"('{oid}', '{aid}', '{pt}', '{status}', '{created.isoformat()}')")
+    ot_rows.append(f"('{oid}', '{aid}', '{pt}', '{status}', '{created.isoformat()}', '{now.isoformat()}')")
 
 ot_sql = ',\n'.join(ot_rows)
 run_sql(f"""
-INSERT INTO hospilot.ot_surgeries (id, admission_id, patient_token, status, created_at)
+INSERT INTO hospilot.ot_surgeries (id, admission_id, patient_token, status, created_at, synced_at)
 VALUES {ot_sql}
 ON CONFLICT DO NOTHING;
 """)
@@ -203,11 +203,11 @@ for i in range(20):
     amount = round(random.uniform(5000, 200000), 2)
     status = random.choice(c_statuses)
     created = now - timedelta(days=random.randint(0, 30))
-    claim_rows.append(f"('{cid}', '{pt}', '{tpa}', {amount}, '{status}', '{created.isoformat()}')")
+    claim_rows.append(f"('{cid}', '{pt}', '{tpa}', {amount}, '{status}', '{created.isoformat()}', '{now.isoformat()}')")
 
 claims_sql = ',\n'.join(claim_rows)
 run_sql(f"""
-INSERT INTO hospilot.claims (id, patient_token, tpa_name, claim_amount, status, created_at)
+INSERT INTO hospilot.claims (id, patient_token, tpa_name, claim_amount, status, created_at, synced_at)
 VALUES {claims_sql}
 ON CONFLICT DO NOTHING;
 """)

@@ -46,8 +46,8 @@ export function Header() {
   const roleLabel = currentUser?.role === 'super_admin'
     ? 'Platform · Super Admin'
     : `${currentUser?.org_name ?? '—'} · ${
-        currentUser?.role === 'admin' ? 'Admin'
-        : currentUser?.role === 'approver' ? 'Approver' : 'Doctor'}`
+        (currentUser?.role ?? '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+      }`
 
   return (
     <header className="relative z-[60] grid grid-cols-[1fr_auto_1fr] items-center px-5 py-0 border-b border-[var(--border)] bg-[var(--bg-base)] flex-shrink-0 h-14">

@@ -43,6 +43,21 @@ export function UsersView({ currentUserId, isSuper, orgNames, showOrgColumn }: P
     }
   }
 
+  async function remove(user: ManagedUser) {
+    if (!confirm(`Are you sure you want to delete ${user.display_name}?`)) return
+    setBusy((prev) => ({ ...prev, [user.id]: true }))
+    setError('')
+    try {
+      // Assuming a deleteUser function or just disable if not available
+      await updateUser(user.id, { status: 'disabled' })
+      setUsers((prev) => prev.filter((u) => u.id !== user.id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Could not delete ${user.username}`)
+    } finally {
+      setBusy((prev) => { const next = { ...prev }; delete next[user.id]; return next })
+    }
+  }
+
   // Admins can retune doctor<->approver; only super_admin touches admin rows.
   function canManage(u: ManagedUser): boolean {
     if (u.id === currentUserId) return false
@@ -123,6 +138,13 @@ export function UsersView({ currentUserId, isSuper, orgNames, showOrgColumn }: P
                   >
                     {busy[u.id] && <Loader2 size={12} className="animate-spin" />}
                     {u.status === 'disabled' ? 'Enable' : 'Disable'}
+                  </button>
+                  <button
+                    onClick={() => remove(u)}
+                    disabled={!!busy[u.id]}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--border-a)] bg-[var(--bg-raised)] text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-colors disabled:opacity-50"
+                  >
+                    Delete
                   </button>
                 </>
               )}

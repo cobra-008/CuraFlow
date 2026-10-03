@@ -8,6 +8,8 @@ import httpx
 from fastapi import APIRouter, Depends
 from api.routes.auth import AuthContext, require_role
 from config import settings
+from rl_gateway.surge_predictor import predict_surge, get_surge_probability
+import uuid
 
 logger = logging.getLogger("hospital")
 router = APIRouter()
@@ -38,7 +40,7 @@ async def run_sql(sql: str) -> list:
 
 
 @router.get("/stats")
-async def get_hospital_stats(ctx: AuthContext = Depends(require_role("admin", "doctor", "approver"))):
+async def get_hospital_stats(ctx: AuthContext = Depends(require_role("super_admin", "admin", "doctor", "approver", "nurse", "er_coordinator", "ot_manager"))):
     """Aggregate hospital operational stats from the hospilot schema using raw SQL."""
     try:
         sql = """
@@ -170,3 +172,76 @@ async def get_hospital_stats(ctx: AuthContext = Depends(require_role("admin", "d
     except Exception as e:
         logger.error("hospital stats error: %s", e)
         raise
+
+@router.post("/predict_and_escalate")
+async def predict_and_escalate(ctx: AuthContext = Depends(require_role("super_admin", "admin", "doctor", "nurse", "er_coordinator", "ot_manager"))):
+    """
+    Checks RL model for surge prediction. If true, generates a unified recovery plan 
+    pipeline triggered sequentially: er_agent -> bed_agent -> staff_agent.
+    """
+    # 1. Gather current metrics
+    sql = """
+        SELECT
+            (SELECT COUNT(*) FROM hospilot.visits WHERE visit_type='emergency' AND status='waiting')::int AS er_waiting,
+            (SELECT COUNT(*) FROM hospilot.beds WHERE status = 'available')::int AS beds_available
+    """
+    rows = await run_sql(sql)
+    s = rows[0] if rows else {"er_waiting": 0, "beds_available": 0}
+    
+    er_count = int(s.get("er_waiting") or 0)
+    beds_avail = int(s.get("beds_available") or 0)
+    
+    # 2. Call the RL predictive model
+    prob = get_surge_probability(er_count, beds_avail)
+    is_surge = prob > 0.75
+    
+    if not is_surge:
+        return {
+            "status": "normal", 
+            "surge_probability": prob,
+            "message": "No emergency surge predicted."
+        }
+        
+    # 3. Surge predicted -> trigger escalation workflow
+    session_id = str(uuid.uuid4())
+    goal = "Emergency Surge Predicted. Reallocate beds and staff immediately to prevent operational bottlenecks."
+    
+    # Construct the sequential pipeline (er -> bed -> staff)
+    pipeline = {
+        "understood_goal": goal,
+        "agents": [
+            {"id": "er_agent", "task_type": "triage"},
+            {"id": "bed_agent", "task_type": "allocation"},
+            {"id": "staff_agent", "task_type": "assignment"}
+        ],
+        "edges": [
+            {"source": "er_agent", "target": "bed_agent"},
+            {"source": "bed_agent", "target": "staff_agent"}
+        ]
+    }
+    
+    from db.hasura import hasura
+    from workflows.graph.runner import start_session
+    
+    # Create the session in the DB
+    await hasura.create_session(
+        session_id=session_id,
+        goal=goal,
+        constraints="",
+        pipeline=pipeline,
+        user_id=ctx.user_id,
+        autonomous=False,
+        org_id=ctx.org_id,
+    )
+    
+    # Start the session in the LangGraph graph execution engine
+    await start_session(session_id, pipeline, goal, org_id=ctx.org_id or "")
+    
+    return {
+        "status": "surge_escalation_triggered",
+        "surge_probability": prob,
+        "session_id": session_id,
+        "pipeline": pipeline,
+        "message": "Surge predicted! ER, Bed, and Staff agents have been sequentially triggered for recovery."
+    }
+

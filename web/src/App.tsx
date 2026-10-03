@@ -187,7 +187,12 @@ export default function App() {
         setChecking(false)
         if (user.role === 'approver') {
           setActiveView('approvals')
+        } else if (user.role === 'super_admin' || user.role === 'admin') {
+          setActiveView('orchestrator')
+          const savedId = localStorage.getItem('hospilot_session_id')
+          if (savedId) loadSession(savedId)
         } else {
+          setActiveView('hospital')
           const savedId = localStorage.getItem('hospilot_session_id')
           if (savedId) loadSession(savedId)
         }
