@@ -599,6 +599,14 @@ class ChatRequest(BaseModel):
 
 from chat_rag import process_chat_rag
 
+@router.post("/debug-chat")
+async def debug_chat(body: ChatRequest):
+    import time
+    start = time.time()
+    resp = await process_chat_rag(body.message)
+    duration = time.time() - start
+    return {"response": resp, "duration": duration}
+
 @router.post("/chat", dependencies=[Depends(require_active_user)])
 async def chat_with_assistant(body: ChatRequest):
     resp = await process_chat_rag(body.message)
