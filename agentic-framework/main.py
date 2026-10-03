@@ -62,6 +62,26 @@ async def _bootstrap_super_admin() -> None:
         logger.warning("super_admin bootstrap skipped (run migrations 050/051?): %s", exc)
 
 
+async def _wait_for_hasura(max_retries: int = 15, retry_interval: float = 2.0) -> bool:
+    """Wait for Hasura GraphQL engine to be responsive before running startup DB queries."""
+    if not settings.hasura_url:
+        return False
+    import httpx
+    health_url = settings.hasura_url.replace("/v1/graphql", "/healthz")
+    for attempt in range(1, max_retries + 1):
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(health_url, timeout=3.0)
+                if resp.status_code == 200:
+                    logger.info("Hasura is ready at %s", health_url)
+                    return True
+        except Exception as exc:  # noqa: BLE001
+            logger.info("Waiting for Hasura (%d/%d): %s", attempt, max_retries, exc)
+        await asyncio.sleep(retry_interval)
+    logger.warning("Hasura did not become ready after %d attempts; continuing startup", max_retries)
+    return False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Hospilot backend starting  env=%s", settings.app_env)
@@ -90,6 +110,9 @@ async def lifespan(app: FastAPI):
     from messaging.initial_sync import run_initial_sync
     await run_initial_sync()
 
+    # Wait for Hasura to be ready before querying it for metadata & bootstrap
+    await _wait_for_hasura()
+
     # Multi-tenancy: warm the org routing cache (org_id -> Hasura source/prefix)
     # and bootstrap the first super_admin if none exists. Both tolerate a DB
     # that predates migration 050 (they just log and move on).
@@ -113,8 +136,11 @@ async def lifespan(app: FastAPI):
 
     # Load DB-stored generated task functions (was done in the Temporal worker startup)
     from agents._shared.generated_activities import load_from_db
-    loaded = await load_from_db()
-    logger.info("loaded %d generated task(s) from DB", loaded)
+    try:
+        loaded = await load_from_db()
+        logger.info("loaded %d generated task(s) from DB", loaded)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("failed to load generated tasks from DB: %s", exc)
 
     # Kafka event/replay bus: the API process relays bus events to its WebSockets.
     # (broadcast() publishes to Kafka; the worker also publishes; this consumer is
@@ -185,7 +211,7 @@ app = FastAPI(
 
 @app.middleware("http")
 async def sanitize_json_body(request: Request, call_next):
-    if "application/json" in request.headers.get("content-type", "") and not request.url.path.startswith("/fhir"):
+    if request.method in ("POST", "PUT", "PATCH") and "application/json" in request.headers.get("content-type", "") and not request.url.path.startswith("/fhir"):
         raw = await request.body()
         cleaned = raw.replace(b"\r\n", b" ").replace(b"\r", b" ").replace(b"\n", b" ")
         async def receive():

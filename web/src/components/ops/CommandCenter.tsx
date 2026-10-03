@@ -982,12 +982,6 @@ export function CommandCenter() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [fetchData])
 
-  const triggerCrisis = async () => {
-    setCrisisLoading(true)
-    try { await opsApi.triggerCrisis(); await fetchData() }
-    finally { setCrisisLoading(false) }
-  }
-
   const resolveCrisis = async () => {
     setCrisisLoading(true)
     try { await opsApi.resolveCrisis(); await fetchData() }

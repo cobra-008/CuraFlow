@@ -574,8 +574,12 @@ export const useStore = create<AppState>((set, get) => {
             priority: "normal",
             agents: scenario.nodes.map(n => ({ 
               id: nodeIdMap[n.id], 
+              label: (n as any).name || (n as any).label || n.agentId,
+              color: (n as any).color || '#3b82f6',
+              role: (n as any).role || 'agent',
+              sub_agents: (n as any).sub_agents || [],
               task_type: n.taskType || "default" 
-            })),
+            })) as any,
             edges: scenario.edges.map(e => ({
               source: nodeIdMap[e.source] || e.source,
               target: nodeIdMap[e.target] || e.target,

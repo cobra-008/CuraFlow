@@ -3,13 +3,11 @@ import { useStore } from '../../store'
 import { MessageSquareCode } from 'lucide-react'
 import { AgentFindings } from '../execution/AgentFindings'
 import { Sidebar as MissionPrompter } from '../Sidebar'
-import { useEffect } from 'react'
 
 export function OrchestrationView() {
   const panelOpen = useStore((s) => s.panelOpen)
   const executionStatus = useStore((s) => s.executionStatus)
   const pipelineGenerated = useStore((s) => s.pipelineGenerated)
-  const generatePipeline = useStore((s) => s.generatePipeline)
 
   // Removed auto-generation on mount so the user can enter a prompt first
 

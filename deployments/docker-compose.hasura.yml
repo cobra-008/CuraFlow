@@ -23,7 +23,7 @@ services:
       HASURA_GRAPHQL_DATABASE_URL: postgresql://postgres.bynfxwxswvezbevaspci:UwPpBkiLMbJj78aA@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
       HASURA_GRAPHQL_ADMIN_SECRET: "hospilot-dev-secret"
-      HASURA_GRAPHQL_PG_CONNECTIONS: "10"
+      HASURA_GRAPHQL_PG_CONNECTIONS: "3"
       HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
       HASURA_GRAPHQL_LOG_LEVEL: "warn"
       HASURA_GRAPHQL_CORS_DOMAIN: "*"

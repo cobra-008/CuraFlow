@@ -1,4 +1,4 @@
-﻿"""Shared singletons for the LangGraph runtime:
+"""Shared singletons for the LangGraph runtime:
 
   - the durable Postgres checkpointer (AsyncPostgresSaver) -- enables crash
     recovery and resuming approval-interrupted sessions across HTTP requests
@@ -41,27 +41,32 @@ async def init_checkpointer():
     from psycopg_pool import AsyncConnectionPool
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-    # Append TCP keepalives so NAT/firewalls don't silently drop idle connections.
-    dsn = settings.database_url
-    sep = "&" if "?" in dsn else "?"
-    dsn += f"{sep}keepalives=1&keepalives_idle=30&keepalives_interval=10&keepalives_count=5"
+    try:
+        # Append TCP keepalives so NAT/firewalls don't silently drop idle connections.
+        dsn = settings.database_url
+        sep = "&" if "?" in dsn else "?"
+        dsn += f"{sep}keepalives=1&keepalives_idle=30&keepalives_interval=10&keepalives_count=5"
 
-    # Pool: min_size=1 keeps one connection warm; max_idle=60 forces recreation
-    # before the 5-min NAT timeout can drop it silently.
-    _pg_pool = AsyncConnectionPool(
-        conninfo=dsn,
-        min_size=1,
-        max_size=5,
-        max_idle=30,          # recycle before most NAT/firewall idle timeouts
-        max_lifetime=300,     # force full reconnect every 5 min
-        kwargs={"autocommit": True, "prepare_threshold": 0, "row_factory": dict_row},
-        open=False,
-    )
-    await _pg_pool.open(wait=True)
-    _checkpointer = AsyncPostgresSaver(_pg_pool)
-    await _checkpointer.setup()    # idempotent -- creates checkpoint tables if missing
-    logger.info("Postgres checkpointer ready  pool_size=1-5")
-    return _checkpointer
+        # Pool: min_size=1 keeps one connection warm; max_size=2 avoids pooler exhaustion
+        _pg_pool = AsyncConnectionPool(
+            conninfo=dsn,
+            min_size=1,
+            max_size=2,
+            max_idle=30,          # recycle before most NAT/firewall idle timeouts
+            max_lifetime=300,     # force full reconnect every 5 min
+            kwargs={"autocommit": True, "prepare_threshold": 0, "row_factory": dict_row},
+            open=False,
+        )
+        await _pg_pool.open(wait=True, timeout=10.0)
+        _checkpointer = AsyncPostgresSaver(_pg_pool)
+        await _checkpointer.setup()    # idempotent -- creates checkpoint tables if missing
+        logger.info("Postgres checkpointer ready  pool_size=1-2")
+        return _checkpointer
+    except Exception as exc:
+        logger.error("Failed to initialize Postgres checkpointer (%s), falling back to MemorySaver", exc)
+        from langgraph.checkpoint.memory import MemorySaver
+        _checkpointer = MemorySaver()
+        return _checkpointer
 
 
 def get_checkpointer():
