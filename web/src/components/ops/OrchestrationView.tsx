@@ -1,45 +1,42 @@
 import { PipelineCanvas } from '../canvas/PipelineCanvas'
 import { useStore } from '../../store'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { MessageSquareCode } from 'lucide-react'
 import { AgentFindings } from '../execution/AgentFindings'
+import { Sidebar as MissionPrompter } from '../Sidebar'
 
 export function OrchestrationView() {
   const panelOpen = useStore((s) => s.panelOpen)
-  const [outputCollapsed, setOutputCollapsed] = useState(false)
+  const executionStatus = useStore((s) => s.executionStatus)
+  const pipelineGenerated = useStore((s) => s.pipelineGenerated)
+
+  const hasExecuted = pipelineGenerated || executionStatus !== 'idle'
 
   return (
     <div className="flex flex-1 overflow-hidden h-full w-full">
       <main className="flex-1 min-w-0 relative overflow-hidden h-full">
         <PipelineCanvas />
       </main>
-      {panelOpen && (
-        outputCollapsed ? (
-          <button
-            onClick={() => setOutputCollapsed(false)}
-            title="Show Agent Output"
-            className="w-7 flex-shrink-0 bg-white border-l border-[var(--border-a)] flex items-center justify-center hover:bg-slate-50 transition-colors"
-          >
-            <ChevronLeft size={14} className="text-slate-500" />
-          </button>
-        ) : (
-          <aside className="w-80 2xl:w-96 flex-shrink-0 bg-white border-l border-[var(--border-a)] flex flex-col overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-[var(--border-a)] flex-shrink-0 flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Agent Output</span>
-              <button
-                onClick={() => setOutputCollapsed(true)}
-                title="Collapse Agent Output"
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1 -mr-1"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <AgentFindings />
-            </div>
-          </aside>
-        )
-      )}
+      
+      {/* Right Panel: Typing Box & Agent Output */}
+      <aside className="w-80 2xl:w-[400px] flex-shrink-0 bg-white border-l border-[var(--border-a)] flex flex-col overflow-hidden">
+        
+        {/* The Typing Box (Workflow Prompter) */}
+        <MissionPrompter />
+        
+        {/* The Agent Output (appears below the typing box after execution) */}
+        {hasExecuted && panelOpen && (
+           <div className="flex-1 overflow-hidden flex flex-col border-t border-[var(--border-a)] bg-slate-50/50">
+             <div className="px-4 py-2.5 border-b border-[var(--border-a)] flex-shrink-0 flex items-center justify-between bg-white">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                  <MessageSquareCode size={14} className="text-blue-500" /> Agent Output
+                </span>
+             </div>
+             <div className="flex-1 overflow-hidden bg-white">
+               <AgentFindings />
+             </div>
+           </div>
+        )}
+      </aside>
     </div>
   )
 }
