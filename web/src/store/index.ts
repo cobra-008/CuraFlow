@@ -9,13 +9,13 @@ import { createSession, executeSession, decideApproval, commitSession as apiComm
 // parked (via the paused queue -- there's no dedicated WS "confirmed" event).
 export type ExecutionStatus = 'idle' | 'running' | 'waiting_approval' | 'complete_pending' | 'submitted' | 'pausing' | 'paused' | 'cancelled'
 export type NodeStatus = 'idle' | 'running' | 'complete' | 'waiting' | 'skipped'
-export type ActiveView = 'orchestrator' | 'capabilities' | 'approvals' | 'admin' | 'workflows' | 'hospital'
+export type ActiveView = 'orchestrator' | 'capabilities' | 'approvals' | 'admin' | 'workflows' | 'command'
 // Only 'assisted' is reachable from this UI (no mode switcher) -- the union stays
 // so PipelineCanvas/useSessionWebSocket's autonomous-only branches keep compiling;
 // they simply never trigger.
 export type ExecutionMode = 'assisted' | 'autonomous' | 'advisory'
 
-const ACTIVE_VIEWS: ActiveView[] = ['orchestrator', 'capabilities', 'approvals', 'admin', 'workflows', 'hospital']
+const ACTIVE_VIEWS: ActiveView[] = ['orchestrator', 'capabilities', 'approvals', 'admin', 'workflows', 'command']
 
 // Restore the last-viewed nav tab across a browser refresh — otherwise every reload
 // silently bounces back to the hardcoded default (Orchestrator), even if you were on

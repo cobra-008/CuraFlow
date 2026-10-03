@@ -79,34 +79,59 @@ export function AuthScreen({ onAuth }: Props) {
     }
   }
 
-  const inputCls = 'w-full px-3 py-2.5 rounded-lg bg-[#0f172a] border border-slate-700 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors'
-  const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
+  const inputCls = 'w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none transition-colors'
+  const labelCls = 'block text-xs font-semibold mb-1.5'
 
   return (
-    <div className="auth-screen h-screen overflow-y-auto flex justify-center bg-[#080d14] px-4 py-10">
+    <div className="auth-screen h-screen overflow-y-auto flex" style={{ background: '#f5f0e8' }}>
+      {/* Left side: sidebar background */}
+      <div className="hidden md:flex flex-col items-start justify-end p-10 flex-shrink-0" style={{
+        width: '360px',
+        backgroundImage: 'url(/sidebar-bg.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}>
+        <div style={{ background: 'rgba(255,248,235,0.88)', borderRadius: '12px', padding: '20px', maxWidth: '280px' }}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#1e3a6e' }}>
+              <span className="text-white font-bold">CF</span>
+            </div>
+            <div>
+              <div className="font-bold" style={{ color: '#1a2744' }}>CuraFlow</div>
+              <div className="text-xs" style={{ color: '#6b5c40' }}>Hospital Operations Orchestration</div>
+            </div>
+          </div>
+          <p className="text-sm italic" style={{ color: '#5a4530' }}>A more coordinated hospital.<br />For every patient, every time.</p>
+        </div>
+      </div>
+
+      {/* Right side: login form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-10">
       <div className="w-full max-w-sm h-fit my-auto">
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <img src="/carer.png" alt="Carer" className="h-11 w-auto mb-3" />
-          <h1 className="text-xl font-bold text-slate-100">CuraFlow</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Hospital AI Command Center</p>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: '#1e3a6e' }}>
+            <span className="text-white font-bold text-2xl">CF</span>
+          </div>
+          <h1 className="text-xl font-bold" style={{ color: '#1a2744' }}>CuraFlow</h1>
+          <p className="text-xs mt-0.5" style={{ color: '#9aa3b2' }}>Hospital Operations Command Center</p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#0d1625] border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1px solid #e8e1d4', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
 
           {/* Tabs */}
-          <div className="flex gap-1 p-1 rounded-lg bg-[#080d14] mb-6">
+          <div className="flex gap-1 p-1 rounded-lg mb-6" style={{ background: '#f5f0e8' }}>
             {(['login', 'signup'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => { setTab(t); setError(''); setNotice('') }}
-                className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  tab === t
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-500 hover:text-slate-300'
-                }`}
+                className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-all`}
+                style={{
+                  background: tab === t ? '#1e3a6e' : 'transparent',
+                  color: tab === t ? '#fff' : '#9aa3b2',
+                }}
               >
                 {t === 'login' ? 'Sign in' : 'Sign up'}
               </button>
@@ -114,9 +139,9 @@ export function AuthScreen({ onAuth }: Props) {
           </div>
 
           {notice && (
-            <div className="flex items-start gap-2 mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-              <Clock size={14} className="text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-amber-200 leading-snug">{notice}</p>
+            <div className="flex items-start gap-2 mb-4 p-3 rounded-lg" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+              <Clock size={14} className="mt-0.5 flex-shrink-0" style={{ color: '#d97706' }} />
+              <p className="text-xs leading-snug" style={{ color: '#92400e' }}>{notice}</p>
             </div>
           )}
 
@@ -147,11 +172,12 @@ export function AuthScreen({ onAuth }: Props) {
                   className={inputCls}
                 />
               </div>
-              {error && <p className="text-xs text-red-400">{error}</p>}
+              {error && <p className="text-xs font-medium" style={{ color: '#dc2626' }}>{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ background: '#1e3a6e' }}
               >
                 {loading && <Loader2 size={14} className="animate-spin" />}
                 Sign in
@@ -241,7 +267,8 @@ export function AuthScreen({ onAuth }: Props) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ background: '#1e3a6e' }}
               >
                 {loading && <Loader2 size={14} className="animate-spin" />}
                 Create account
@@ -249,6 +276,7 @@ export function AuthScreen({ onAuth }: Props) {
             </form>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

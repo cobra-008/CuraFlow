@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Hospital } from 'lucide-react'
+import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Activity } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useStore } from '../store'
 import { OrgSwitcher } from './OrgSwitcher'
@@ -54,8 +54,8 @@ export function Header() {
       {/* Logo */}
       <div className="flex items-center gap-2.5 col-start-1 justify-self-start min-w-0">
         <div className="min-w-0">
-          <div className="text-sm font-bold text-slate-100 leading-tight truncate">CuraFlow</div>
-          <div className="text-[10px] text-slate-500 leading-tight truncate hidden lg:block">Hospital AI Command Center</div>
+          <div className="text-sm font-bold text-navy-900 leading-tight truncate">CuraFlow</div>
+          <div className="text-[10px] text-gray-400 leading-tight truncate hidden lg:block">Hospital Operations Command Center</div>
         </div>
       </div>
 
@@ -71,12 +71,12 @@ export function Header() {
             onClick={() => saveNow()}
             disabled={pipelineSaveStatus === 'saving'}
             title={pipelineSaveStatus === 'saved' ? 'Pipeline saved — click to save again' : 'Save pipeline'}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium border transition-colors ${
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-sm text-[10px] font-medium border transition-colors ${
               pipelineSaveStatus === 'unsaved'
-                ? 'border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 cursor-pointer'
+                ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 cursor-pointer'
                 : pipelineSaveStatus === 'saving'
-                ? 'border-slate-700 bg-transparent text-slate-500 cursor-not-allowed'
-                : 'border-slate-700/60 bg-transparent text-slate-600 hover:text-slate-400 hover:border-slate-600 cursor-pointer'
+                ? 'border-warm-300 bg-transparent text-gray-400 cursor-not-allowed'
+                : 'border-warm-300/60 bg-transparent text-gray-400 hover:text-gray-500 hover:border-warm-400 cursor-pointer'
             }`}
           >
             {pipelineSaveStatus === 'saving' && <Loader2 size={10} className="animate-spin" />}
@@ -118,7 +118,7 @@ export function Header() {
                   : 'bg-teal-400'
               }`}
             />
-            <span className="hidden xl:inline text-[10px] text-slate-400 capitalize">
+            <span className="hidden xl:inline text-[10px] text-gray-500 capitalize">
               {executionStatus === 'waiting_approval' ? 'Awaiting Approval'
                 : executionStatus === 'pausing' ? 'Pausing…'
                 : executionStatus === 'paused' ? 'Paused'
@@ -147,10 +147,10 @@ export function Header() {
           onClick={() => setActiveView('capabilities')}
           title="Agent Capabilities"
           aria-label="Agent Capabilities"
-          className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors flex-shrink-0 ${
+          className={`w-8 h-8 rounded-sm flex items-center justify-center border transition-colors flex-shrink-0 ${
             activeView === 'capabilities'
               ? 'bg-blue-600 border-blue-600 text-white'
-              : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-slate-400 hover:bg-[var(--bg-hover)] hover:text-slate-200'
+              : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-gray-500 hover:bg-[var(--bg-hover)] hover:text-navy-800'
           }`}
         >
           <CheckCircle size={15} className="flex-shrink-0" />
@@ -159,24 +159,34 @@ export function Header() {
           onClick={() => setActiveView('workflows')}
           title="Workflows"
           aria-label="Workflows"
-          className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors flex-shrink-0 ${
+          className={`w-8 h-8 rounded-sm flex items-center justify-center border transition-colors flex-shrink-0 ${
             activeView === 'workflows'
               ? 'bg-blue-600 border-blue-600 text-white'
-              : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-slate-400 hover:bg-[var(--bg-hover)] hover:text-slate-200'
+              : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-gray-500 hover:bg-[var(--bg-hover)] hover:text-navy-800'
           }`}
         >
           <WorkflowIcon size={15} className="flex-shrink-0" />
         </button>
-
-        {/* Theme toggle — hidden when embedded (the widget panel owns the theme) */}
+        <button
+          onClick={() => setActiveView('command')}
+          title="Command Center — Hospital Operations"
+          aria-label="Command Center"
+          className={`w-8 h-8 rounded-sm flex items-center justify-center border transition-colors flex-shrink-0 ${
+            activeView === 'command'
+              ? 'bg-blue-600 border-blue-600 text-white'
+              : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-gray-500 hover:bg-[var(--bg-hover)] hover:text-navy-800'
+          }`}
+        >
+          <Activity size={15} className="flex-shrink-0" />
+        </button>
         {!isEmbedded && (
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-8 h-8 rounded-lg flex items-center justify-center border border-[var(--border-a)] bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
+            className="w-8 h-8 rounded-sm flex items-center justify-center border border-[var(--border-a)] bg-[var(--bg-raised)] hover:bg-[var(--bg-hover)] transition-colors flex-shrink-0"
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark'
-              ? <Sun size={15} className="text-amber-400" />
+              ? <Sun size={15} className="text-amber-600" />
               : <Moon size={15} className="text-blue-500" />
             }
           </button>
@@ -186,32 +196,32 @@ export function Header() {
         <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setUserMenuOpen((o) => !o)}
-            className={`flex items-center gap-2 pl-1 pr-1.5 py-1 rounded-lg border transition-colors ${
+            className={`flex items-center gap-2 pl-1 pr-1.5 py-1 rounded-sm border transition-colors ${
               userMenuOpen ? 'bg-[var(--bg-raised)] border-[var(--border-a)]' : 'border-transparent hover:bg-[var(--bg-raised)]'
             }`}
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+            <div className="w-8 h-8 rounded-sm bg-blue-800 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
               {initials}
             </div>
             <div className="hidden sm:block max-w-[160px] text-left">
-              <div className="text-xs text-slate-400 truncate leading-tight">
+              <div className="text-xs text-gray-500 truncate leading-tight">
                 {currentUser?.display_name ?? ''}
               </div>
               {/* Tenant + role: which hospital this account acts in */}
-              <div className="text-[10px] text-slate-600 truncate leading-tight">{roleLabel}</div>
+              <div className="text-[10px] text-gray-400 truncate leading-tight">{roleLabel}</div>
             </div>
             <ChevronDown
               size={13}
-              className={`text-slate-500 flex-shrink-0 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`}
+              className={`text-gray-400 flex-shrink-0 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`}
             />
           </button>
 
           {userMenuOpen && (
-            <div className="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-[var(--border-a)] bg-[var(--bg-surface)] shadow-2xl z-[70] py-1.5 overflow-hidden">
+            <div className="absolute right-0 top-full mt-1.5 w-52 rounded-sm border border-[var(--border-a)] bg-[var(--bg-surface)] shadow-2xl z-[70] py-1.5 overflow-hidden">
               {/* Identity header — also carries the name/role on small screens where the badge hides them */}
               <div className="px-3 py-2 border-b border-[var(--border)] mb-1">
-                <div className="text-xs font-semibold text-slate-200 truncate">{currentUser?.display_name ?? ''}</div>
-                <div className="text-[10px] text-slate-500 truncate">{roleLabel}</div>
+                <div className="text-xs font-semibold text-navy-800 truncate">{currentUser?.display_name ?? ''}</div>
+                <div className="text-[10px] text-gray-400 truncate">{roleLabel}</div>
               </div>
 
               {isAdmin && (
@@ -219,8 +229,8 @@ export function Header() {
                   onClick={() => { setActiveView('admin'); setUserMenuOpen(false) }}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${
                     activeView === 'admin'
-                      ? 'text-blue-400 bg-blue-500/10'
-                      : 'text-slate-300 hover:bg-[var(--bg-hover)]'
+                      ? 'text-blue-600 bg-blue-500/10'
+                      : 'text-navy-700 hover:bg-[var(--bg-hover)]'
                   }`}
                 >
                   <ShieldCheck size={14} className="flex-shrink-0" />
@@ -231,7 +241,7 @@ export function Header() {
 
               <button
                 onClick={() => { setUserMenuOpen(false); logout() }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-[var(--bg-hover)] hover:text-red-400 transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-navy-700 hover:bg-[var(--bg-hover)] hover:text-red-600 transition-colors"
               >
                 <LogOut size={14} className="flex-shrink-0" />
                 Sign out
