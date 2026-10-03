@@ -332,6 +332,7 @@ async def get_execution_log(limit: int = Query(50)):
 # ── Audit ─────────────────────────────────────────────────────────────────────
 
 @router.get("/audit", dependencies=[Depends(require_active_user)])
+@router.get("/audit-log", dependencies=[Depends(require_active_user)])
 async def get_audit_events(
     limit: int = Query(100),
     event_type: Optional[str] = Query(None),
@@ -457,6 +458,7 @@ async def get_simulation(run_id: str):
 # ── System Health ─────────────────────────────────────────────────────────────
 
 @router.get("/system-health", dependencies=[Depends(require_active_user)])
+@router.get("/system/health", dependencies=[Depends(require_active_user)])
 async def get_system_health():
     import random
     rng = random.Random()
@@ -555,6 +557,7 @@ async def get_data_quality():
 # ── Agent Performance ─────────────────────────────────────────────────────────
 
 @router.get("/agents/performance", dependencies=[Depends(require_active_user)])
+@router.get("/agent-performance", dependencies=[Depends(require_active_user)])
 async def get_agent_performance():
     import random
     rng = random.Random(55)
@@ -586,3 +589,47 @@ async def get_agent_performance():
             "avg_confidence": round(rng.uniform(0.70, 0.88), 2),
         })
     return {"agents": result}
+
+
+# ── AI Assistant Chat ─────────────────────────────────────────────────────────
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+@router.post("/chat", dependencies=[Depends(require_active_user)])
+async def chat_with_assistant(body: ChatRequest):
+    snap = _state().get_snapshot()
+    pressure_info = snap.get("pressure", {})
+    pressure_label = pressure_info.get("label", "NORMAL")
+    beds = snap.get("beds", {})
+    icu = snap.get("icu", {})
+    er = snap.get("emergency", {})
+    staff = snap.get("staff", {})
+
+    q = body.message.lower().strip()
+
+    if "bed" in q or "occupancy" in q:
+        resp = f"Current bed occupancy is {beds.get('occupancy_pct', 0)}%. {beds.get('occupied', 0)} of {beds.get('total', 0)} beds are occupied ({beds.get('available', 0)} available, {beds.get('cleaning', 0)} cleaning)."
+    elif "icu" in q:
+        resp = f"ICU occupancy is currently {icu.get('occupancy_pct', 0)}%. {icu.get('available', 0)} ICU beds available out of {icu.get('total', 0)} total."
+    elif "er" in q or "emergency" in q or "wait" in q:
+        resp = f"Emergency department has {er.get('waiting', 0)} patients waiting. Current demand score is {er.get('demand_score', 0)}."
+    elif "staff" in q or "nurse" in q or "doctor" in q:
+        resp = f"Staff utilization is {staff.get('utilization_pct', 0)}% with {staff.get('on_duty', 0)} staff on duty and {staff.get('available', 0)} available."
+    elif "crisis" in q:
+        resp = f"Hospital operational pressure status is {pressure_label}. {'Crisis mode is currently active.' if snap.get('crisis_mode') else 'Normal operational protocols are active.'}"
+    elif "recommend" in q or "action" in q:
+        resp = "Recommendations are continuously generated based on real-time bed, ICU, and ER telemetry. Please check the Pending Approvals tab for actionable items."
+    else:
+        resp = f"CuraFlow AI monitoring active. Hospital pressure: {pressure_label} (Beds: {beds.get('occupancy_pct', 0)}%, ICU: {icu.get('occupancy_pct', 0)}%, ER Waiting: {er.get('waiting', 0)}). All clinical systems operating."
+
+    return {
+        "response": resp,
+        "context": {
+            "pressure": pressure_label,
+            "timestamp": NOW().isoformat(),
+        },
+        "timestamp": NOW().isoformat(),
+    }
+
