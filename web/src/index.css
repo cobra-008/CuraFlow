@@ -47,8 +47,8 @@
 }
 
 ::selection {
-  background-color: var(--accent-blue);
-  color: #ffffff;
+  background-color: #b3d4fc; /* light blue highlight */
+  color: #000000;
 }
 
 html, body {
