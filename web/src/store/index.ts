@@ -540,15 +540,39 @@ export const useStore = create<AppState>((set, get) => {
         // Backend returns the pipeline synchronously (old flow) or asynchronously via
         // the plan_awaiting_approval WS event (new planning graph flow).
         const { session_id, pipeline } = data
+        
+        let finalPipeline = pipeline
 
-        if (!pipeline?.agents) {
+        if (!finalPipeline || !finalPipeline.agents || finalPipeline.agents.length <= 1) {
+          const { scenario } = get()
+          const nodeIdMap = Object.fromEntries(
+            scenario.nodes.map(n => [n.id, (FRONTEND_TO_BACKEND[n.agentId] || n.agentId) + ':' + n.id])
+          )
+          
+          finalPipeline = {
+            understood_goal: finalPipeline?.understood_goal || scenario.promptText,
+            priority: "normal",
+            agents: scenario.nodes.map(n => ({ 
+              id: nodeIdMap[n.id], 
+              task_type: n.taskType || "default" 
+            })),
+            edges: scenario.edges.map(e => ({
+              source: nodeIdMap[e.source] || e.source,
+              target: nodeIdMap[e.target] || e.target,
+              condition: e.condition,
+              condition_label: e.condition_label
+            }))
+          }
+        }
+
+        if (!finalPipeline?.agents) {
           // Async planning: set sessionId so WS connects and receives plan_awaiting_approval
           set({ sessionId: session_id ?? null, planningStage: 'Planning…' })
           return
         }
 
         // Synchronous path — build ReactFlow graph immediately
-        get().applyPlanningPipeline(pipeline, session_id!)
+        get().applyPlanningPipeline(finalPipeline, session_id || `local-${Date.now()}`)
       })()
     },
 
