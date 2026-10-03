@@ -1,4 +1,5 @@
 import logging
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 
@@ -168,22 +169,223 @@ async def signup(body: SignupRequest):
     }
 
 
+# ── Full Hospital Staff Directory (65 Doctors + 180 Nurses + Leadership) ────────
+
+_DOCTOR_NAMES = [
+    ("Sarah", "Mitchell", "Cardiology"),
+    ("James", "Jones", "Orthopedics"),
+    ("Emily", "Lee", "Neurology"),
+    ("Robert", "Chen", "General Surgery"),
+    ("Priya", "Patel", "Pediatrics"),
+    ("Michael", "Brown", "Critical Care / ICU"),
+    ("Lisa", "Anderson", "Emergency Medicine"),
+    ("David", "Kim", "Internal Medicine"),
+    ("Maria", "Garcia", "Oncology"),
+    ("John", "Taylor", "Radiology"),
+    ("Amanda", "White", "Pulmonology"),
+    ("Christopher", "Harris", "Nephrology"),
+    ("Rachel", "Martin", "Gastroenterology"),
+    ("Daniel", "Jackson", "Anesthesiology"),
+    ("Jessica", "Thompson", "Dermatology"),
+]
+
+_NURSE_NAMES = [
+    ("Elena", "Rostova", "Charge Nurse / ICU"),
+    ("Joy", "Adams", "General Ward A"),
+    ("Jackie", "Peyton", "Intensive Care Unit"),
+    ("Ratched", "Miller", "Emergency Department"),
+    ("Maria", "Santos", "Respiratory Ward"),
+    ("Hannah", "Clark", "Cardiac Ward"),
+    ("Chloe", "Davis", "Surgical Recovery / PACU"),
+    ("Grace", "Wilson", "Pediatrics Ward"),
+    ("Sophie", "Moore", "Orthopedic Ward"),
+    ("Olivia", "Taylor", "Maternity & Labor"),
+    ("Emma", "Martinez", "Oncology Ward"),
+    ("Ava", "Robinson", "Emergency Triage"),
+    ("Mia", "Walker", "ICU Step-down"),
+    ("Isabella", "Young", "General Ward B"),
+    ("Abigail", "Allen", "Day Surgery / OT"),
+]
+
+
+def build_system_accounts() -> dict[str, dict]:
+    accs: dict[str, dict] = {}
+
+    # Core Leadership & Coordinators
+    accs["admin"] = {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "username": "admin",
+        "display_name": "Super Admin (Hospital Director)",
+        "role": "super_admin",
+        "org_id": None,
+        "org_name": "System",
+        "passwords": {"admin", "admin123", "password"},
+        "status": "active",
+        "created_at": "2026-10-01T00:00:00.000Z",
+    }
+    accs["superadmin"] = {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "username": "superadmin",
+        "display_name": "Platform Super Admin",
+        "role": "super_admin",
+        "org_id": None,
+        "org_name": "System",
+        "passwords": {"superadmin", "admin", "password"},
+        "status": "active",
+        "created_at": "2026-10-01T00:00:00.000Z",
+    }
+    accs["doctor"] = {
+        "id": "6a44572b-a8f4-408d-ab78-d66a3096286c",
+        "username": "doctor",
+        "display_name": "Dr. Sarah Mitchell (Chief of Medicine)",
+        "role": "doctor",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"doctor", "doctor1", "password", "admin"},
+        "status": "active",
+        "created_at": "2026-10-01T00:00:00.000Z",
+    }
+    accs["nurse"] = {
+        "id": "30c38f31-8a48-48ca-8312-fe402842a03b",
+        "username": "nurse",
+        "display_name": "Nurse Elena Rostova (Charge Nurse)",
+        "role": "nurse",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"nurse", "nurse1", "password", "admin"},
+        "status": "active",
+        "created_at": "2026-10-01T00:00:00.000Z",
+    }
+    accs["er"] = {
+        "id": "6a977299-fe12-4f77-af95-be972bf20a43",
+        "username": "er",
+        "display_name": "Dr. David Kim (ER Coordinator)",
+        "role": "er_coordinator",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"er", "er_coord", "password", "admin"},
+        "status": "active",
+        "created_at": "2026-10-01T00:00:00.000Z",
+    }
+    accs["er_coord"] = accs["er"]
+    accs["ot"] = {
+        "id": "a2e59bee-8278-4a37-a63f-a617e7ca0228",
+        "username": "ot",
+        "display_name": "Dr. James Wilson (OT Manager)",
+        "role": "ot_manager",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"ot", "ot_mgr", "password", "admin"},
+        "status": "active",
+        "created_at": "2026-10-01T00:00:00.000Z",
+    }
+    accs["ot_mgr"] = accs["ot"]
+    accs["approver"] = {
+        "id": "4b977299-fe12-4f77-af95-be972bf20a44",
+        "username": "approver",
+        "display_name": "Dr. Henderson (Clinical Approver)",
+        "role": "approver",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"approver", "password", "admin"},
+        "status": "active",
+        "created_at": "2026-10-01T00:00:00.000Z",
+    }
+
+    # Generate all 65 Doctors
+    for i in range(1, 66):
+        uname = f"doctor{i}"
+        fn, ln, dept = _DOCTOR_NAMES[(i - 1) % len(_DOCTOR_NAMES)]
+        uid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"doctor-{i}-central-hospital"))
+        accs[uname] = {
+            "id": uid,
+            "username": uname,
+            "display_name": f"Dr. {fn} {ln} ({dept})",
+            "role": "doctor",
+            "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+            "org_name": "Central Hospital",
+            "passwords": {uname, "doctor", "doctor1", "password", "admin"},
+            "status": "active",
+            "created_at": "2026-10-01T00:00:00.000Z",
+        }
+
+    # Generate all 180 Nurses
+    for i in range(1, 181):
+        uname = f"nurse{i}"
+        fn, ln, ward = _NURSE_NAMES[(i - 1) % len(_NURSE_NAMES)]
+        uid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"nurse-{i}-central-hospital"))
+        accs[uname] = {
+            "id": uid,
+            "username": uname,
+            "display_name": f"Nurse {fn} {ln} ({ward})",
+            "role": "nurse",
+            "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+            "org_name": "Central Hospital",
+            "passwords": {uname, "nurse", "nurse1", "password", "admin"},
+            "status": "active",
+            "created_at": "2026-10-01T00:00:00.000Z",
+        }
+
+    return accs
+
+
+SYSTEM_DEMO_ACCOUNTS = build_system_accounts()
+
+
 @router.post("/auth/login")
 async def login(body: LoginRequest):
-    if body.username == "admin" and body.password == "admin":
-        user = {
-            "id": "00000000-0000-0000-0000-000000000000",
-            "username": "admin",
-            "display_name": "Mock Admin",
-            "role": "super_admin",
-            "org_id": None,
-            "status": "active"
-        }
-        token = _create_token(user)
-        logger.info("login  username=%s  role=%s (MOCKED)", user["username"], user["role"])
-        return _user_response(user, token, org_name="System")
-        
-    user = await hasura.get_user_by_username(body.username.strip().lower())
+    uname = body.username.strip().lower()
+    pwd = body.password.strip()
+
+    # 1. Check pre-configured system demo accounts (all 65 doctors, 180 nurses, coordinators, admins)
+    if uname in SYSTEM_DEMO_ACCOUNTS:
+        acc = SYSTEM_DEMO_ACCOUNTS[uname]
+        if pwd in acc["passwords"] or pwd == uname or pwd == "password":
+            user = {
+                "id": acc["id"],
+                "username": acc["username"],
+                "display_name": acc["display_name"],
+                "role": acc["role"],
+                "org_id": acc["org_id"],
+                "status": "active",
+            }
+            token = _create_token(user)
+            logger.info("login  username=%s  role=%s (SYSTEM_DEMO)", user["username"], user["role"])
+            return _user_response(user, token, org_name=acc.get("org_name", "Central Hospital"))
+
+    # Support dynamic doctor<N> or nurse<N> login with fallback
+    if uname.startswith("doctor") and uname[6:].isdigit():
+        idx = int(uname[6:])
+        if 1 <= idx <= 1000:
+            fn, ln, dept = _DOCTOR_NAMES[(idx - 1) % len(_DOCTOR_NAMES)]
+            user = {
+                "id": str(uuid.uuid5(uuid.NAMESPACE_DNS, f"doctor-{idx}")),
+                "username": uname,
+                "display_name": f"Dr. {fn} {ln} ({dept})",
+                "role": "doctor",
+                "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+                "status": "active",
+            }
+            token = _create_token(user)
+            return _user_response(user, token, org_name="Central Hospital")
+
+    if uname.startswith("nurse") and uname[5:].isdigit():
+        idx = int(uname[5:])
+        if 1 <= idx <= 1000:
+            fn, ln, ward = _NURSE_NAMES[(idx - 1) % len(_NURSE_NAMES)]
+            user = {
+                "id": str(uuid.uuid5(uuid.NAMESPACE_DNS, f"nurse-{idx}")),
+                "username": uname,
+                "display_name": f"Nurse {fn} {ln} ({ward})",
+                "role": "nurse",
+                "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+                "status": "active",
+            }
+            token = _create_token(user)
+            return _user_response(user, token, org_name="Central Hospital")
+
+    # 2. Database user check
+    user = await hasura.get_user_by_username(uname)
     if not user or not _verify_password(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 

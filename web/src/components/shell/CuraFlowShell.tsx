@@ -19,6 +19,8 @@ import { EmergencyCommandView } from '../ops/EmergencyCommandView'
 import { ReportsView } from '../ops/ReportsView'
 import { SettingsView } from '../ops/SettingsView'
 import { TopBar } from '../TopBar'
+import { Toaster } from '../execution/Toaster'
+import { useNotificationPipeline } from '../../hooks/useNotificationPipeline'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 
 
@@ -85,9 +87,7 @@ function Sidebar({
         {/* Logo Header */}
         <div className="px-5 pt-5 pb-4 border-b" style={{ borderColor: 'rgba(180,150,100,0.2)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: '#1e3a6e' }}>
-              <span className="text-white font-bold text-sm tracking-wide">CF</span>
-            </div>
+            <img src="/logo.jpeg" alt="CuraFlow" className="w-9 h-9 rounded-xl object-cover shadow-sm" />
             <div>
               <div className="font-bold text-base leading-tight" style={{ color: '#1a2744' }}>CuraFlow</div>
               <div className="text-[11px] font-medium leading-tight mt-0.5" style={{ color: '#6b5c40' }}>Hospital Orchestration</div>
@@ -203,6 +203,9 @@ export function CuraFlowShell() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Automated notification pipeline hook
+  useNotificationPipeline(hospitalState)
+
   const fetchSidebarData = useCallback(async () => {
     try {
       const [s, b, r] = await Promise.all([
@@ -276,6 +279,9 @@ export function CuraFlowShell() {
           {renderView()}
         </main>
       </div>
+
+      {/* Global transient notification popups */}
+      <Toaster />
     </div>
   )
 }

@@ -334,6 +334,7 @@ async def get_execution_log(limit: int = Query(50)):
 # ── Audit ─────────────────────────────────────────────────────────────────────
 
 @router.get("/audit", dependencies=[Depends(require_active_user)])
+@router.get("/audit-log", dependencies=[Depends(require_active_user)])
 async def get_audit_events(
     limit: int = Query(100),
     event_type: Optional[str] = Query(None),
@@ -459,6 +460,7 @@ async def get_simulation(run_id: str):
 # ── System Health ─────────────────────────────────────────────────────────────
 
 @router.get("/system-health", dependencies=[Depends(require_active_user)])
+@router.get("/system/health", dependencies=[Depends(require_active_user)])
 async def get_system_health():
     import random
     rng = random.Random()
@@ -557,6 +559,7 @@ async def get_data_quality():
 # ── Agent Performance ─────────────────────────────────────────────────────────
 
 @router.get("/agents/performance", dependencies=[Depends(require_active_user)])
+@router.get("/agent-performance", dependencies=[Depends(require_active_user)])
 async def get_agent_performance():
     import random
     rng = random.Random(55)

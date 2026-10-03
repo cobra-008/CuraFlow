@@ -9,7 +9,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Depends
 
-from api.routes.auth import AuthContext, require_role
+from api.routes.auth import AuthContext, require_role, SYSTEM_DEMO_ACCOUNTS
 from db.hasura import hasura
 from schemas.models import UserUpdateRequest
 
@@ -41,12 +41,43 @@ async def _get_target(user_id: str, ctx: AuthContext) -> dict:
 async def list_users(
     org_id: str | None = None,
     status: str | None = None,
+    role: str | None = None,
     ctx: AuthContext = Depends(require_role("admin")),
 ):
     users = await hasura.list_users(org_id=_scope_org(ctx, org_id), status=status)
+    existing_usernames = {u.get("username") for u in users}
+
+    # Merge system hospital accounts (65 doctors, 180 nurses, coordinators, leadership)
+    system_users = []
+    for acc in SYSTEM_DEMO_ACCOUNTS.values():
+        if acc["username"] in existing_usernames:
+            continue
+        existing_usernames.add(acc["username"])
+        if status and acc.get("status") != status:
+            continue
+        if role and acc.get("role") != role:
+            continue
+        if org_id and acc.get("org_id") and acc.get("org_id") != org_id:
+            continue
+        system_users.append({
+            "id": acc["id"],
+            "username": acc["username"],
+            "display_name": acc["display_name"],
+            "role": acc["role"],
+            "org_id": acc.get("org_id"),
+            "status": acc.get("status", "active"),
+            "approved_by": "system",
+            "approved_at": acc.get("created_at"),
+            "created_at": acc.get("created_at"),
+        })
+
+    all_users = users + system_users
     if not ctx.is_super():
-        users = [u for u in users if u.get("role") != "super_admin"]
-    return {"users": users}
+        all_users = [u for u in all_users if u.get("role") != "super_admin"]
+    if role:
+        all_users = [u for u in all_users if u.get("role") == role]
+
+    return {"users": all_users}
 
 
 @router.get("/users/pending")
