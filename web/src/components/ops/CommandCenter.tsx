@@ -84,7 +84,7 @@ function KpiCard({
 
   return (
     <div
-      className="p-5 flex flex-col justify-between transition-all hover:bg-gray-50/50"
+      className="p-5 flex flex-col justify-between transition-all hover:bg-gray-50/50 flex-1"
       style={{
         background: '#ffffff',
       }}
@@ -655,7 +655,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
                   </div>
                 )}
                 <div className={`max-w-[85%] ${m.role === 'user' ? '' : 'flex-1 min-w-0'}`}>
-                  <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                  <div className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed ${
                     m.role === 'user'
                       ? 'rounded-br-sm'
                       : 'rounded-bl-sm'
@@ -686,7 +686,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
           <div className="px-5 pb-3 flex flex-wrap gap-2">
             {['ICU status', 'ER queue', 'Bed availability', 'Staff utilization'].map(q => (
               <button key={q} onClick={() => { setInput(q); }}
-                className="text-sm px-3 py-1.5 rounded-full border transition-colors hover:border-blue-300"
+                className="text-[12px] px-3 py-1.5 rounded-full border transition-colors hover:border-blue-300"
                 style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#5a6475' }}>
                 {q}
               </button>
@@ -700,7 +700,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
               onChange={e => setInput(e.target.value)}
               onKeyDown={onKey}
               placeholder="Ask about ICU, beds, staff, ER... (Press Enter to send, Shift+Enter for new line)"
-              className="flex-1 py-3 px-4 text-sm rounded-xl outline-none resize-none"
+              className="flex-1 py-3 px-4 text-[13px] rounded-xl outline-none resize-none"
               style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#1a2744', minHeight: '48px', maxHeight: '120px' }}
               rows={1}
             />
@@ -913,8 +913,8 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
             <Sparkles size={18} className="text-white" />
           </div>
           <div>
-            <div className="font-bold text-base leading-tight" style={{ color: '#1a2744' }}>CuraFlow AI Operations Copilot</div>
-            <div className="text-xs mt-0.5 leading-tight" style={{ color: '#8c7e6a' }}>Hospital Resource & Clinical Intelligence</div>
+            <div className="font-bold text-[15px] leading-tight" style={{ color: '#1a2744' }}>CuraFlow AI Operations Copilot</div>
+            <div className="text-[11px] mt-0.5 leading-tight" style={{ color: '#8c7e6a' }}>Hospital Resource & Clinical Intelligence</div>
           </div>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
@@ -931,7 +931,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-all"
             style={{
               background: activeTab === t.id ? '#1e3a6e' : 'transparent',
               color: activeTab === t.id ? '#ffffff' : '#6b5c40',
@@ -1048,7 +1048,7 @@ export function CommandCenter() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {state?.crisis_mode ? (
+          {state?.crisis_mode && (
             <button
               onClick={resolveCrisis}
               disabled={crisisLoading}
@@ -1057,21 +1057,12 @@ export function CommandCenter() {
             >
               {crisisLoading ? 'Working…' : '✓ Resolve Crisis Mode'}
             </button>
-          ) : (
-            <button
-              onClick={triggerCrisis}
-              disabled={crisisLoading}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-sm border hover:bg-red-50"
-              style={{ background: '#ffffff', borderColor: '#fecaca', color: '#dc2626' }}
-            >
-              {crisisLoading ? 'Simulating…' : '⚠ Demo Surge Crisis'}
-            </button>
           )}
         </div>
       </div>
 
       {/* ── 5 KPI Cards in Responsive Grid ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x rounded-2xl overflow-hidden mb-6" style={{ border: '1px solid #e8e1d4', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+      <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x rounded-2xl overflow-hidden mb-6" style={{ border: '1px solid #e8e1d4', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
         <KpiCard
           icon={Users} iconColor="#1e50a0" iconBg="#dbeafe"
           label="ER Waiting"
