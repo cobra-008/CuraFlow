@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, ChevronDown, LogOut, Settings, ShieldCheck } from 'lucide-react'
+import { Search, ChevronDown, LogOut, Settings, ShieldCheck, ArrowLeft } from 'lucide-react'
 import { useStore } from '../store'
 import { AdminPage } from './admin/AdminPage'
 import { OrgSwitcher } from './OrgSwitcher'
@@ -60,6 +60,10 @@ export function TopBar() {
     window.dispatchEvent(new CustomEvent('curaflow:navigate', { detail: 'settings' }))
   }
 
+  const handleBack = () => {
+    window.dispatchEvent(new CustomEvent('curaflow:back'))
+  }
+
   return (
     <>
     <header className="flex-shrink-0 flex items-center gap-4 px-5 h-14 border-b" style={{
@@ -67,6 +71,16 @@ export function TopBar() {
       borderColor: '#e8e1d4',
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     }}>
+
+      {/* Back Button */}
+      <button
+        onClick={handleBack}
+        className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-gray-100"
+        style={{ color: '#1a2744', border: '1px solid #e0d5c0', background: '#f5f0e8' }}
+        title="Go Back"
+      >
+        <ArrowLeft size={16} />
+      </button>
 
       {/* Search */}
       <div className="flex-1 max-w-lg relative">

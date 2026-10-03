@@ -674,15 +674,24 @@ function handleEvent(event: WsEvent) {
       const attempt = (event.attempt as number | undefined) ?? 0
       const isFailureReplan = attempt > 0
 
+      const oldPipeline = useStore.getState().backendPipeline
       const seenIds = new Set<string>()
-      const uniqueAgents = pipeline.agents.filter((a) => {
-        if (seenIds.has(a.id)) {
-          console.warn('[plan_awaiting_approval] duplicate agent id dropped:', a.id)
-          return false
-        }
-        seenIds.add(a.id)
-        return true
-      })
+      const uniqueAgents = pipeline.agents
+        .map(a => {
+          const oldAgent = oldPipeline?.agents.find(oa => oa.id === a.id)
+          return {
+            ...a,
+            sub_agents: a.sub_agents ?? oldAgent?.sub_agents
+          }
+        })
+        .filter((a) => {
+          if (seenIds.has(a.id)) {
+            console.warn('[plan_awaiting_approval] duplicate agent id dropped:', a.id)
+            return false
+          }
+          seenIds.add(a.id)
+          return true
+        })
       const validAgentIds = new Set(uniqueAgents.map((a) => a.id))
       const validEdges = pipeline.edges.filter(
         (e) => validAgentIds.has(e.source) && validAgentIds.has(e.target)
@@ -737,12 +746,21 @@ function handleEvent(event: WsEvent) {
       const pipeline = event.pipeline as BackendPipeline
       if (!pipeline?.agents) break
 
+      const oldPipeline = useStore.getState().backendPipeline
       const seenIds = new Set<string>()
-      const uniqueAgents = pipeline.agents.filter((a) => {
-        if (seenIds.has(a.id)) return false
-        seenIds.add(a.id)
-        return true
-      })
+      const uniqueAgents = pipeline.agents
+        .map(a => {
+          const oldAgent = oldPipeline?.agents.find(oa => oa.id === a.id)
+          return {
+            ...a,
+            sub_agents: a.sub_agents ?? oldAgent?.sub_agents
+          }
+        })
+        .filter((a) => {
+          if (seenIds.has(a.id)) return false
+          seenIds.add(a.id)
+          return true
+        })
       const validAgentIds = new Set(uniqueAgents.map((a) => a.id))
       const validEdges = pipeline.edges.filter(
         (e) => validAgentIds.has(e.source) && validAgentIds.has(e.target)
@@ -785,12 +803,21 @@ function handleEvent(event: WsEvent) {
       const scope = event.scope as string
       if (scope === 'pipeline') {
         const pipeline = event.pipeline as BackendPipeline
+        const oldPipeline = useStore.getState().backendPipeline
         const seenIds = new Set<string>()
-        const uniqueAgents = pipeline.agents.filter((a) => {
-          if (seenIds.has(a.id)) return false
-          seenIds.add(a.id)
-          return true
-        })
+        const uniqueAgents = pipeline.agents
+          .map(a => {
+            const oldAgent = oldPipeline?.agents.find(oa => oa.id === a.id)
+            return {
+              ...a,
+              sub_agents: a.sub_agents ?? oldAgent?.sub_agents
+            }
+          })
+          .filter((a) => {
+            if (seenIds.has(a.id)) return false
+            seenIds.add(a.id)
+            return true
+          })
         const validAgentIds = new Set(uniqueAgents.map((a) => a.id))
         const validEdges = pipeline.edges.filter(
           (e) => validAgentIds.has(e.source) && validAgentIds.has(e.target)

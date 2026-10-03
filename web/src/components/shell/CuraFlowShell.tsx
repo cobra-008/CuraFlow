@@ -198,7 +198,19 @@ export function CuraFlowShell() {
   const currentUser = useStore(s => s.currentUser)
   const role = currentUser?.role || 'nurse'
   
-  const [activeRoute, setActiveRoute] = useState<string>('command')
+  const [activeRoute, _setActiveRoute] = useState<string>('command')
+  const [routeHistory, setRouteHistory] = useState<string[]>(['command'])
+
+  const setActiveRoute = useCallback((route: string) => {
+    _setActiveRoute(current => {
+      if (current !== route) {
+        setRouteHistory(prev => [...prev, route])
+        return route
+      }
+      return current
+    })
+  }, [])
+
   const [hospitalState, setHospitalState] = useState<HospitalState | null>(null)
   const [bottlenecks, setBottlenecks] = useState<Bottleneck[]>([])
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
@@ -232,9 +244,25 @@ export function CuraFlowShell() {
     const handleNavigate = (e: CustomEvent) => {
       if (e.detail) setActiveRoute(e.detail)
     }
+    const handleBack = () => {
+      setRouteHistory(prev => {
+        if (prev.length > 1) {
+          const newHistory = [...prev]
+          newHistory.pop()
+          const previousRoute = newHistory[newHistory.length - 1]
+          _setActiveRoute(previousRoute)
+          return newHistory
+        }
+        return prev
+      })
+    }
     window.addEventListener('curaflow:navigate', handleNavigate as EventListener)
-    return () => window.removeEventListener('curaflow:navigate', handleNavigate as EventListener)
-  }, [])
+    window.addEventListener('curaflow:back', handleBack as EventListener)
+    return () => {
+      window.removeEventListener('curaflow:navigate', handleNavigate as EventListener)
+      window.removeEventListener('curaflow:back', handleBack as EventListener)
+    }
+  }, [setActiveRoute])
 
   const renderView = () => {
     // Orchestration needs full h-full for the ReactFlow canvas — no scroll wrapper
