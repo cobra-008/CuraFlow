@@ -430,12 +430,12 @@ function LiveActivityFeed({ state, bottlenecks }: { state: HospitalState | null;
   }
 
   return (
-    <div className="cf-card flex flex-col overflow-hidden">
+    <div className="cf-card flex flex-col overflow-hidden h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
         <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Live Activity</h3>
         <button className="text-xs font-semibold" style={{ color: '#1e3a6e' }}>View All</button>
       </div>
-      <div className="flex flex-col divide-y overflow-auto" style={{ maxHeight: '260px' }}>
+      <div className="flex flex-col divide-y overflow-auto flex-1">
         {activities.slice(0, 6).map(act => (
           <div key={act.id} className="flex items-start gap-3 px-4 py-3 hover:bg-warm-50 transition-colors">
             <div className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -838,7 +838,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
   }
 
   return (
-    <div className="cf-card flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
+    <div className="cf-card flex flex-col overflow-hidden h-full" style={{ minHeight: 0 }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0"
         style={{ borderColor: '#f0e8d8', background: 'linear-gradient(to right, #f5f9ff, #ffffff)' }}>
@@ -1054,14 +1054,14 @@ export function CommandCenter() {
       </div>
 
       {/* ── Middle row: AI Assistant + Live Activity ──────────────────────── */}
-      <div className="flex gap-2" style={{ minHeight: '400px' }}>
+      <div className="flex gap-2" style={{ height: '340px' }}>
         {/* AI Assistant */}
-        <div className="flex-1 min-w-0" style={{ minHeight: 0 }}>
+        <div className="flex-1 min-w-0 h-full">
           <AIAssistant state={state} />
         </div>
 
         {/* Live Activity */}
-        <div className="flex-shrink-0" style={{ width: '280px' }}>
+        <div className="flex-shrink-0 h-full" style={{ width: '280px' }}>
           <LiveActivityFeed state={state} bottlenecks={bottlenecks} />
         </div>
       </div>
