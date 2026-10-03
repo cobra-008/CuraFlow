@@ -46,13 +46,25 @@ export interface PolicyDecision {
   ts: number
 }
 
-// Transient notification (autonomous exceptions: require_human / escalate / auto-reject).
 export interface Toast {
   id: string
   severity: 'info' | 'warning' | 'critical'
   title: string
   message: string
   sticky?: boolean   // when true, does NOT auto-dismiss — stays until the user clicks X
+}
+
+// Full clinical/system application notification for the notification center
+export interface AppNotification {
+  id: string
+  title: string
+  message: string
+  severity: 'critical' | 'warning' | 'info' | 'success'
+  type: 'bottleneck' | 'approval' | 'crisis' | 'workflow' | 'policy' | 'system'
+  timestamp: number
+  read: boolean
+  actionRoute?: string
+  actionLabel?: string
 }
 
 // Sidebar conversation thread — types live here (not in Sidebar.tsx) because the
@@ -223,6 +235,12 @@ export interface AppState {
   pushPolicyDecision: (d: PolicyDecision) => void
   pushToast: (t: Omit<Toast, 'id'>) => void
   dismissToast: (id: string) => void
+  notifications: AppNotification[]
+  addNotification: (n: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => void
+  markNotificationAsRead: (id: string) => void
+  markAllNotificationsAsRead: () => void
+  clearNotifications: () => void
+  dismissNotification: (id: string) => void
   approveGate: () => void
   rejectGate: () => void
   focusApproval: (approvalId: string) => void
@@ -437,6 +455,7 @@ export const useStore = create<AppState>((set, get) => {
     executionMode: 'assisted',
     policyDecisions: [],
     toasts: [],
+    notifications: [],
     agentOverrides: {},
     selectedSubagentsByAgent: {},
     selectedTasksBySubagent: {},
@@ -1109,6 +1128,51 @@ export const useStore = create<AppState>((set, get) => {
     },
     dismissToast(id) {
       set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) }))
+    },
+
+    addNotification(n) {
+      const id = `notif-${Date.now()}-${Math.round(Math.random() * 1e6)}`
+      const notif: AppNotification = {
+        ...n,
+        id,
+        timestamp: Date.now(),
+        read: false,
+      }
+      set((s) => {
+        const exists = s.notifications.some(
+          (existing) => existing.title === n.title && existing.message === n.message && Date.now() - existing.timestamp < 30000
+        )
+        if (exists) return s
+        return {
+          notifications: [notif, ...s.notifications.slice(0, 49)],
+        }
+      })
+      if (n.severity === 'critical' || n.severity === 'warning') {
+        get().pushToast({
+          severity: n.severity,
+          title: n.title,
+          message: n.message,
+          sticky: n.severity === 'critical',
+        })
+      }
+    },
+    markNotificationAsRead(id) {
+      set((s) => ({
+        notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      }))
+    },
+    markAllNotificationsAsRead() {
+      set((s) => ({
+        notifications: s.notifications.map((n) => ({ ...n, read: true })),
+      }))
+    },
+    clearNotifications() {
+      set({ notifications: [] })
+    },
+    dismissNotification(id) {
+      set((s) => ({
+        notifications: s.notifications.filter((n) => n.id !== id),
+      }))
     },
     saveAgentOverride(nodeId, overrides) {
       set((s) => ({ agentOverrides: { ...s.agentOverrides, [nodeId]: overrides } }))

@@ -19,6 +19,8 @@ import { EmergencyCommandView } from '../ops/EmergencyCommandView'
 import { ReportsView } from '../ops/ReportsView'
 import { SettingsView } from '../ops/SettingsView'
 import { TopBar } from '../TopBar'
+import { Toaster } from '../execution/Toaster'
+import { useNotificationPipeline } from '../../hooks/useNotificationPipeline'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 
 
@@ -203,6 +205,9 @@ export function CuraFlowShell() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Automated notification pipeline hook
+  useNotificationPipeline(hospitalState)
+
   const fetchSidebarData = useCallback(async () => {
     try {
       const [s, b, r] = await Promise.all([
@@ -270,6 +275,9 @@ export function CuraFlowShell() {
           {renderView()}
         </main>
       </div>
+
+      {/* Global transient notification popups */}
+      <Toaster />
     </div>
   )
 }

@@ -22,7 +22,25 @@ export function AuthScreen({ onAuth }: Props) {
   const [signupPassword, setSignupPassword] = useState('')
   const [signupConfirm, setSignupConfirm] = useState('')
   const [signupOrgId, setSignupOrgId] = useState('')
-  const [signupRole, setSignupRole] = useState<'doctor' | 'approver' | 'admin'>('doctor')
+  const [signupRole, setSignupRole] = useState<'doctor' | 'nurse' | 'er_coordinator' | 'ot_manager' | 'approver' | 'admin'>('doctor')
+
+  // Quick Demo Login helper
+  async function fillAndLogin(u: string, p: string) {
+    setLoginUsername(u)
+    setLoginPassword(p)
+    setError('')
+    setNotice('')
+    setLoading(true)
+    try {
+      const res = await loginUser(u, p)
+      setToken(res.token)
+      onAuth(res.user)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Org picker (multi-tenancy): the hospital this account belongs to.
   const [orgs, setOrgs] = useState<PublicOrg[]>([])
@@ -146,43 +164,127 @@ export function AuthScreen({ onAuth }: Props) {
           )}
 
           {tab === 'login' ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className={labelCls}>Username</label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  autoComplete="username"
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  placeholder="Enter username"
-                  className={inputCls}
-                />
+            <div className="space-y-4">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className={labelCls}>Username</label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    autoComplete="username"
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    placeholder="Enter username"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Password</label>
+                  <input
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="Enter password"
+                    className={inputCls}
+                  />
+                </div>
+                {error && <p className="text-xs font-medium" style={{ color: '#dc2626' }}>{error}</p>}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm transition-opacity hover:opacity-90"
+                  style={{ background: '#1e3a6e' }}
+                >
+                  {loading && <Loader2 size={14} className="animate-spin" />}
+                  Sign in
+                </button>
+              </form>
+
+              {/* Quick Persona Demo Logins */}
+              <div className="pt-3 border-t" style={{ borderColor: '#eee6da' }}>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
+                  <span>Quick Demo Logins</span>
+                  <span className="text-[10px] font-normal text-slate-400">1-click sign in</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => fillAndLogin('admin', 'admin')}
+                    disabled={loading}
+                    className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
+                    style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}
+                  >
+                    <div className="font-bold text-slate-800 flex items-center gap-1">
+                      <span>👑</span> Admin
+                    </div>
+                    <div className="text-[10px] text-slate-400">Director</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fillAndLogin('doctor', 'doctor')}
+                    disabled={loading}
+                    className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
+                    style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}
+                  >
+                    <div className="font-bold text-slate-800 flex items-center gap-1">
+                      <span>🩺</span> Doctor
+                    </div>
+                    <div className="text-[10px] text-slate-400">Chief MD</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fillAndLogin('nurse', 'nurse')}
+                    disabled={loading}
+                    className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
+                    style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}
+                  >
+                    <div className="font-bold text-slate-800 flex items-center gap-1">
+                      <span>👩‍⚕️</span> Nurse
+                    </div>
+                    <div className="text-[10px] text-slate-400">Charge Nurse</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fillAndLogin('er', 'er')}
+                    disabled={loading}
+                    className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
+                    style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}
+                  >
+                    <div className="font-bold text-slate-800 flex items-center gap-1">
+                      <span>🚨</span> ER Coord
+                    </div>
+                    <div className="text-[10px] text-slate-400">Emergency</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fillAndLogin('ot', 'ot')}
+                    disabled={loading}
+                    className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
+                    style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}
+                  >
+                    <div className="font-bold text-slate-800 flex items-center gap-1">
+                      <span>🏥</span> OT Mgr
+                    </div>
+                    <div className="text-[10px] text-slate-400">Surgical</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fillAndLogin('approver', 'approver')}
+                    disabled={loading}
+                    className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
+                    style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}
+                  >
+                    <div className="font-bold text-slate-800 flex items-center gap-1">
+                      <span>📋</span> Approver
+                    </div>
+                    <div className="text-[10px] text-slate-400">Clinical</div>
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className={labelCls}>Password</label>
-                <input
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className={inputCls}
-                />
-              </div>
-              {error && <p className="text-xs font-medium" style={{ color: '#dc2626' }}>{error}</p>}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{ background: '#1e3a6e' }}
-              >
-                {loading && <Loader2 size={14} className="animate-spin" />}
-                Sign in
-              </button>
-            </form>
+            </div>
           ) : (
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
@@ -203,12 +305,15 @@ export function AuthScreen({ onAuth }: Props) {
                 <label className={labelCls}>Role</label>
                 <select
                   value={signupRole}
-                  onChange={(e) => setSignupRole(e.target.value as 'doctor' | 'approver' | 'admin')}
+                  onChange={(e) => setSignupRole(e.target.value as any)}
                   className={inputCls}
                 >
                   <option value="doctor">Doctor</option>
-                  <option value="approver">Approver</option>
-                  <option value="admin">Admin</option>
+                  <option value="nurse">Nurse</option>
+                  <option value="er_coordinator">ER Coordinator</option>
+                  <option value="ot_manager">OT Manager</option>
+                  <option value="approver">Clinical Approver</option>
+                  <option value="admin">Administrator</option>
                 </select>
                 <p className="text-[10px] text-slate-500 mt-1">
                   Your account needs approval by {signupRole === 'admin' ? 'the platform admin' : "your organization's admin"} before you can sign in.

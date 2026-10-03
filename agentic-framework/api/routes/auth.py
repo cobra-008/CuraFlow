@@ -168,22 +168,160 @@ async def signup(body: SignupRequest):
     }
 
 
+# ── Pre-configured system demo accounts ─────────────────────────────────────────
+SYSTEM_DEMO_ACCOUNTS: dict[str, dict] = {
+    "admin": {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "username": "admin",
+        "display_name": "Super Admin (Hospital Director)",
+        "role": "super_admin",
+        "org_id": None,
+        "org_name": "System",
+        "passwords": {"admin", "admin123", "password"},
+    },
+    "doctor": {
+        "id": "6a44572b-a8f4-408d-ab78-d66a3096286c",
+        "username": "doctor",
+        "display_name": "Dr. Sarah Mitchell (Chief of Medicine)",
+        "role": "doctor",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"doctor", "doctor1", "password", "admin"},
+    },
+    "doctor1": {
+        "id": "6a44572b-a8f4-408d-ab78-d66a3096286c",
+        "username": "doctor1",
+        "display_name": "Dr. Smith (Cardiology)",
+        "role": "doctor",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"doctor1", "doctor", "password", "admin"},
+    },
+    "doctor2": {
+        "id": "3a84d557-50ab-4bbb-aef5-ef8b562bc348",
+        "username": "doctor2",
+        "display_name": "Dr. Jones (Orthopedics)",
+        "role": "doctor",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"doctor2", "doctor", "password", "admin"},
+    },
+    "doctor3": {
+        "id": "f99e387c-dc1b-4f5e-b1bb-01e5d7ad8afc",
+        "username": "doctor3",
+        "display_name": "Dr. Lee (Neurology)",
+        "role": "doctor",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"doctor3", "doctor", "password", "admin"},
+    },
+    "nurse": {
+        "id": "30c38f31-8a48-48ca-8312-fe402842a03b",
+        "username": "nurse",
+        "display_name": "Nurse Elena Rostova (Charge Nurse)",
+        "role": "nurse",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"nurse", "nurse1", "password", "admin"},
+    },
+    "nurse1": {
+        "id": "30c38f31-8a48-48ca-8312-fe402842a03b",
+        "username": "nurse1",
+        "display_name": "Nurse Joy (General Ward)",
+        "role": "nurse",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"nurse1", "nurse", "password", "admin"},
+    },
+    "nurse2": {
+        "id": "16d4ee2c-b886-45f1-9b25-f30666af36df",
+        "username": "nurse2",
+        "display_name": "Nurse Jackie (ICU)",
+        "role": "nurse",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"nurse2", "nurse", "password", "admin"},
+    },
+    "nurse3": {
+        "id": "1904b2c9-3116-4a89-81fe-ebe389ee2800",
+        "username": "nurse3",
+        "display_name": "Nurse Ratched (Emergency)",
+        "role": "nurse",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"nurse3", "nurse", "password", "admin"},
+    },
+    "er_coord": {
+        "id": "6a977299-fe12-4f77-af95-be972bf20a43",
+        "username": "er_coord",
+        "display_name": "Dr. David Kim (ER Coordinator)",
+        "role": "er_coordinator",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"er_coord", "er", "password", "admin"},
+    },
+    "er": {
+        "id": "6a977299-fe12-4f77-af95-be972bf20a43",
+        "username": "er",
+        "display_name": "Dr. David Kim (ER Coordinator)",
+        "role": "er_coordinator",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"er", "er_coord", "password", "admin"},
+    },
+    "ot_mgr": {
+        "id": "a2e59bee-8278-4a37-a63f-a617e7ca0228",
+        "username": "ot_mgr",
+        "display_name": "Dr. James Wilson (OT Manager)",
+        "role": "ot_manager",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"ot_mgr", "ot", "password", "admin"},
+    },
+    "ot": {
+        "id": "a2e59bee-8278-4a37-a63f-a617e7ca0228",
+        "username": "ot",
+        "display_name": "Dr. James Wilson (OT Manager)",
+        "role": "ot_manager",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"ot", "ot_mgr", "password", "admin"},
+    },
+    "approver": {
+        "id": "4b977299-fe12-4f77-af95-be972bf20a44",
+        "username": "approver",
+        "display_name": "Dr. Henderson (Clinical Approver)",
+        "role": "approver",
+        "org_id": "1e73ef22-2215-45d6-8de1-841ee0bdb286",
+        "org_name": "Central Hospital",
+        "passwords": {"approver", "password", "admin"},
+    },
+}
+
+
 @router.post("/auth/login")
 async def login(body: LoginRequest):
-    if body.username == "admin" and body.password == "admin":
-        user = {
-            "id": "00000000-0000-0000-0000-000000000000",
-            "username": "admin",
-            "display_name": "Mock Admin",
-            "role": "super_admin",
-            "org_id": None,
-            "status": "active"
-        }
-        token = _create_token(user)
-        logger.info("login  username=%s  role=%s (MOCKED)", user["username"], user["role"])
-        return _user_response(user, token, org_name="System")
-        
-    user = await hasura.get_user_by_username(body.username.strip().lower())
+    uname = body.username.strip().lower()
+    pwd = body.password.strip()
+
+    # 1. Check pre-configured system demo accounts (doctor, nurse, er, ot, approver, admin)
+    if uname in SYSTEM_DEMO_ACCOUNTS:
+        acc = SYSTEM_DEMO_ACCOUNTS[uname]
+        if pwd in acc["passwords"] or pwd == uname or pwd == "password":
+            user = {
+                "id": acc["id"],
+                "username": acc["username"],
+                "display_name": acc["display_name"],
+                "role": acc["role"],
+                "org_id": acc["org_id"],
+                "status": "active",
+            }
+            token = _create_token(user)
+            logger.info("login  username=%s  role=%s (SYSTEM_DEMO)", user["username"], user["role"])
+            return _user_response(user, token, org_name=acc.get("org_name", "Central Hospital"))
+
+    # 2. Database user check
+    user = await hasura.get_user_by_username(uname)
     if not user or not _verify_password(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 

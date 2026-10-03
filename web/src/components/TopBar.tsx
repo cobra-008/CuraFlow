@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, Bell, ChevronDown, LogOut, Settings, ShieldCheck } from 'lucide-react'
+import { Search, ChevronDown, LogOut, Settings, ShieldCheck } from 'lucide-react'
 import { useStore } from '../store'
 import { AdminPage } from './admin/AdminPage'
 import { OrgSwitcher } from './OrgSwitcher'
+import { NotificationDropdown } from './notifications/NotificationDropdown'
 
 export function TopBar() {
   const currentUser = useStore((s) => s.currentUser)
@@ -102,20 +103,8 @@ export function TopBar() {
         <div className="text-xs" style={{ color: '#9aa3b2' }}>{dateStr}</div>
       </div>
 
-      {/* Notification bell */}
-      <div className="relative">
-        <button
-          className="relative w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
-          style={{ background: '#f5f0e8', border: '1px solid #e0d5c0' }}
-          title="Notifications"
-        >
-          <Bell size={16} style={{ color: '#1a2744' }} />
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center font-bold"
-            style={{ fontSize: '9px' }}>
-            3
-          </span>
-        </button>
-      </div>
+      {/* Notification Center */}
+      <NotificationDropdown />
 
       {/* User profile */}
       <div className="relative" ref={menuRef}>
