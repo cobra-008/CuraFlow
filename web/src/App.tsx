@@ -122,8 +122,14 @@ export default function App() {
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080d14]">
-        <Loader2 size={24} className="animate-spin text-blue-500" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#f5f0e8' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#1e3a6e' }}>
+            <span className="text-white font-bold text-lg">CF</span>
+          </div>
+          <Loader2 size={20} className="animate-spin" style={{ color: '#1e3a6e' }} />
+          <div className="text-sm" style={{ color: '#9aa3b2' }}>Loading CuraFlow…</div>
+        </div>
       </div>
     )
   }

@@ -34,27 +34,27 @@ function MetricCompare({
   const isImprovement = improvement > 0
 
   return (
-    <div className="border border-slate-800 rounded-sm p-3">
-      <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">{label}</div>
+    <div className="border border-warm-200 rounded-sm p-3">
+      <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">{label}</div>
       <div className="flex items-end gap-4">
         <div className="flex-1">
-          <div className="text-[9px] text-slate-600 mb-0.5">Without CuraFlow</div>
-          <div className="font-mono text-lg font-bold text-slate-400">{without}<span className="text-xs font-normal text-slate-600 ml-0.5">{unit}</span></div>
-          <div className="h-1 bg-slate-700 rounded-sm mt-1" />
+          <div className="text-[9px] text-gray-400 mb-0.5">Without CuraFlow</div>
+          <div className="font-mono text-lg font-bold text-gray-500">{without}<span className="text-xs font-normal text-gray-400 ml-0.5">{unit}</span></div>
+          <div className="h-1 bg-warm-200 rounded-sm mt-1" />
         </div>
         <div className="flex-1">
           <div className="text-[9px] text-emerald-600 mb-0.5">With CuraFlow</div>
-          <div className="font-mono text-lg font-bold text-emerald-400">{with_cf}<span className="text-xs font-normal text-slate-600 ml-0.5">{unit}</span></div>
+          <div className="font-mono text-lg font-bold text-emerald-600">{with_cf}<span className="text-xs font-normal text-gray-400 ml-0.5">{unit}</span></div>
           <div
             className="h-1 bg-emerald-700 rounded-sm mt-1"
             style={{ width: `${Math.min(100, (with_cf / without) * 100)}%` }}
           />
         </div>
         <div className="text-right">
-          <div className={`font-mono text-sm font-bold ${isImprovement ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className={`font-mono text-sm font-bold ${isImprovement ? 'text-emerald-600' : 'text-red-600'}`}>
             {isImprovement ? '↓' : '↑'}{pct}%
           </div>
-          <div className="text-[9px] text-slate-600">{isImprovement ? 'better' : 'worse'}</div>
+          <div className="text-[9px] text-gray-400">{isImprovement ? 'better' : 'worse'}</div>
         </div>
       </div>
     </div>
@@ -94,8 +94,8 @@ export function SimulationView() {
     <div className="p-4 flex flex-col gap-4" style={{ fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-slate-200">Digital Twin Simulation</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h2 className="text-sm font-semibold text-navy-800">Digital Twin Simulation</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
             Compare hospital performance with and without CuraFlow orchestration.
           </p>
         </div>
@@ -107,11 +107,11 @@ export function SimulationView() {
       </div>
 
       {/* Configuration */}
-      <div className="border border-slate-800 bg-[#0a0e1a] rounded-sm p-4">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Scenario Configuration</div>
+      <div className="border border-warm-200 bg-white rounded-sm p-4">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Scenario Configuration</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-[10px] text-slate-500 uppercase tracking-wider block mb-2">Scenario</label>
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-2">Scenario</label>
             <div className="flex flex-col gap-1.5">
               {SCENARIOS.map(s => (
                 <button
@@ -119,19 +119,19 @@ export function SimulationView() {
                   onClick={() => setScenario(s.id)}
                   className={`text-left px-3 py-2 border rounded-sm text-xs transition-colors ${
                     scenario === s.id
-                      ? 'border-blue-600 bg-blue-900/20 text-slate-200'
-                      : 'border-slate-800 text-slate-500 hover:border-slate-700 hover:text-slate-400'
+                      ? 'border-blue-600 bg-blue-900/20 text-navy-800'
+                      : 'border-warm-200 text-gray-400 hover:border-warm-300 hover:text-gray-500'
                   }`}
                 >
                   <div className="font-semibold">{s.name}</div>
-                  <div className="text-[10px] mt-0.5 text-slate-600">{s.description}</div>
+                  <div className="text-[10px] mt-0.5 text-gray-400">{s.description}</div>
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] text-slate-500 uppercase tracking-wider block mb-2">Time Multiplier</label>
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-2">Time Multiplier</label>
             <div className="flex gap-2 flex-wrap">
               {TIME_MULTIPLIERS.map(t => (
                 <button
@@ -139,8 +139,8 @@ export function SimulationView() {
                   onClick={() => setTimeMultiplier(t)}
                   className={`px-3 py-1.5 text-xs font-mono border rounded-sm transition-colors ${
                     timeMultiplier === t
-                      ? 'border-blue-600 bg-blue-900/20 text-blue-300'
-                      : 'border-slate-800 text-slate-500 hover:border-slate-700'
+                      ? 'border-blue-600 bg-blue-900/20 text-blue-700'
+                      : 'border-warm-200 text-gray-400 hover:border-warm-300'
                   }`}
                 >
                   {t}×
@@ -152,7 +152,7 @@ export function SimulationView() {
               <button
                 onClick={runSim}
                 disabled={running}
-                className="w-full py-2.5 text-sm font-semibold uppercase tracking-wider bg-blue-900/30 text-blue-300 border border-blue-700/50 rounded-sm hover:bg-blue-900/50 transition-colors disabled:opacity-50"
+                className="w-full py-2.5 text-sm font-semibold uppercase tracking-wider bg-blue-900/30 text-blue-700 border border-blue-200 rounded-sm hover:bg-blue-900/50 transition-colors disabled:opacity-50"
               >
                 {running ? 'Running simulation…' : 'Run Simulation'}
               </button>
@@ -164,7 +164,7 @@ export function SimulationView() {
       {/* Results */}
       {metrics && (
         <div className="flex flex-col gap-3">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
             Simulation Results — {SCENARIOS.find(s => s.id === scenario)?.name ?? scenario}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
@@ -220,7 +220,7 @@ export function SimulationView() {
             />
           </div>
           {result?._note && (
-            <div className="text-[9px] font-mono text-slate-700 text-center">
+            <div className="text-[9px] font-mono text-gray-300 text-center">
               {result._note}
             </div>
           )}

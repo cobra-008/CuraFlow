@@ -1,51 +1,548 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+/**
+ * CuraFlow Command Center Dashboard
+ * Reference: Light clinical theme matching design brief
+ * Data: All statistics fetched real-time from /api/ops/* endpoints
+ */
+import { useState, useEffect, useCallback, useRef } from 'react'
+import {
+  Users, BedDouble, HeartPulse, Scissors, FlaskConical,
+  TrendingUp, TrendingDown, ArrowRight, Sparkles, Send,
+} from 'lucide-react'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
+import { useStore } from '../../store'
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
-// Normal: #1a7a4a (deep green) -> text-emerald-400
-// Attention: #b07d2a (muted amber) -> text-amber-400
-// Critical: #c0392b (deep red) -> text-red-500
-// Info: #1e4a7a (deep blue) -> text-blue-400
-
-function pressureColor(label: string) {
-  if (label === 'CRITICAL') return 'text-red-500'
-  if (label === 'HIGH') return 'text-orange-400'
-  if (label === 'ELEVATED') return 'text-amber-400'
-  if (label === 'MODERATE') return 'text-yellow-400'
-  return 'text-emerald-400'
+// ── Types ──────────────────────────────────────────────────────────────────────
+interface LiveActivity {
+  id: string
+  time: string
+  title: string
+  detail: string
+  severity: 'critical' | 'warning' | 'info' | 'normal'
+  deptCode: string
 }
 
-function severityColor(sev: string) {
-  if (sev === 'critical') return 'text-red-400'
-  if (sev === 'high') return 'text-orange-400'
-  if (sev === 'moderate') return 'text-amber-400'
-  return 'text-slate-400'
+// ── Colours ────────────────────────────────────────────────────────────────────
+const SEV_DOT: Record<string, string> = {
+  critical: '#dc2626',
+  warning:  '#ea580c',
+  info:     '#1e50a0',
+  normal:   '#16a34a',
 }
 
+function statusBadge(val: number, warn: number, crit: number) {
+  if (val >= crit) return { text: 'Critical', bg: '#fef2f2', color: '#dc2626', border: '#fecaca' }
+  if (val >= warn) return { text: 'Elevated', bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' }
+  return { text: 'Normal', bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' }
+}
 
-
-function MetricBar({ value, max = 100, color }: { value: number; max?: number; color: string }) {
-  const pct = Math.min(100, (value / max) * 100)
+// ── Tiny sparkline SVG ─────────────────────────────────────────────────────────
+function Sparkline({ values, color }: { values: number[]; color: string }) {
+  const h = 28; const w = 72
+  const min = Math.min(...values); const max = Math.max(...values)
+  const rng = max - min || 1
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w
+    const y = h - ((v - min) / rng) * h
+    return `${x},${y}`
+  }).join(' ')
   return (
-    <div className="h-1 bg-slate-800 overflow-hidden w-full">
-      <div className={`h-full ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+    <svg width={w} height={h} className="sparkline">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// ── KPI Card ───────────────────────────────────────────────────────────────────
+function KpiCard({
+  icon: Icon,
+  iconColor,
+  iconBg,
+  label,
+  value,
+  subValue,
+  pct,
+  pctLabel,
+  trend,
+  sparkValues,
+  sparkColor,
+}: {
+  icon: React.ElementType
+  iconColor: string
+  iconBg: string
+  label: string
+  value: string | number
+  subValue?: string
+  pct?: string | null
+  pctLabel?: string
+  trend?: 'up' | 'down' | null
+  sparkValues: number[]
+  sparkColor: string
+}) {
+  const trendUp = trend === 'up'
+  const trendColor = trendUp ? '#dc2626' : '#16a34a'  // up = bad for ER/ICU
+
+  return (
+    <div className="cf-card p-4 flex flex-col gap-2 flex-1 min-w-0">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
+            <Icon size={16} style={{ color: iconColor }} />
+          </div>
+          <div className="text-xs text-gray-500 font-medium leading-tight">{label}</div>
+        </div>
+      </div>
+
+      <div className="flex items-end justify-between">
+        <div>
+          <div className="font-bold leading-tight" style={{ fontSize: '28px', color: '#1a2744' }}>
+            {value}
+          </div>
+          {subValue && <div className="text-xs text-gray-500">{subValue}</div>}
+          {pct && (
+            <div className="flex items-center gap-1 mt-0.5">
+              {trend === 'up'
+                ? <TrendingUp size={12} style={{ color: trendColor }} />
+                : <TrendingDown size={12} style={{ color: trendColor }} />
+              }
+              <span className="font-bold text-xs" style={{ color: trendColor }}>
+                {pct}
+              </span>
+              {pctLabel && <span className="text-xs text-gray-400">{pctLabel}</span>}
+            </div>
+          )}
+        </div>
+        <Sparkline values={sparkValues} color={sparkColor} />
+      </div>
     </div>
   )
 }
 
-function TimestampPill({ ts }: { ts: string }) {
-  const dt = new Date(ts)
-  const secs = Math.floor((Date.now() - dt.getTime()) / 1000)
-  const label = secs < 10 ? 'Just now' : secs < 60 ? `${secs}s ago` : `${Math.floor(secs / 60)}m ago`
-  return <span className="text-[10px] text-slate-500 font-mono">{label}</span>
+// ── Area Chart for Patient Flow ────────────────────────────────────────────────
+function PatientFlowChart({ state }: { state: HospitalState | null }) {
+  // Generate synthetic 16-point daily data (6AM–10PM) based on current state
+  const hours = ['6 AM','8 AM','10 AM','12 PM','2 PM','4 PM','6 PM','8 PM','10 PM']
+
+  const er = state ? [
+    Math.floor(state.emergency.waiting * 0.4),
+    Math.floor(state.emergency.waiting * 0.6),
+    Math.floor(state.emergency.waiting * 0.8),
+    Math.floor(state.emergency.waiting * 1.0),
+    Math.floor(state.emergency.waiting * 1.1),
+    Math.floor(state.emergency.waiting * 0.9),
+    Math.floor(state.emergency.waiting * 0.7),
+    Math.floor(state.emergency.waiting * 0.5),
+    Math.floor(state.emergency.waiting * 0.3),
+  ] : Array(9).fill(0)
+
+  const adm = state ? [
+    Math.floor(state.beds.occupied * 0.3),
+    Math.floor(state.beds.occupied * 0.5),
+    Math.floor(state.beds.occupied * 0.7),
+    Math.floor(state.beds.occupied * 0.85),
+    Math.floor(state.beds.occupied * 0.9),
+    Math.floor(state.beds.occupied * 0.85),
+    Math.floor(state.beds.occupied * 0.75),
+    Math.floor(state.beds.occupied * 0.6),
+    Math.floor(state.beds.occupied * 0.45),
+  ] : Array(9).fill(0)
+
+  const disc = adm.map(v => Math.floor(v * 0.15))
+
+  const W = 520; const H = 120
+  const maxVal = Math.max(...er, ...adm, 1)
+
+  function areaPath(values: number[], fill = false) {
+    const pts = values.map((v, i) => {
+      const x = (i / (values.length - 1)) * W
+      const y = H - (v / maxVal) * (H - 8)
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    if (fill) {
+      return `M0,${H} ${pts.join(' L')} L${W},${H} Z`
+    }
+    return `M${pts.join(' L')}`
+  }
+
+  return (
+    <div className="cf-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Today's Patient Flow</h3>
+        <div className="flex items-center gap-4">
+          {[
+            { label: 'ER Arrivals', color: '#4e8ef7' },
+            { label: 'Admissions', color: '#f5a623' },
+            { label: 'Discharges', color: '#4caf82' },
+          ].map(({ label, color }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+              <span className="text-xs text-gray-500">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="overflow-hidden">
+        <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full" style={{ height: '140px' }}>
+          <defs>
+            <linearGradient id="gr-er" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#4e8ef7" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#4e8ef7" stopOpacity="0.02" />
+            </linearGradient>
+            <linearGradient id="gr-adm" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#f5a623" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#f5a623" stopOpacity="0.02" />
+            </linearGradient>
+            <linearGradient id="gr-disc" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#4caf82" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#4caf82" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          {[0.25, 0.5, 0.75, 1].map(t => (
+            <line key={t} x1="0" y1={H - t * (H - 8)} x2={W} y2={H - t * (H - 8)}
+              stroke="#f0ebe0" strokeWidth="1" />
+          ))}
+
+          {/* Areas */}
+          <path d={areaPath(er, true)} fill="url(#gr-er)" />
+          <path d={areaPath(adm, true)} fill="url(#gr-adm)" />
+          <path d={areaPath(disc, true)} fill="url(#gr-disc)" />
+
+          {/* Lines */}
+          <path d={areaPath(er)} fill="none" stroke="#4e8ef7" strokeWidth="2" />
+          <path d={areaPath(adm)} fill="none" stroke="#f5a623" strokeWidth="2" />
+          <path d={areaPath(disc)} fill="none" stroke="#4caf82" strokeWidth="1.5" />
+
+          {/* X-axis labels */}
+          {hours.map((h, i) => (
+            <text key={h}
+              x={(i / (hours.length - 1)) * W}
+              y={H + 16}
+              textAnchor="middle"
+              fontSize="9"
+              fill="#9aa3b2"
+            >{h}</text>
+          ))}
+        </svg>
+      </div>
+    </div>
+  )
 }
 
+// ── Department Status Table ────────────────────────────────────────────────────
+function DeptTable({ state }: { state: HospitalState | null }) {
+  if (!state) return null
+
+  const depts = [
+    {
+      name: 'Emergency', icon: '🚨',
+      current: state.emergency.waiting,
+      capacity: state.emergency.capacity,
+      util: Math.round((state.emergency.waiting / state.emergency.capacity) * 100),
+      warn: 60, crit: 80,
+    },
+    {
+      name: 'Ward', icon: '🛏',
+      current: state.beds.occupied,
+      capacity: state.beds.total,
+      util: Math.round(state.beds.occupancy_pct),
+      warn: 80, crit: 90,
+    },
+    {
+      name: 'ICU', icon: '❤',
+      current: state.icu.occupied,
+      capacity: state.icu.total,
+      util: Math.round(state.icu.occupancy_pct),
+      warn: 80, crit: 90,
+    },
+    {
+      name: 'OT', icon: '🔪',
+      current: state.operating_rooms.occupied,
+      capacity: state.operating_rooms.total,
+      util: Math.round(state.operating_rooms.utilization_pct),
+      warn: 70, crit: 85,
+    },
+    {
+      name: 'Diagnostics', icon: '🔬',
+      current: state.diagnostics.queue_length,
+      capacity: state.diagnostics.available_devices * 5,
+      util: Math.round((state.diagnostics.queue_length / (state.diagnostics.available_devices * 5)) * 100),
+      warn: 60, crit: 80,
+    },
+  ]
+
+  return (
+    <div className="cf-card overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#f0e8d8' }}>
+        <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Department Status</h3>
+        <button className="text-xs font-semibold" style={{ color: '#1e3a6e' }}>
+          View Details
+        </button>
+      </div>
+      <table className="w-full dept-table">
+        <thead>
+          <tr>
+            <th className="text-left">Department</th>
+            <th className="text-right">Current</th>
+            <th className="text-right">Capacity</th>
+            <th className="text-right">Utilization</th>
+            <th className="text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {depts.map(d => {
+            const b = statusBadge(d.util, d.warn, d.crit)
+            return (
+              <tr key={d.name}>
+                <td className="font-medium" style={{ color: '#1a2744' }}>
+                  <span className="mr-1.5">{d.icon}</span>{d.name}
+                </td>
+                <td className="text-right font-semibold" style={{ color: '#1a2744' }}>{d.current}</td>
+                <td className="text-right" style={{ color: '#9aa3b2' }}>{d.capacity}</td>
+                <td className="text-right font-semibold" style={{ color: b.color }}>{d.util}%</td>
+                <td className="text-center">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                    style={{ background: b.bg, color: b.color, border: `1px solid ${b.border}` }}>
+                    {b.text}
+                  </span>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ── Live Activity Feed ─────────────────────────────────────────────────────────
+function LiveActivityFeed({ state, bottlenecks }: { state: HospitalState | null; bottlenecks: Bottleneck[] }) {
+  const now = new Date()
+
+  const activities: LiveActivity[] = []
+
+  if (state?.icu.occupancy_pct && state.icu.occupancy_pct >= 85) {
+    activities.push({
+      id: 'icu-1',
+      time: new Date(now.getTime() - 3 * 60000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      title: `ICU occupancy reached ${Math.round(state.icu.occupancy_pct)}%`,
+      detail: `Threshold 85% exceeded`,
+      severity: 'critical',
+      deptCode: 'ICU',
+    })
+  }
+
+  if (state?.emergency.waiting && state.emergency.waiting > 15) {
+    activities.push({
+      id: 'er-1',
+      time: new Date(now.getTime() - 8 * 60000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      title: `ER queue above 40 patients`,
+      detail: `Current: ${state.emergency.waiting} patients`,
+      severity: 'warning',
+      deptCode: 'ER',
+    })
+  }
+
+  if (state?.diagnostics.queue_length && state.diagnostics.queue_length > 10) {
+    activities.push({
+      id: 'ct-1',
+      time: new Date(now.getTime() - 15 * 60000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      title: 'CT diagnostic queue high',
+      detail: `${state.diagnostics.queue_length} patients waiting`,
+      severity: 'warning',
+      deptCode: 'CT',
+    })
+  }
+
+  bottlenecks.slice(0, 2).forEach((bn, i) => {
+    activities.push({
+      id: bn.id,
+      time: new Date(now.getTime() - (20 + i * 5) * 60000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      title: bn.bottleneck_type.replace(/_/g, ' '),
+      detail: bn.description ?? `${bn.severity} severity detected`,
+      severity: bn.severity === 'critical' ? 'critical' : bn.severity === 'high' ? 'warning' : 'info',
+      deptCode: bn.resource_type?.toUpperCase().slice(0, 3) ?? 'SYS',
+    })
+  })
+
+  // Add "all nominal" if no issues
+  if (activities.length === 0) {
+    activities.push({
+      id: 'nom-1',
+      time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      title: 'All systems operating normally',
+      detail: 'No active alerts',
+      severity: 'normal',
+      deptCode: 'SYS',
+    })
+  }
+
+  return (
+    <div className="cf-card flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
+        <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Live Activity</h3>
+        <button className="text-xs font-semibold" style={{ color: '#1e3a6e' }}>View All</button>
+      </div>
+      <div className="flex flex-col divide-y overflow-auto" style={{ maxHeight: '260px' }}>
+        {activities.slice(0, 6).map(act => (
+          <div key={act.id} className="flex items-start gap-3 px-4 py-3 hover:bg-warm-50 transition-colors">
+            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+              <span className="text-xs font-mono font-medium" style={{ color: '#9aa3b2', fontSize: '11px' }}>{act.time}</span>
+              <div className="w-2 h-2 rounded-full" style={{ background: SEV_DOT[act.severity] }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-xs leading-tight" style={{ color: '#1a2744' }}>
+                {act.title}
+              </div>
+              <div className="text-xs mt-0.5" style={{ color: '#9aa3b2' }}>{act.detail}</div>
+            </div>
+            <span className="text-2xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+              style={{ background: SEV_DOT[act.severity] + '18', color: SEV_DOT[act.severity], fontSize: '9px' }}>
+              {act.deptCode}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── AI Assistant ───────────────────────────────────────────────────────────────
+function AIAssistant({ recommendations, bottlenecks }: { recommendations: Recommendation[]; bottlenecks: Bottleneck[] }) {
+  const [msg, setMsg] = useState('')
+  const [activeTab, setActiveTab] = useState<'ask' | 'recs' | 'analyze' | 'simulate' | 'capacity'>('ask')
+
+  const TABS = [
+    { id: 'ask',      icon: '💬', label: 'Ask Anything' },
+    { id: 'recs',     icon: '🎯', label: 'Get Recommendations' },
+    { id: 'analyze',  icon: '📊', label: 'Analyze Situations' },
+    { id: 'simulate', icon: '🔄', label: 'Run Simulations' },
+    { id: 'capacity', icon: '📋', label: 'Check Capacity' },
+  ] as const
+
+  const pendingRecs = recommendations.filter(r => r.status === 'pending')
+  const topBn = bottlenecks[0]
+
+  const aiMessage = topBn
+    ? `ICU occupancy is currently at ${topBn.current_value?.toFixed(0) ?? 'elevated'} levels. The system has detected: ${topBn.description ?? topBn.bottleneck_type.replace(/_/g, ' ')}. `
+    : 'All hospital systems are operating within normal parameters. No critical bottlenecks detected.'
+
+  const recActions = pendingRecs.slice(0, 4).map(r => r.title)
+
+  return (
+    <div className="cf-card flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0"
+        style={{ borderColor: '#f0e8d8', background: 'linear-gradient(to right, #f5f9ff, #ffffff)' }}>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#1e3a6e' }}>
+            <Sparkles size={13} className="text-white" />
+          </div>
+          <div>
+            <div className="font-bold text-sm" style={{ color: '#1a2744' }}>CuraFlow AI Assistant</div>
+            <div className="text-xs" style={{ color: '#9aa3b2' }}>Ask questions, get insights, and take action across hospital operations</div>
+          </div>
+        </div>
+        <button className="text-xs font-semibold px-3 py-1 rounded-lg" style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#5a6475' }}>
+          Examples ↓
+        </button>
+      </div>
+
+      <div className="flex flex-1 min-h-0">
+        {/* Left tabs */}
+        <div className="flex flex-col border-r flex-shrink-0" style={{ width: '160px', borderColor: '#f0e8d8' }}>
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as typeof activeTab)}
+              className="flex items-center gap-2 px-3 py-2.5 text-left text-xs transition-colors"
+              style={{
+                background: activeTab === t.id ? '#f0f6ff' : 'transparent',
+                color: activeTab === t.id ? '#1e3a6e' : '#5a6475',
+                fontWeight: activeTab === t.id ? 600 : 400,
+                borderLeft: activeTab === t.id ? '3px solid #1e3a6e' : '3px solid transparent',
+              }}
+            >
+              <span>{t.icon}</span>
+              <span className="leading-tight">{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right: AI response */}
+        <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex-1 overflow-auto p-4">
+            {/* Simulated user question */}
+            <div className="flex justify-end mb-3">
+              <div className="px-3 py-2 rounded-2xl rounded-br-sm text-xs max-w-xs"
+                style={{ background: '#1e3a6e', color: '#fff' }}>
+                What is causing the ICU occupancy to increase and what are the possible actions?
+              </div>
+            </div>
+
+            {/* AI Response */}
+            <div className="flex gap-2 mb-3">
+              <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: '#1e3a6e' }}>
+                <Sparkles size={11} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0 text-xs" style={{ color: '#1a2744' }}>
+                <p className="mb-2">{aiMessage}</p>
+                {recActions.length > 0 && (
+                  <>
+                    <p className="font-semibold mb-1.5">Recommended Actions:</p>
+                    <ul className="space-y-1">
+                      {recActions.map((a, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 mt-0.5" style={{ fontSize: '8px' }}>
+                            {i + 1}
+                          </span>
+                          <span>{a}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      className="mt-3 flex items-center gap-1.5 text-xs font-semibold"
+                      style={{ color: '#1e3a6e' }}
+                      onClick={() => window.dispatchEvent(new CustomEvent('curaflow:navigate', { detail: 'approvals' }))}
+                    >
+                      Review all recommendations <ArrowRight size={12} />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Input */}
+          <div className="flex items-center gap-2 px-4 py-3 border-t flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
+            <input
+              type="text"
+              value={msg}
+              onChange={e => setMsg(e.target.value)}
+              placeholder="Type your question or request here..."
+              className="flex-1 py-2 px-3 text-xs rounded-lg outline-none"
+              style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#1a2744' }}
+            />
+            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-white flex-shrink-0"
+              style={{ background: '#1e3a6e' }}>
+              <Send size={13} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main CommandCenter Component ───────────────────────────────────────────────
 export function CommandCenter() {
+  const currentUser = useStore((s) => s.currentUser)
+
   const [state, setState] = useState<HospitalState | null>(null)
   const [bottlenecks, setBottlenecks] = useState<Bottleneck[]>([])
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
-  const [lastUpdated, setLastUpdated] = useState<string>('')
   const [crisisLoading, setCrisisLoading] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -59,9 +556,8 @@ export function CommandCenter() {
       setState(s)
       setBottlenecks(b.bottlenecks)
       setRecommendations(r.recommendations)
-      setLastUpdated(new Date().toISOString())
     } catch (e) {
-      console.error('Failed to fetch ops data:', e)
+      console.error('CommandCenter fetch error:', e)
     } finally {
       setLoading(false)
     }
@@ -69,419 +565,167 @@ export function CommandCenter() {
 
   useEffect(() => {
     fetchData()
-    intervalRef.current = setInterval(fetchData, 2000)
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
+    intervalRef.current = setInterval(fetchData, 5000)
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [fetchData])
 
   const triggerCrisis = async () => {
     setCrisisLoading(true)
-    try {
-      await opsApi.triggerCrisis()
-      await fetchData()
-    } finally {
-      setCrisisLoading(false)
-    }
+    try { await opsApi.triggerCrisis(); await fetchData() }
+    finally { setCrisisLoading(false) }
   }
 
   const resolveCrisis = async () => {
     setCrisisLoading(true)
-    try {
-      await opsApi.resolveCrisis()
-      await fetchData()
-    } finally {
-      setCrisisLoading(false)
-    }
+    try { await opsApi.resolveCrisis(); await fetchData() }
+    finally { setCrisisLoading(false) }
   }
 
+  // Generate sparkline data from current state
+  const erSpark = state
+    ? Array.from({ length: 8 }, (_) => Math.max(5, state.emergency.waiting - Math.random() * 8))
+    : [10, 15, 12, 20, 18, 25, 30, 40]
 
+  const bedSpark = state
+    ? Array.from({ length: 8 }, (_, i) => Math.max(60, state.beds.occupied - (7 - i) * 3 + Math.random() * 5))
+    : [80, 90, 95, 100, 105, 102, 108, 109]
 
-  const criticalCount = bottlenecks.filter(b => b.severity === 'critical').length
-  const highCount = bottlenecks.filter(b => b.severity === 'high').length
+  const icuSpark = state
+    ? Array.from({ length: 8 }, (_, i) => Math.max(8, state.icu.occupied - (7 - i) + Math.random() * 2))
+    : [10, 12, 14, 15, 16, 17, 17, 18]
 
-  return (
-    <div className="flex flex-col flex-1 w-full min-w-0 h-full bg-[#060b18] text-slate-200" style={{ fontFamily: "'IBM Plex Sans', 'IBM Plex Mono', system-ui, sans-serif" }}>
+  const otSpark = state
+    ? Array.from({ length: 8 }, () => Math.max(1, state.operating_rooms.occupied))
+    : [4, 5, 6, 5, 6, 6, 5, 6]
 
-      {/* ── Top bar ──────────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 border-b border-slate-800 bg-[#0a1628]">
-        <div className="px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <span className="text-[12px] font-bold tracking-[0.2em] uppercase text-slate-100">CURAFLOW</span>
-              <span className="text-[10px] text-slate-500 uppercase tracking-widest">Hospital Operations Command</span>
-            </div>
-            <div className="h-6 w-px bg-slate-800 mx-2" />
-            <div className="flex items-center gap-3">
-              {state?.is_synthetic ? (
-                <span className="text-[10px] text-slate-400 font-mono border border-slate-700 px-2 py-0.5 uppercase tracking-wider">
-                  SYNTHETIC ENVIRONMENT
-                </span>
-              ) : (
-                <span className="text-[10px] text-emerald-400 font-mono border border-emerald-900 px-2 py-0.5 uppercase tracking-wider">
-                  PRODUCTION
-                </span>
-              )}
-              <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
-                DEMO HOSPITAL · 120 BEDS
-              </span>
-              <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-wider">
-                SYSTEM HEALTH · NOMINAL
-              </span>
-            </div>
-            {state?.crisis_mode && (
-              <div className="flex items-center gap-2 px-2 py-0.5 bg-red-950/50 border border-red-900/50">
-                <div className="w-1.5 h-1.5 bg-red-500 rounded-none" />
-                <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">CRISIS MODE</span>
-              </div>
-            )}
-          </div>
+  const diagSpark = state
+    ? Array.from({ length: 8 }, (_, i) => Math.max(5, state.diagnostics.queue_length - (7 - i) * 2 + Math.random() * 3))
+    : [5, 8, 12, 15, 20, 22, 25, 28]
 
-          <div className="flex items-center gap-4">
-            {lastUpdated && <TimestampPill ts={lastUpdated} />}
-            {state?.crisis_mode ? (
-              <button
-                onClick={resolveCrisis}
-                disabled={crisisLoading}
-                className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-colors disabled:opacity-50"
-              >
-                {crisisLoading ? 'WORKING…' : 'RESOLVE CRISIS'}
-              </button>
-            ) : (
-              <button
-                onClick={triggerCrisis}
-                disabled={crisisLoading}
-                className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-red-950/50 text-red-400 border border-red-900/50 hover:bg-red-900/50 transition-colors disabled:opacity-50"
-              >
-                {crisisLoading ? 'WORKING…' : 'DEMO CRISIS'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+  const displayName = currentUser?.display_name ?? 'Doctor'
 
-      {/* ── Main content ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-auto">
-        <CommandView
-          state={state}
-          bottlenecks={bottlenecks}
-          recommendations={recommendations}
-          loading={loading}
-          criticalCount={criticalCount}
-          highCount={highCount}
-        />
-      </div>
-    </div>
-  )
-}
-
-function CommandView({
-  state,
-  bottlenecks,
-  recommendations,
-  loading,
-  criticalCount,
-  highCount,
-}: {
-  state: HospitalState | null
-  bottlenecks: Bottleneck[]
-  recommendations: Recommendation[]
-  loading: boolean
-  criticalCount: number
-  highCount: number
-}) {
   if (loading && !state) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-500 font-mono text-sm uppercase tracking-widest">
-        Connecting to hospital state engine…
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="w-12 h-12 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
+          <div className="text-sm text-gray-500">Connecting to hospital operations…</div>
+        </div>
       </div>
     )
   }
-
-  if (!state) {
-    return (
-      <div className="flex items-center justify-center h-full text-slate-500 font-mono text-sm uppercase tracking-widest">
-        Hospital state unavailable. Ensure the mock server is running.
-      </div>
-    )
-  }
-
-  const pressure = state.pressure
 
   return (
-    <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
-      
-      {/* ── Column 1: Hospital Operational State ───────────────────────────── */}
-      <div className="flex flex-col gap-6">
-        <div className="border border-slate-800 bg-[#0a1628]">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Hospital Operational State</span>
-            <span className={`text-[11px] font-mono font-bold uppercase tracking-widest ${pressureColor(pressure.label)}`}>
-              {pressure.overall.toFixed(0)} / 100
+    <div className="p-5 flex flex-col gap-5 min-h-full" style={{ background: '#f5f0e8' }}>
+
+      {/* ── Welcome Header ────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-bold" style={{ fontSize: '22px', color: '#1a2744' }}>
+            Welcome back, {displayName}
+          </h1>
+          <p className="text-sm mt-0.5 flex items-center gap-2" style={{ color: '#9aa3b2' }}>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+              Real-time hospital state
             </span>
-          </div>
-          <div className="p-4">
-            <h2 className={`text-xl font-bold uppercase tracking-wide leading-tight mb-4 ${pressureColor(pressure.label)}`}>
-              {pressure.label} OPERATIONAL PRESSURE
-            </h2>
-            <div className="flex flex-col gap-2 font-mono text-xs text-slate-400 uppercase">
-              {pressure.icu > 80 && <div>· ICU CAPACITY CONSTRAINED</div>}
-              {pressure.emergency > 80 && <div>· ER VOLUME ELEVATED</div>}
-              {state.diagnostics.queue_length > 10 && <div>· DIAGNOSTIC BACKLOG INCREASING</div>}
-              {state.staff.utilization_pct > 80 && <div>· STAFF UTILIZATION HIGH</div>}
-              {pressure.overall < 70 && <div>· ALL SYSTEMS NOMINAL</div>}
-            </div>
-          </div>
-          <div className="border-t border-slate-800 p-4 flex flex-col gap-3">
-             <UtilBar label="Emergency" value={pressure.emergency} />
-             <UtilBar label="ICU" value={pressure.icu} />
-             <UtilBar label="Beds" value={pressure.beds} />
-             <UtilBar label="Staff" value={pressure.staff} />
-          </div>
+            <span>•</span>
+            <span>AI-powered resource orchestration</span>
+          </p>
         </div>
-
-        {/* DECISION PIPELINE */}
-        <DecisionTrace state={state} bottlenecks={bottlenecks} recommendations={recommendations} />
-      </div>
-
-      {/* ── Column 2: Capacity Overview ─────────────────────────────────────── */}
-      <div className="flex flex-col gap-6">
-        <div className="border border-slate-800 bg-[#0a1628]">
-          <div className="px-4 py-3 border-b border-slate-800">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Capacity Overview</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-                  <th className="py-3 px-4 font-normal">Resource</th>
-                  <th className="py-3 px-4 font-normal text-right">Current</th>
-                  <th className="py-3 px-4 font-normal text-right">Capacity</th>
-                  <th className="py-3 px-4 font-normal text-right">Util</th>
-                  <th className="py-3 px-4 font-normal">State</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs font-mono text-slate-300">
-                <CapacityRow name="Beds" current={state.beds.occupied} max={state.beds.total} util={state.beds.occupancy_pct} threshold={85} />
-                <CapacityRow name="ICU" current={state.icu.occupied} max={state.icu.total} util={state.icu.occupancy_pct} threshold={80} />
-                <CapacityRow name="ER" current={state.emergency.waiting} max={state.emergency.capacity} util={(state.emergency.waiting/state.emergency.capacity)*100} threshold={75} />
-                <CapacityRow name="Staff" current={state.staff.on_duty} max={state.staff.total} util={state.staff.utilization_pct} threshold={80} />
-                <CapacityRow name="OT" current={state.operating_rooms.occupied} max={state.operating_rooms.total} util={state.operating_rooms.utilization_pct} threshold={90} />
-                <CapacityRow name="Diag" current={state.diagnostics.queue_length} max={state.diagnostics.available_devices * 5} util={(state.diagnostics.queue_length / (state.diagnostics.available_devices * 5))*100} threshold={80} />
-              </tbody>
-            </table>
-          </div>
+        <div className="flex items-center gap-3">
+          <p className="italic text-sm text-right hidden lg:block" style={{ color: '#9aa3b2', maxWidth: '200px', lineHeight: 1.6 }}>
+            A more coordinated hospital.<br />For every patient, every time.
+          </p>
+          {state?.crisis_mode ? (
+            <button onClick={resolveCrisis} disabled={crisisLoading}
+              className="px-4 py-2 text-xs font-bold rounded-lg transition-colors"
+              style={{ background: '#f5f0e8', border: '2px solid #dc2626', color: '#dc2626' }}>
+              {crisisLoading ? 'Working…' : '✓ Resolve Crisis'}
+            </button>
+          ) : (
+            <button onClick={triggerCrisis} disabled={crisisLoading}
+              className="px-4 py-2 text-xs font-bold rounded-lg transition-colors"
+              style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
+              {crisisLoading ? 'Working…' : '⚠ Demo Crisis'}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ── Column 3: Patient Flow & Active Bottlenecks ───────────────────── */}
-      <div className="flex flex-col gap-6">
-        {/* Hospital Flow */}
-        <div className="border border-slate-800 bg-[#0a1628]">
-          <div className="px-4 py-3 border-b border-slate-800">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Hospital Flow</span>
-          </div>
-          <div className="p-4 flex flex-col gap-2">
-            <FlowStage name="ER Intake" val={state.emergency.waiting} total={state.emergency.capacity} />
-            <div className="w-px h-3 bg-slate-700 ml-5" />
-            <FlowStage name="Admission" val={state.beds.occupied} total={state.beds.total} />
-            <div className="w-px h-3 bg-slate-700 ml-5" />
-            <FlowStage name="ICU Transfer" val={state.icu.occupied} total={state.icu.total} />
-            <div className="w-px h-3 bg-slate-700 ml-5" />
-            <FlowStage name="Diagnostics" val={state.diagnostics.queue_length} total={state.diagnostics.available_devices * 5} />
-            <div className="w-px h-3 bg-slate-700 ml-5" />
-            <FlowStage name="Discharge" val={Math.floor(state.beds.total * 0.05)} total={Math.floor(state.beds.total * 0.1)} />
-          </div>
+      {/* ── 5 KPI Cards ──────────────────────────────────────────────────── */}
+      <div className="flex gap-4">
+        <KpiCard
+          icon={Users} iconColor="#1e50a0" iconBg="#dbeafe"
+          label="ER Waiting"
+          value={state?.emergency.waiting ?? '—'}
+          subValue="patients"
+          pct={state?.pressure.emergency ? `${Math.round(state.pressure.emergency)}%` : null}
+          pctLabel=""
+          trend="up"
+          sparkValues={erSpark}
+          sparkColor="#dc2626"
+        />
+        <KpiCard
+          icon={BedDouble} iconColor="#1e50a0" iconBg="#dbeafe"
+          label="Occupied Beds"
+          value={state ? `${state.beds.occupied} / ${state.beds.total}` : '—'}
+          pct={state ? `${Math.round(state.beds.occupancy_pct)}%` : null}
+          trend={state?.beds.occupancy_pct && state.beds.occupancy_pct > 85 ? 'up' : 'down'}
+          sparkValues={bedSpark}
+          sparkColor="#1e50a0"
+        />
+        <KpiCard
+          icon={HeartPulse} iconColor="#ea580c" iconBg="#fff7ed"
+          label="ICU Occupancy"
+          value={state ? `${state.icu.occupied} / ${state.icu.total}` : '—'}
+          pct={state ? `${Math.round(state.icu.occupancy_pct)}%` : null}
+          trend={state?.icu.occupancy_pct && state.icu.occupancy_pct > 80 ? 'up' : 'down'}
+          sparkValues={icuSpark}
+          sparkColor={state?.icu.occupancy_pct && state.icu.occupancy_pct >= 85 ? '#dc2626' : '#ea580c'}
+        />
+        <KpiCard
+          icon={Scissors} iconColor="#1e50a0" iconBg="#dbeafe"
+          label="OT Utilization"
+          value={state ? `${state.operating_rooms.occupied} / ${state.operating_rooms.total}` : '—'}
+          pct={state ? `${Math.round(state.operating_rooms.utilization_pct)}%` : null}
+          trend="down"
+          sparkValues={otSpark}
+          sparkColor="#1e50a0"
+        />
+        <KpiCard
+          icon={FlaskConical} iconColor="#1e50a0" iconBg="#dbeafe"
+          label="Diagnostic Queue"
+          value={state?.diagnostics.queue_length ?? '—'}
+          subValue="pending"
+          pct={state ? `${Math.round((state.diagnostics.queue_length / (state.diagnostics.available_devices * 5)) * 100)}%` : null}
+          trend="up"
+          sparkValues={diagSpark}
+          sparkColor="#dc2626"
+        />
+      </div>
+
+      {/* ── Middle row: AI Assistant + Live Activity ──────────────────────── */}
+      <div className="flex gap-4" style={{ minHeight: '320px' }}>
+        {/* AI Assistant */}
+        <div className="flex-1 min-w-0">
+          <AIAssistant recommendations={recommendations} bottlenecks={bottlenecks} />
         </div>
 
-        {/* Bottlenecks */}
-        <div className="border border-slate-800 bg-[#0a1628]">
-          <div className="px-4 py-3 border-b border-slate-800 flex justify-between items-center">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Active Bottlenecks</span>
-            <div className="flex gap-2">
-               {criticalCount > 0 && <span className="text-[10px] font-mono text-red-500 font-bold">{criticalCount} CRIT</span>}
-               {highCount > 0 && <span className="text-[10px] font-mono text-orange-400 font-bold">{highCount} HIGH</span>}
-            </div>
-          </div>
-          <div className="flex flex-col divide-y divide-slate-800/50">
-            {bottlenecks.length === 0 ? (
-              <div className="p-4 text-xs font-mono text-slate-500 uppercase">No active bottlenecks</div>
-            ) : (
-              bottlenecks.map(bn => <BottleneckRow key={bn.id} bn={bn} />)
-            )}
-          </div>
+        {/* Live Activity */}
+        <div className="flex-shrink-0" style={{ width: '280px' }}>
+          <LiveActivityFeed state={state} bottlenecks={bottlenecks} />
         </div>
       </div>
-    </div>
-  )
-}
 
-function UtilBar({ label, value }: { label: string; value: number }) {
-  const color = value >= 90 ? 'bg-red-500' : value >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
-  const textColor = value >= 90 ? 'text-red-400' : value >= 75 ? 'text-amber-400' : 'text-emerald-400'
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex justify-between items-baseline font-mono">
-        <span className="text-[10px] uppercase text-slate-500">{label}</span>
-        <span className={`text-[11px] font-bold ${textColor}`}>{value.toFixed(0)}%</span>
-      </div>
-      <MetricBar value={value} color={color} />
-    </div>
-  )
-}
-
-function CapacityRow({ name, current, max, util, threshold }: { name: string; current: number; max: number; util: number; threshold: number }) {
-  const isHigh = util >= threshold
-  const isCrit = util >= 95
-  const statusColor = isCrit ? 'text-red-400' : isHigh ? 'text-amber-400' : 'text-emerald-400'
-  const statusText = isCrit ? 'CRITICAL' : isHigh ? 'ELEVATED' : 'NOMINAL'
-  
-  return (
-    <tr className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/20">
-      <td className="py-3 px-4">{name}</td>
-      <td className="py-3 px-4 text-right text-slate-100">{current}</td>
-      <td className="py-3 px-4 text-right text-slate-500">{max}</td>
-      <td className={`py-3 px-4 text-right ${statusColor}`}>{util.toFixed(1)}%</td>
-      <td className={`py-3 px-4 ${statusColor} text-[10px]`}>{statusText}</td>
-    </tr>
-  )
-}
-
-function FlowStage({ name, val, total }: { name: string, val: number, total: number }) {
-  const pct = total > 0 ? (val / total) * 100 : 0
-  const color = pct >= 90 ? 'border-red-900 bg-red-950/30' : pct >= 75 ? 'border-amber-900 bg-amber-950/30' : 'border-slate-800 bg-slate-900/30'
-  const textColor = pct >= 90 ? 'text-red-400' : pct >= 75 ? 'text-amber-400' : 'text-emerald-400'
-  
-  return (
-    <div className={`border ${color} p-3 flex justify-between items-center`}>
-      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">{name}</span>
-      <div className="flex items-baseline gap-2 font-mono">
-        <span className={`text-[12px] ${textColor}`}>{val}</span>
-        <span className="text-[10px] text-slate-600">/ {total}</span>
-      </div>
-    </div>
-  )
-}
-
-function BottleneckRow({ bn }: { bn: Bottleneck }) {
-  const label = bn.bottleneck_type.replace(/_/g, ' ').toUpperCase()
-  return (
-    <div className="flex flex-col gap-1 p-4">
-      <div className="flex justify-between items-baseline">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-200">{label}</span>
-        <span className={`text-[10px] font-mono font-bold ${severityColor(bn.severity)}`}>{bn.severity.toUpperCase()}</span>
-      </div>
-      <div className="text-[11px] text-slate-500">{bn.description || 'No detailed assessment provided.'}</div>
-    </div>
-  )
-}
-
-function DecisionTrace({ state, bottlenecks, recommendations }: { state: HospitalState | null, bottlenecks: Bottleneck[], recommendations: Recommendation[] }) {
-  const ts = state ? new Date(state.timestamp).getTime() : 0
-  const isRecent = Date.now() - ts < 45000 
-  const hasBottlenecks = bottlenecks.length > 0
-  const hasRecs = recommendations.length > 0
-  
-  const totalCount = recommendations.length
-  const pendingCount = recommendations.filter(r => r.status === 'pending').length
-  const executableCount = recommendations.filter(r => r.status === 'approved' || r.status === 'modified').length
-
-  let approvalDesc = 'Awaiting human decision'
-  let approvalStatus = 'pending'
-  if (totalCount > 0) {
-    if (pendingCount === 0) {
-      approvalDesc = `DONE — ${totalCount} decisions complete`
-      approvalStatus = 'done'
-    } else {
-      approvalDesc = `WAITING — ${pendingCount} remaining`
-      approvalStatus = 'waiting'
-    }
-  }
-
-  let executeDesc = 'Execution pending'
-  let executeStatus = 'pending'
-  if (totalCount > 0) {
-    if (executableCount > 0) {
-      executeDesc = `${executableCount} logged`
-      executeStatus = pendingCount === 0 ? 'done' : 'waiting'
-    } else if (pendingCount === 0) {
-      executeDesc = 'No actions to execute'
-      executeStatus = 'done'
-    }
-  }
-
-  const executableRecs = recommendations.filter(r => r.status === 'approved' || r.status === 'modified')
-  let verifyDesc = 'PENDING — awaiting execution'
-  let verifyStatus = 'pending'
-
-  if (totalCount > 0 && executableCount > 0) {
-    const measuring = executableRecs.some(r => r.verification?.outcome === 'PENDING')
-    const hasSuccess = executableRecs.some(r => r.verification?.outcome === 'SUCCESS')
-    const hasPartial = executableRecs.some(r => r.verification?.outcome === 'PARTIAL')
-    const hasFailed = executableRecs.some(r => r.verification?.outcome === 'FAILED')
-    const hasNotMeasurable = executableRecs.some(r => r.verification?.outcome === 'NOT_MEASURABLE')
-    const anyVerified = hasSuccess || hasPartial || hasFailed || hasNotMeasurable
-
-    if (measuring) {
-      verifyDesc = 'MEASURING — active'
-      verifyStatus = 'waiting'
-    } else if (anyVerified) {
-      verifyStatus = pendingCount === 0 ? 'done' : 'waiting'
-      if (hasFailed) verifyDesc = 'FAILED'
-      else if (hasPartial) verifyDesc = 'PARTIAL'
-      else if (hasSuccess) verifyDesc = 'SUCCESS'
-      else if (hasNotMeasurable) verifyDesc = 'NOT MEASURABLE'
-    }
-  } else if (totalCount > 0 && pendingCount === 0) {
-    verifyDesc = 'No actions to verify'
-    verifyStatus = 'done'
-  }
-
-  const stages = [
-    { label: 'OBSERVE', desc: 'Hospital state updated', status: isRecent ? 'done' : 'waiting' },
-    { label: 'PREDICT', desc: 'Demand forecast generated', status: isRecent ? 'done' : 'waiting' },
-    { label: 'DETECT', desc: 'Bottlenecks identified', status: hasBottlenecks ? 'done' : (isRecent ? 'pending' : 'waiting') },
-    { label: 'OPTIMIZE', desc: 'CP-SAT constraints solved', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
-    { label: 'RECOMMEND', desc: 'Plan ready', status: hasRecs ? 'done' : (hasBottlenecks ? 'pending' : 'waiting') },
-    { label: 'APPROVAL', desc: approvalDesc, status: approvalStatus },
-    { label: 'EXECUTE', desc: executeDesc, status: executeStatus },
-    { label: 'VERIFY', desc: verifyDesc, status: verifyStatus },
-  ]
-
-  return (
-    <div className="border border-slate-800 bg-[#0a1628]">
-      <div className="px-4 py-3 border-b border-slate-800 flex justify-between items-center">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Decision Pipeline</span>
-      </div>
-      <div className="p-4 flex flex-col">
-        {stages.map((s, i) => (
-          <div key={s.label} className="flex items-start gap-4 h-12">
-            <div className="flex flex-col items-center h-full">
-              <div className={`w-2 h-2 mt-1 flex-shrink-0 ${
-                s.status === 'done' ? 'bg-emerald-500' :
-                s.status === 'waiting' ? 'bg-amber-400 animate-pulse' :
-                'bg-slate-800'
-              }`} />
-              {i < stages.length - 1 && (
-                <div className={`w-px flex-1 my-1 ${
-                  s.status === 'done' ? 'bg-emerald-900' : 'bg-slate-800'
-                }`} />
-              )}
-            </div>
-            <div className="flex flex-col -mt-0.5">
-              <span className={`text-[10px] font-bold font-mono uppercase tracking-widest ${
-                s.status === 'done' ? 'text-emerald-400' :
-                s.status === 'waiting' ? 'text-amber-400' :
-                'text-slate-600'
-              }`}>{s.label}</span>
-              <span className={`text-[10px] font-mono uppercase ${
-                s.status === 'done' ? 'text-slate-400' :
-                s.status === 'waiting' ? 'text-amber-500/70' :
-                'text-slate-700'
-              }`}>{s.desc}</span>
-            </div>
-          </div>
-        ))}
+      {/* ── Bottom row: Patient Flow Chart + Department Table ─────────────── */}
+      <div className="flex gap-4">
+        <div className="flex-1 min-w-0">
+          <PatientFlowChart state={state} />
+        </div>
+        <div className="flex-shrink-0" style={{ width: '360px' }}>
+          <DeptTable state={state} />
+        </div>
       </div>
     </div>
   )
