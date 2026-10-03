@@ -13,6 +13,8 @@ from pydantic import BaseModel
 
 # Reuse the project's existing JWT/RBAC infrastructure (G6 fix)
 from api.routes.auth import AuthContext, require_active_user, require_role
+from llm_client import llm_json_prefill, llm_chat
+import json
 
 logger = logging.getLogger(__name__)
 NOW = lambda: datetime.now(timezone.utc)
@@ -586,3 +588,85 @@ async def get_agent_performance():
             "avg_confidence": round(rng.uniform(0.70, 0.88), 2),
         })
     return {"agents": result}
+
+
+# ── AI Chat ───────────────────────────────────────────────────────────────────
+
+class ChatRequest(BaseModel):
+    message: str
+
+@router.post("/chat", dependencies=[Depends(require_active_user)])
+async def chat_endpoint(req: ChatRequest):
+    """Provide an agentic RAG response for the command center chat."""
+    state = _state().get_snapshot()
+    
+    classification_prompt = f"""You are an orchestrator for a hospital management system. 
+The user asks: "{req.message}"
+
+Available data agents:
+- icu_agent: Intensive Care Unit capacity
+- er_agent: Emergency Room queue and capacity
+- bed_agent: General Ward bed availability
+- staff_agent: Hospital staff on duty
+- ot_agent: Operating Theatres utilization
+- lab_agent: Diagnostics and lab queues
+
+Identify which agents are required to answer the query. Return a JSON object with a single key 'agents' containing a list of agent names.
+Example: {{"agents": ["icu_agent", "staff_agent"]}}"""
+
+    try:
+        class_json_str = await llm_json_prefill(classification_prompt, max_tokens=100)
+        start = class_json_str.find('{')
+        end = class_json_str.rfind('}')
+        if start != -1 and end != -1:
+            class_json = json.loads(class_json_str[start:end+1])
+        else:
+            class_json = {"agents": ["icu_agent", "er_agent", "bed_agent", "staff_agent", "ot_agent", "lab_agent"]}
+    except Exception as e:
+        logger.error(f"Classification failed: {e}")
+        class_json = {"agents": ["icu_agent", "er_agent", "bed_agent", "staff_agent", "ot_agent", "lab_agent"]}
+    
+    selected_agents = class_json.get("agents", [])
+    if not selected_agents:
+        selected_agents = ["icu_agent", "er_agent", "bed_agent", "staff_agent", "ot_agent", "lab_agent"]
+        
+    context_data = {}
+    if "icu_agent" in selected_agents:
+        context_data["ICU"] = state.get("icu")
+    if "er_agent" in selected_agents:
+        context_data["Emergency"] = state.get("emergency")
+    if "bed_agent" in selected_agents:
+        context_data["Beds"] = state.get("beds")
+    if "staff_agent" in selected_agents:
+        context_data["Staff"] = state.get("staff")
+    if "ot_agent" in selected_agents:
+        context_data["Operating Rooms"] = state.get("operating_rooms")
+    if "lab_agent" in selected_agents:
+        context_data["Diagnostics"] = state.get("diagnostics")
+        
+    context_data["Overall Pressure"] = state.get("pressure")
+    
+    synthesis_prompt = f"""You are CuraFlow AI, a helpful and precise hospital operations assistant.
+Answer the user's query based ONLY on the following real-time data retrieved by our agents.
+Keep your response concise, professional, and directly address the user's query.
+
+Real-time Data:
+{json.dumps(context_data, indent=2)}
+
+User Query: "{req.message}"
+"""
+    
+    try:
+        final_answer = await llm_chat(system="You are CuraFlow AI.", user=synthesis_prompt, max_tokens=400)
+    except Exception as e:
+        logger.error(f"Synthesis failed: {e}")
+        final_answer = "I'm sorry, I was unable to process your request at this time."
+        
+    return {
+        "response": final_answer,
+        "context": {
+            "pressure": state["pressure"]["label"],
+            "timestamp": state["timestamp"]
+        },
+        "timestamp": NOW().isoformat()
+    }
