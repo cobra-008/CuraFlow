@@ -19,13 +19,9 @@ _ops_roles: dict[str, set[WebSocket]] = defaultdict(set)
 
 
 async def deliver_local(session_id: str, event: dict) -> None:
-    """Fan an event out to THIS process's WebSocket clients for the session.
-
-    Called directly when the Kafka bus is disabled, and by the Kafka relay
-    (messaging.flow_event_relay) when it is enabled.
-    """
     dead = set()
-    for ws in _connections.get(session_id, set()):
+    conns = list(_connections.get(session_id, set()))
+    for ws in conns:
         try:
             await ws.send_json(event)
         except Exception:
@@ -37,11 +33,13 @@ async def deliver_local(session_id: str, event: dict) -> None:
 async def deliver_ops_local(target: str, event: dict, is_role: bool = False) -> None:
     """Deliver an event to a specific user or role connected to the ops websocket."""
     dead = set()
-    conns = _ops_roles.get(target, set()) if is_role else _ops_connections.get(target, set())
+    conns = list(_ops_roles.get(target, set())) if is_role else list(_ops_connections.get(target, set()))
+    logger.info("deliver_ops_local: target=%s is_role=%s recipients=%d", target, is_role, len(conns))
     for ws in conns:
         try:
             await ws.send_json(event)
-        except Exception:
+        except Exception as e:
+            logger.warning("ops websocket delivery failed: %s", e)
             dead.add(ws)
     for ws in dead:
         if is_role:
