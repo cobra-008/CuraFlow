@@ -84,11 +84,9 @@ function KpiCard({
 
   return (
     <div
-      className="p-5 rounded-2xl flex flex-col justify-between transition-all hover:shadow-md"
+      className="p-5 flex flex-col justify-between transition-all hover:bg-gray-50/50"
       style={{
         background: '#ffffff',
-        border: '1px solid #e8e1d4',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
       }}
     >
       <div className="flex items-center justify-between mb-2">
@@ -335,7 +333,7 @@ function DeptTable({ state }: { state: HospitalState | null }) {
 
   return (
     <div
-      className="p-6 rounded-2xl flex flex-col justify-between"
+      className="p-6 rounded-2xl flex flex-col justify-between h-full"
       style={{
         background: '#ffffff',
         border: '1px solid #e8e1d4',
@@ -648,16 +646,16 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
       return (
         <>
           {/* Chat messages */}
-          <div className="flex-1 overflow-auto p-3 space-y-3">
+          <div className="flex-1 overflow-auto p-5 space-y-4">
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'items-start gap-2'}`}>
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'items-start gap-3'}`}>
                 {m.role === 'ai' && (
-                  <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: '#1e3a6e' }}>
-                    <Sparkles size={11} className="text-white" />
+                  <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: '#1e3a6e' }}>
+                    <Sparkles size={14} className="text-white" />
                   </div>
                 )}
-                <div className={`max-w-[80%] ${m.role === 'user' ? '' : 'flex-1 min-w-0'}`}>
-                  <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed ${
+                <div className={`max-w-[85%] ${m.role === 'user' ? '' : 'flex-1 min-w-0'}`}>
+                  <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                     m.role === 'user'
                       ? 'rounded-br-sm'
                       : 'rounded-bl-sm'
@@ -667,14 +665,14 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
                   }}>
                     {m.text}
                   </div>
-                  <div className="text-xs mt-0.5 px-1" style={{ color: '#c0b8a8', fontSize: '10px' }}>{m.ts}</div>
+                  <div className="text-xs mt-1 px-1" style={{ color: '#c0b8a8', fontSize: '11px' }}>{m.ts}</div>
                 </div>
               </div>
             ))}
             {sending && (
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: '#1e3a6e' }}>
-                  <Sparkles size={11} className="text-white" />
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: '#1e3a6e' }}>
+                  <Sparkles size={14} className="text-white" />
                 </div>
                 <div className="rounded-2xl rounded-bl-sm" style={{ background: '#f5f0e8' }}>
                   <TypingDots />
@@ -685,10 +683,10 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
           </div>
 
           {/* Quick prompts */}
-          <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+          <div className="px-5 pb-3 flex flex-wrap gap-2">
             {['ICU status', 'ER queue', 'Bed availability', 'Staff utilization'].map(q => (
               <button key={q} onClick={() => { setInput(q); }}
-                className="text-xs px-2 py-1 rounded-full border transition-colors hover:border-blue-300"
+                className="text-sm px-3 py-1.5 rounded-full border transition-colors hover:border-blue-300"
                 style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#5a6475' }}>
                 {q}
               </button>
@@ -696,23 +694,23 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
           </div>
 
           {/* Input bar */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-t flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
+          <div className="flex items-center gap-3 px-5 py-4 border-t flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={onKey}
               placeholder="Ask about ICU, beds, staff, ER... (Press Enter to send, Shift+Enter for new line)"
-              className="flex-1 py-2 px-3 text-sm rounded-lg outline-none resize-none"
-              style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#1a2744', minHeight: '40px', maxHeight: '120px' }}
+              className="flex-1 py-3 px-4 text-sm rounded-xl outline-none resize-none"
+              style={{ background: '#f5f0e8', border: '1px solid #e0d5c0', color: '#1a2744', minHeight: '48px', maxHeight: '120px' }}
               rows={1}
             />
             <button
               onClick={sendMessage}
               disabled={!input.trim() || sending}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white flex-shrink-0 disabled:opacity-40 transition-opacity"
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-white flex-shrink-0 disabled:opacity-40 transition-opacity"
               style={{ background: '#1e3a6e' }}
             >
-              <Send size={13} />
+              <Send size={16} />
             </button>
           </div>
         </>
@@ -908,32 +906,32 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b flex-shrink-0"
+      <div className="flex items-center justify-between px-6 py-5 border-b flex-shrink-0"
         style={{ borderColor: '#f0e8d8', background: 'linear-gradient(to right, #f8faff, #ffffff)' }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shadow-xs" style={{ background: '#1e3a6e' }}>
-            <Sparkles size={14} className="text-white" />
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-xs" style={{ background: '#1e3a6e' }}>
+            <Sparkles size={18} className="text-white" />
           </div>
           <div>
-            <div className="font-bold text-sm leading-tight" style={{ color: '#1a2744' }}>CuraFlow AI Operations Copilot</div>
-            <div className="text-[11px] leading-tight" style={{ color: '#8c7e6a' }}>Hospital Resource & Clinical Intelligence</div>
+            <div className="font-bold text-base leading-tight" style={{ color: '#1a2744' }}>CuraFlow AI Operations Copilot</div>
+            <div className="text-xs mt-0.5 leading-tight" style={{ color: '#8c7e6a' }}>Hospital Resource & Clinical Intelligence</div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold"
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
           style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           Live
         </div>
       </div>
 
       {/* Horizontal Tab Navigation */}
-      <div className="flex items-center gap-1.5 px-4 py-2 border-b overflow-x-auto flex-shrink-0"
+      <div className="flex items-center gap-2 px-5 py-3 border-b overflow-x-auto flex-shrink-0"
         style={{ borderColor: '#f0e8d8', background: '#faf7f2' }}>
         {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
             style={{
               background: activeTab === t.id ? '#1e3a6e' : 'transparent',
               color: activeTab === t.id ? '#ffffff' : '#6b5c40',
@@ -1073,7 +1071,7 @@ export function CommandCenter() {
       </div>
 
       {/* ── 5 KPI Cards in Responsive Grid ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x rounded-2xl overflow-hidden mb-6" style={{ border: '1px solid #e8e1d4', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
         <KpiCard
           icon={Users} iconColor="#1e50a0" iconBg="#dbeafe"
           label="ER Waiting"
@@ -1125,11 +1123,13 @@ export function CommandCenter() {
       </div>
 
       {/* ── Main Operations 2-Column Grid with Generous Breathing Space ─────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Left Column (8 cols): Primary Flow Chart + Capacity Table */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 flex flex-col gap-6">
           <PatientFlowChart state={state} />
-          <DeptTable state={state} />
+          <div className="flex-1 min-h-0 flex flex-col">
+            <DeptTable state={state} />
+          </div>
         </div>
 
         {/* Right Column (4 cols): AI Assistant + Live Activity Feed */}

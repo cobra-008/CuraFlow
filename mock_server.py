@@ -662,6 +662,14 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             self._send(200, {"organizations": []})
         elif p in ('/api/sessions', '/api/sessions?limit=50'):
             self._send(200, {"sessions": []})
+        elif p.startswith('/api/sessions/'):
+            if p.endswith('/pending-approvals'):
+                self._send(200, {"approvals": []})
+            else:
+                self._send(200, {
+                    "session_id": p.split('/')[-1], "status": "pending", "autonomous": False,
+                    "pipeline": {"understood_goal": "Mock goal", "priority": "normal", "agents": [], "edges": []}
+                })
         elif p == '/api/queues/paused':
             self._send(200, {"paused": 0, "flows": []})
         elif p == '/api/approvals/pending':
