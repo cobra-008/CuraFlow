@@ -3,13 +3,22 @@ import { useStore } from '../../store'
 import { MessageSquareCode } from 'lucide-react'
 import { AgentFindings } from '../execution/AgentFindings'
 import { Sidebar as MissionPrompter } from '../Sidebar'
+import { useEffect } from 'react'
 
 export function OrchestrationView() {
   const panelOpen = useStore((s) => s.panelOpen)
   const executionStatus = useStore((s) => s.executionStatus)
   const pipelineGenerated = useStore((s) => s.pipelineGenerated)
+  const generatePipeline = useStore((s) => s.generatePipeline)
+
+  useEffect(() => {
+    if (!pipelineGenerated && executionStatus === 'idle') {
+      generatePipeline()
+    }
+  }, [pipelineGenerated, executionStatus, generatePipeline])
 
   const hasExecuted = pipelineGenerated || executionStatus !== 'idle'
+
 
   return (
     <div className="flex flex-1 overflow-hidden h-full w-full">

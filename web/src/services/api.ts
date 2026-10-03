@@ -387,7 +387,8 @@ export async function fetchAllPendingApprovals(): Promise<AllPendingApproval[]> 
 export async function fetchPendingApprovals(sessionId: string): Promise<PendingApproval[]> {
 	const res = await fetch(`${API_BASE}${withOrg(`/api/sessions/${sessionId}/pending-approvals`)}`, { headers: authHeader() })
 	if (!res.ok) return []
-	return res.json() as Promise<PendingApproval[]>
+	const data = await res.json() as { approvals: PendingApproval[] }
+	return data.approvals || []
 }
 
 export async function createSession(
