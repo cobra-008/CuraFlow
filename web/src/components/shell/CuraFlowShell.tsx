@@ -19,21 +19,6 @@ import { SettingsView } from '../ops/SettingsView'
 import { TopBar } from '../TopBar'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 
-// ── Placeholder View ───────────────────────────────────────────────────────────
-const PlaceholderView = ({ title, status = 'NOT CONFIGURED' }: { title: string; status?: string }) => (
-  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-    <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-4">
-      <AlertTriangle size={28} className="text-amber-500" />
-    </div>
-    <h2 className="text-lg font-bold text-navy-900 mb-2">{title}</h2>
-    <span className="text-xs font-semibold uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-      {status}
-    </span>
-    <p className="text-sm text-gray-500 mt-4 max-w-md">
-      This module is part of the CuraFlow clinical operations platform. It requires backend integration and configuration before live deployment.
-    </p>
-  </div>
-)
 
 // ── Nav items config ───────────────────────────────────────────────────────────
 const NAV_GROUPS = [

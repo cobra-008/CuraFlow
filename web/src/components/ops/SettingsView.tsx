@@ -1,4 +1,4 @@
-import { Settings, User, Bell, Shield, Sliders } from 'lucide-react'
+import { User, Bell, Shield, Sliders } from 'lucide-react'
 
 export function SettingsView() {
   return (
