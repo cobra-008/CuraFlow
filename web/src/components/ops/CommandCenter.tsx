@@ -181,7 +181,7 @@ function PatientFlowChart({ state }: { state: HospitalState | null }) {
   const gridTicks = [0.25, 0.5, 0.75, 1.0]
 
   return (
-    <div className="cf-card" style={{ overflow: 'hidden' }}>
+    <div className="cf-card h-full flex flex-col justify-between" style={{ overflow: 'hidden' }}>
       {/* Header with accent bar */}
       <div style={{ height: '3px', background: 'linear-gradient(90deg, #4e8ef7 0%, #f5a623 50%, #4caf82 100%)' }} />
       <div className="p-4">
@@ -324,7 +324,7 @@ function DeptTable({ state }: { state: HospitalState | null }) {
   ]
 
   return (
-    <div className="cf-card overflow-hidden">
+    <div className="cf-card h-full overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#f0e8d8' }}>
         <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Department Status</h3>
         <button className="text-xs font-semibold" style={{ color: '#1e3a6e' }}>
@@ -430,12 +430,12 @@ function LiveActivityFeed({ state, bottlenecks }: { state: HospitalState | null;
   }
 
   return (
-    <div className="cf-card flex flex-col overflow-hidden">
+    <div className="cf-card flex flex-col overflow-hidden h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: '#f0e8d8' }}>
         <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Live Activity</h3>
         <button className="text-xs font-semibold" style={{ color: '#1e3a6e' }}>View All</button>
       </div>
-      <div className="flex flex-col divide-y overflow-auto" style={{ maxHeight: '260px' }}>
+      <div className="flex flex-col divide-y overflow-auto flex-1">
         {activities.slice(0, 6).map(act => (
           <div key={act.id} className="flex items-start gap-3 px-4 py-3 hover:bg-warm-50 transition-colors">
             <div className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -838,7 +838,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
   }
 
   return (
-    <div className="cf-card flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
+    <div className="cf-card flex flex-col overflow-hidden h-full" style={{ minHeight: 0 }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0"
         style={{ borderColor: '#f0e8d8', background: 'linear-gradient(to right, #f5f9ff, #ffffff)' }}>
@@ -879,7 +879,7 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
 
         {/* Right: tab content */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
-          <TabContent />
+          {TabContent()}
         </div>
       </div>
     </div>
@@ -964,7 +964,7 @@ export function CommandCenter() {
   }
 
   return (
-    <div className="p-4 flex flex-col gap-3 min-h-full" style={{ background: '#f5f0e8' }}>
+    <div className="p-3 flex flex-col gap-2 min-h-full" style={{ background: '#f5f0e8' }}>
 
       {/* ── Welcome Header ────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
@@ -1002,7 +1002,7 @@ export function CommandCenter() {
       </div>
 
       {/* ── 5 KPI Cards ──────────────────────────────────────────────────── */}
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         <KpiCard
           icon={Users} iconColor="#1e50a0" iconBg="#dbeafe"
           label="ER Waiting"
@@ -1054,24 +1054,24 @@ export function CommandCenter() {
       </div>
 
       {/* ── Middle row: AI Assistant + Live Activity ──────────────────────── */}
-      <div className="flex gap-3" style={{ minHeight: '400px' }}>
+      <div className="flex gap-2" style={{ height: '340px' }}>
         {/* AI Assistant */}
-        <div className="flex-1 min-w-0" style={{ minHeight: 0 }}>
+        <div className="flex-1 min-w-0 h-full">
           <AIAssistant state={state} />
         </div>
 
         {/* Live Activity */}
-        <div className="flex-shrink-0" style={{ width: '280px' }}>
+        <div className="flex-shrink-0 h-full" style={{ width: '280px' }}>
           <LiveActivityFeed state={state} bottlenecks={bottlenecks} />
         </div>
       </div>
 
       {/* ── Bottom row: Patient Flow Chart + Department Table ─────────────── */}
-      <div className="flex gap-3">
-        <div className="flex-1 min-w-0">
+      <div className="flex gap-2 items-stretch">
+        <div className="flex-1 min-w-0 h-full">
           <PatientFlowChart state={state} />
         </div>
-        <div className="flex-shrink-0" style={{ width: '360px' }}>
+        <div className="flex-shrink-0 h-full" style={{ width: '360px' }}>
           <DeptTable state={state} />
         </div>
       </div>

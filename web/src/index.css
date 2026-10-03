@@ -1,4 +1,4 @@
-/* No external font import needed — using system Times New Roman */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -43,14 +43,16 @@
 /* ── Base body ───────────────────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
-  font-family: 'Times New Roman', Times, Georgia, serif !important;
+  font-family: 'Merriweather', Georgia, serif !important;
 }
 
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 14px; /* Slightly smaller base font size as Merriweather is quite large */
+  letter-spacing: 0.01em;
 }
 
 body {
