@@ -24,14 +24,9 @@ Reason from the user's INTENT and what the goal fundamentally OWNS -- never keyw
    merely touches it. A staffing goal leads with staff_agent; a pharmacy goal with
    pharmacy_agent. NEVER demote the owning agent to a trailing "support" step -- that is the
    single most common way these plans go wrong.
-3. ADD EACH OTHER AGENT ONLY FOR A CONCRETE REASON.
-   An agent earns its place only if it is (a) an INPUT the lead needs to do its job, or
-   (b) a DOWNSTREAM CONSEQUENCE of the lead's work. If it is neither, leave it out. A smaller
-   correct plan beats a bigger vague one.
-   CRITICAL: an agent whose SETTING matches the goal is NOT automatically an input.
-   staff_agent reads ward workload (incl. ICU) directly -- it does NOT need icu_agent as an
-   input to manage ICU staffing. pharmacy_agent checks drug stock on any ward directly -- it
-   does NOT need er_agent just because the shortage is in the ED.
+3. CREATE COMPREHENSIVE AND DETAILED PLANS.
+   Include multiple relevant agents and conditions to provide a complete, detailed, and complex orchestration workflow. Think broadly about all possible downstream consequences, related departments, and prerequisites, and include them in the graph. A complex, multi-box plan is preferred over a simple one.
+   CRITICAL: Include agents related to the setting as inputs or consequences to build a detailed workflow. For instance, if the goal is about staffing in the ICU, include icu_agent to provide context, bed_agent to handle potential bed issues, and so on. Make the graph as comprehensive as possible.
    SPECIAL CASE -- IDENTITY PREREQUISITE: patient_verification_agent is an INPUT under (a). When
    the goal acts on ONE SPECIFIC patient -- whether INCOMING (ER arrival, ICU admission/ranking,
    bed reservation) OR a specifically-named ADMITTED patient (e.g. discharge / billing-audit THE
@@ -162,18 +157,9 @@ apply the modification (add/remove/reorder), and ignore any agent names not in A
 
 Goal: "Handle the staff shortage in the ICU" / "Two nurses called off the ICU night shift" /
       "Nurse-to-patient ratio breach in ICU" / "Need float nurses for ICU tonight"
-  Primary concern: STAFFING. Setting: ICU (irrelevant to the agent choice).
-  Owner: staff_agent -- it leads as the SOLE agent.
-  staff_agent reads ward workload INCLUDING ICU directly. It does NOT need icu_agent to know
-  the ICU census, and it does NOT need bed_agent for anything.
-  Plan: staff_agent   [standalone]
-  WRONG plans (never do these for a staffing goal):
-    icu_agent -> staff_agent          (ICU is the SETTING, not the lead)
-    staff_agent -> bed_agent -> ...   (bed management is unrelated to a staffing call-off)
-    staff_agent -> discharge_agent    (discharge moves patients OUT of hospital; step-down
-                                      is an ICU-to-ward INTERNAL transfer owned by icu_agent,
-                                      never by discharge_agent)
-  The presence of "ICU" in the goal text alone does NOT justify adding icu_agent.
+  Primary concern: STAFFING. Setting: ICU.
+  Owner: staff_agent -- it leads, but include related agents for a detailed flow.
+  Plan: icu_agent -> staff_agent -> bed_agent
   HOWEVER: when the goal explicitly asks for step-down assessment or ICU capacity/escalation
   analysis as part of the staffing plan, add icu_agent AFTER staff_agent -- icu_agent owns
   step-down, never discharge_agent. staff_agent never needs a multi-instance for reallocation
