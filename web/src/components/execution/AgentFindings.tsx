@@ -1,5 +1,6 @@
+import { DynamicIcon } from '../../components/DynamicIcon'
 import { useRef, useEffect, useState } from 'react'
-import { Loader2, CheckCircle, Clock, ChevronRight, ChevronDown, AlertTriangle, AlertCircle, Info, Sparkles, Save, MinusCircle, ShieldCheck, ArrowUpCircle, RotateCcw } from 'lucide-react'
+import { Loader2, CheckCircle, Clock, ChevronRight, ChevronDown, AlertTriangle, AlertCircle, Info, Sparkles, Save, MinusCircle, ShieldCheck, ArrowUpCircle, RotateCcw, ClipboardList } from 'lucide-react'
 import { useStore } from '../../store'
 import type { SubAgentEvent, PolicyDecision } from '../../store'
 import { AGENT_MAP, AGENTS } from '../../data/agents'
@@ -922,9 +923,9 @@ export function AgentFindings() {
   // label/color when no static entry exists (e.g. billing_agent).
   const resolveIdentity = (nodeId: string, agentId: string) => {
     const st = AGENT_MAP[agentId]
-    if (st) return { label: st.label, emoji: st.emoji, color: st.color }
+    if (st) return { label: st.label, icon: st.icon, color: st.color }
     const bp = backendPipeline?.agents.find((a) => a.id === nodeId)
-    if (bp) return { label: bp.label, emoji: '💳', color: bp.color ?? '#94a3b8' }
+    if (bp) return { label: bp.label, icon: 'CreditCard', color: bp.color ?? '#94a3b8' }
     return null
   }
 
@@ -994,7 +995,7 @@ export function AgentFindings() {
                   isSelected ? 'bg-[var(--bg-raised)]' : 'hover:bg-[var(--bg-surface)]'
                 )}
               >
-                <span>{ident?.emoji ?? '🤖'}</span>
+                <DynamicIcon name={ident?.icon ?? 'Bot'} size={16} />
                 <span
                   className="flex-1 truncate"
                   title={ident?.label ?? agentId}
@@ -1024,7 +1025,7 @@ export function AgentFindings() {
           <>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
-                <span className="text-base">{selectedAgent.emoji}</span>
+                <span className="text-base"><DynamicIcon name={selectedAgent.icon} size={16} /></span>
                 <span className="text-sm font-semibold" style={{ color: selectedAgent.color }}>
                   {selectedAgent.label}
                 </span>
@@ -1041,7 +1042,7 @@ export function AgentFindings() {
               <RichEventList events={selectedState.events} agentRunning={selectedState.status === 'running'} pipeline={backendPipeline} />
             ) : selectedState.status === 'complete' && selectedState.lines.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
-                <span className="text-2xl">📋</span>
+                <ClipboardList size={24} className="text-slate-400 mb-2" />
                 <div className="text-sm text-slate-400 font-medium">Session completed</div>
                 <div className="text-xs text-slate-600 max-w-[200px]">Live output is only available during active execution.</div>
               </div>
@@ -1293,7 +1294,7 @@ function RecommendationCard({
       >
         <Sparkles size={12} className={clsx('flex-shrink-0', riskColor)} />
         <span className={clsx('font-bold text-sm uppercase tracking-wide', riskColor)}>
-          Hospilot Recommendation
+          CuraFlow Recommendation
         </span>
         <span className="ml-auto">
           {expanded

@@ -321,7 +321,7 @@ export interface RegistryAgent {
 	id: string
 	label: string
 	description: string
-	emoji: string
+	icon: string
 	color: string
 	subagents: RegistrySubAgent[]
 }
@@ -564,3 +564,10 @@ export async function fetchTrace(sessionId: string): Promise<TraceResponse> {
 	return res.json() as Promise<TraceResponse>
 }
 
+// ── Hospital Stats ─────────────────────────────────────────────────────────────
+
+export async function fetchHospitalStats() {
+	const res = await fetch(`${API_BASE}/api/hospital/stats`, { headers: authHeader() })
+	if (!res.ok) throw new Error(`fetchHospitalStats failed: ${res.statusText}`)
+	return res.json()
+}

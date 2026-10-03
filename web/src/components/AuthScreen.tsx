@@ -89,7 +89,7 @@ export function AuthScreen({ onAuth }: Props) {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <img src="/carer.png" alt="Carer" className="h-11 w-auto mb-3" />
-          <h1 className="text-xl font-bold text-slate-100">Hospilot</h1>
+          <h1 className="text-xl font-bold text-slate-100">CuraFlow</h1>
           <p className="text-xs text-slate-500 mt-0.5">Hospital AI Command Center</p>
         </div>
 

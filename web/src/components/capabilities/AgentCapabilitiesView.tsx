@@ -24,7 +24,7 @@ export function AgentCapabilitiesView() {
   const allSubagents = selectedAgent?.subagents ?? []
 
   const totalTasks = useMemo(
-    () => allSubagents.reduce((sum, sa) => sum + sa.tasks.length, 0),
+    () => allSubagents.reduce((sum, sa) => sum + (Array.isArray(sa.tasks) ? sa.tasks.length : 0), 0),
     [allSubagents],
   )
 
@@ -36,10 +36,14 @@ export function AgentCapabilitiesView() {
     let prefetchCount = 0
     const dist = allSubagents
       .map((sa) => {
-        sa.tasks.forEach((t) => (t.outputs ?? []).forEach((o) => o && outputs.add(o)))
-        ;(sa.capabilities ?? []).forEach((c) => c && capabilities.add(c))
+        if (Array.isArray(sa.tasks)) {
+          sa.tasks.forEach((t) => {
+            if (Array.isArray(t.outputs)) t.outputs.forEach((o) => o && outputs.add(o))
+          })
+        }
+        if (Array.isArray(sa.capabilities)) sa.capabilities.forEach((c) => c && capabilities.add(c))
         if (sa.is_prefetch_eligible) prefetchCount += 1
-        return { id: sa.id, label: sa.label, count: sa.tasks.length }
+        return { id: sa.id, label: sa.label, count: Array.isArray(sa.tasks) ? sa.tasks.length : 0 }
       })
       .sort((a, b) => b.count - a.count)
     const maxCount = dist.reduce((m, d) => Math.max(m, d.count), 0)
@@ -112,7 +116,7 @@ export function AgentCapabilitiesView() {
           {agentRegistry.map((agent) => {
             const m = AGENT_META[metaId(agent.id)]
             const subCount = agent.subagents.length
-            const taskCount = agent.subagents.reduce((s, sa) => s + sa.tasks.length, 0)
+            const taskCount = agent.subagents.reduce((s, sa) => s + (Array.isArray(sa.tasks) ? sa.tasks.length : 0), 0)
             const isSelected = agent.id === effectiveId
             return (
               <button
@@ -134,7 +138,7 @@ export function AgentCapabilitiesView() {
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
                       style={{ background: agent.color + '20', border: `1px solid ${agent.color}40` }}
                     >
-                      {agent.emoji}
+                      {agent.icon}
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-slate-200 truncate">{agent.label}</div>
@@ -172,7 +176,7 @@ export function AgentCapabilitiesView() {
               className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm flex-shrink-0"
               style={{ background: selectedAgent.color + '25', border: `2px solid ${selectedAgent.color}50` }}
             >
-              {selectedAgent.emoji}
+              {selectedAgent.icon}
             </div>
             <div className="min-w-0">
               <div className="text-lg font-bold text-slate-100 truncate">{selectedAgent.label}</div>
@@ -223,9 +227,9 @@ export function AgentCapabilitiesView() {
         {/* Sub-agent accordion */}
         <div className="flex-1 overflow-y-auto px-6 py-3">
           {allSubagents.map((sa) => {
-            const filteredTasks = sa.tasks.filter(
+            const filteredTasks = Array.isArray(sa.tasks) ? sa.tasks.filter(
               (t) => !search || t.label.toLowerCase().includes(search.toLowerCase()),
-            )
+            ) : []
             if (filteredTasks.length === 0 && search) return null
             const isExpanded = expandedSubs.has(sa.id)
 
@@ -265,7 +269,7 @@ export function AgentCapabilitiesView() {
                     </span>
                   )}
                   <span className="text-xs text-slate-500 flex-1 truncate">{sa.description}</span>
-                  <span className="text-[9px] text-slate-600 flex-shrink-0">{sa.tasks.length} tasks</span>
+                  <span className="text-[9px] text-slate-600 flex-shrink-0">{Array.isArray(sa.tasks) ? sa.tasks.length : 0} tasks</span>
                 </div>
 
                 {isExpanded && (

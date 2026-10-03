@@ -1,5 +1,6 @@
+import { DynamicIcon } from '../DynamicIcon'
 import { useEffect, useState } from 'react'
-import { Building2, UserCheck, Users } from 'lucide-react'
+import { Building2, UserCheck, Users, ArrowLeft } from 'lucide-react'
 import { useStore } from '../../store'
 import { fetchOrgs, fetchPendingUsers } from '../../services/api'
 import { PendingUsersView } from './PendingUsersView'
@@ -12,6 +13,7 @@ type AdminTab = 'pending' | 'users' | 'orgs'
  *  admins, plus organization management for the super admin. */
 export function AdminPage() {
   const currentUser = useStore((s) => s.currentUser)
+  const setActiveView = useStore((s) => s.setActiveView)
   const isSuper = currentUser?.role === 'super_admin'
   const [tab, setTab] = useState<AdminTab>('pending')
   const [pendingCount, setPendingCount] = useState(0)
@@ -48,6 +50,13 @@ export function AdminPage() {
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--bg-base)]">
       <div className="max-w-3xl mx-auto px-6 py-6">
+        <button
+          onClick={() => setActiveView('orchestrator')}
+          className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors mb-4 group"
+        >
+          <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+          Back to Dashboard
+        </button>
         <h1 className="text-lg font-bold text-slate-100 mb-1">Administration</h1>
         <p className="text-xs text-slate-500 mb-5">
           {isSuper
@@ -65,8 +74,7 @@ export function AdminPage() {
                 tab === t.id ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {t.icon}
-              {t.label}
+              {t.icon} {t.label}
               {!!t.badge && (
                 <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                   tab === t.id ? 'bg-white/20 text-white' : 'bg-amber-500/15 text-amber-300'

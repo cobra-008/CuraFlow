@@ -14,6 +14,7 @@ import { AgentCapabilitiesView } from './components/capabilities/AgentCapabiliti
 import { WorkflowsPage } from './components/WorkflowsPage'
 import { ApprovalsPage } from './components/ApprovalsPage'
 import { AdminPage } from './components/admin/AdminPage'
+import { HospitalPage } from './components/hospital/HospitalPage'
 import { AuthScreen } from './components/AuthScreen'
 import { getToken, setToken, getMe, type AuthUser } from './services/api'
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -64,6 +65,8 @@ function AppShell() {
 
       {activeView === 'approvals' && isApprover ? (
         <ApprovalsPage />
+      ) : activeView === 'hospital' ? (
+        <HospitalPage />
       ) : activeView === 'admin' && isAdmin ? (
         <AdminPage />
       ) : activeView === 'capabilities' ? (
@@ -184,7 +187,12 @@ export default function App() {
         setChecking(false)
         if (user.role === 'approver') {
           setActiveView('approvals')
+        } else if (user.role === 'super_admin' || user.role === 'admin') {
+          setActiveView('orchestrator')
+          const savedId = localStorage.getItem('hospilot_session_id')
+          if (savedId) loadSession(savedId)
         } else {
+          setActiveView('hospital')
           const savedId = localStorage.getItem('hospilot_session_id')
           if (savedId) loadSession(savedId)
         }

@@ -70,7 +70,7 @@ function Description({ a }: { a: AllPendingApproval }) {
           <div className="text-[11px] text-slate-400 leading-snug">{String(p.reason)}</div>
         )}
         {Boolean(p.ventilator_dependent) && (
-          <div className="text-[10px] text-amber-400 font-medium">⚠ Ventilator dependent</div>
+          <div className="text-[10px] text-amber-400 font-medium">Ventilator dependent</div>
         )}
       </div>
     )
