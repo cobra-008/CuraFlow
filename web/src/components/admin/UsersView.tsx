@@ -10,7 +10,6 @@ interface Props {
   showOrgColumn: boolean
 }
 
-/** Org user management: change roles (doctor <-> approver) and enable/disable accounts. */
 export function UsersView({ currentUserId, isSuper, orgNames, showOrgColumn }: Props) {
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,51 +43,61 @@ export function UsersView({ currentUserId, isSuper, orgNames, showOrgColumn }: P
   }
 
   async function remove(user: ManagedUser) {
-    if (!confirm(`Are you sure you want to delete ${user.display_name}?`)) return
+    if (!confirm(`Are you sure you want to disable ${user.display_name}?`)) return
     setBusy((prev) => ({ ...prev, [user.id]: true }))
     setError('')
     try {
-      // Assuming a deleteUser function or just disable if not available
       await updateUser(user.id, { status: 'disabled' })
       setUsers((prev) => prev.filter((u) => u.id !== user.id))
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Could not delete ${user.username}`)
+      setError(err instanceof Error ? err.message : `Could not disable ${user.username}`)
     } finally {
       setBusy((prev) => { const next = { ...prev }; delete next[user.id]; return next })
     }
   }
 
-  // Admins can retune doctor<->approver; only super_admin touches admin rows.
   function canManage(u: ManagedUser): boolean {
     if (u.id === currentUserId) return false
     if (u.role === 'super_admin') return false
     if (u.role === 'admin' && !isSuper) return false
-    if (u.status === 'pending' || u.status === 'rejected') return false  // approval queue's job
+    if (u.status === 'pending' || u.status === 'rejected') return false
     return true
   }
 
-  const roleOptions: UserRole[] = isSuper ? ['doctor', 'approver', 'admin'] : ['doctor', 'approver']
+  const roleOptions: UserRole[] = isSuper
+    ? ['doctor', 'nurse', 'er_coordinator', 'ot_manager', 'approver', 'admin']
+    : ['doctor', 'nurse', 'er_coordinator', 'ot_manager', 'approver']
+
+  const roleLabels: Record<string, string> = {
+    doctor: 'Doctor', nurse: 'Nurse', er_coordinator: 'ER Coordinator',
+    ot_manager: 'OT Manager', approver: 'Approver', admin: 'Admin',
+  }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Users size={15} className="text-blue-400" />
-          <h2 className="text-sm font-semibold text-slate-200">Users</h2>
-          <span className="text-[11px] text-slate-500">{users.length} total</span>
+          <Users size={15} style={{ color: '#1e3a6e' }} />
+          <h2 className="text-sm font-semibold" style={{ color: '#1a2744' }}>Users</h2>
+          <span className="text-[11px]" style={{ color: '#9aa3b2' }}>{users.length} total</span>
         </div>
         <button
           onClick={refresh}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-slate-200 bg-[var(--bg-raised)] border border-[var(--border-a)] hover:bg-[var(--bg-hover)] transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-slate-100"
+          style={{ color: '#6b5c40', border: '1px solid #e8e1d4', background: '#f5f0e8' }}
         >
           <RefreshCw size={12} /> Refresh
         </button>
       </div>
 
-      {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
+      {error && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">{error}</div>
+      )}
 
       {loading ? (
-        <div className="flex justify-center py-14"><Loader2 size={18} className="animate-spin text-slate-500" /></div>
+        <div className="flex justify-center py-14">
+          <Loader2 size={20} className="animate-spin" style={{ color: '#1e3a6e' }} />
+        </div>
       ) : users.length === 0 ? (
         <EmptyState message="No users found." />
       ) : (
@@ -96,19 +105,20 @@ export function UsersView({ currentUserId, isSuper, orgNames, showOrgColumn }: P
           {users.map((u) => (
             <div
               key={u.id}
-              className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border)]"
+              className="flex items-center gap-3 p-4 rounded-xl transition-shadow hover:shadow-sm"
+              style={{ background: '#ffffff', border: '1px solid #e8e1d4' }}
             >
               <Avatar name={u.display_name} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-200 truncate">{u.display_name}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold truncate" style={{ color: '#1a2744' }}>{u.display_name}</span>
                   <RoleBadge role={u.role} />
                   <StatusBadge status={u.status} />
                   {u.id === currentUserId && (
-                    <span className="text-[10px] text-slate-500 font-medium">(you)</span>
+                    <span className="text-[10px] font-medium" style={{ color: '#9aa3b2' }}>(you)</span>
                   )}
                 </div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[11px] mt-0.5" style={{ color: '#9aa3b2' }}>
                   @{u.username}
                   {showOrgColumn && u.org_id && <> · {orgNames[u.org_id] ?? u.org_id.slice(0, 8)}</>}
                   {' · joined '}{timeAgo(u.created_at)}
@@ -121,10 +131,11 @@ export function UsersView({ currentUserId, isSuper, orgNames, showOrgColumn }: P
                     value={u.role}
                     disabled={!!busy[u.id]}
                     onChange={(e) => change(u, { role: e.target.value as UserRole })}
-                    className="px-2 py-1.5 rounded-lg text-xs bg-[var(--bg-raised)] border border-[var(--border-a)] text-slate-300 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                    className="px-2 py-1.5 rounded-lg text-xs focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                    style={{ background: '#f5f0e8', border: '1px solid #e8e1d4', color: '#1a2744' }}
                   >
                     {roleOptions.map((r) => (
-                      <option key={r} value={r}>{r === 'approver' ? 'Approver' : r === 'admin' ? 'Admin' : 'Doctor'}</option>
+                      <option key={r} value={r}>{roleLabels[r] ?? r}</option>
                     ))}
                   </select>
                   <button
@@ -132,8 +143,8 @@ export function UsersView({ currentUserId, isSuper, orgNames, showOrgColumn }: P
                     disabled={!!busy[u.id]}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-50 ${
                       u.status === 'disabled'
-                        ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
-                        : 'text-slate-400 bg-[var(--bg-raised)] border-[var(--border-a)] hover:bg-[var(--bg-hover)] hover:text-red-300'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
                     }`}
                   >
                     {busy[u.id] && <Loader2 size={12} className="animate-spin" />}
@@ -142,7 +153,8 @@ export function UsersView({ currentUserId, isSuper, orgNames, showOrgColumn }: P
                   <button
                     onClick={() => remove(u)}
                     disabled={!!busy[u.id]}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--border-a)] bg-[var(--bg-raised)] text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-50 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                    style={{ background: '#fff', border: '1px solid #e8e1d4', color: '#9aa3b2' }}
                   >
                     Delete
                   </button>

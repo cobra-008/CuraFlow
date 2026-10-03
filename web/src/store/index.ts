@@ -9,7 +9,7 @@ import { createSession, executeSession, decideApproval, commitSession as apiComm
 // parked (via the paused queue -- there's no dedicated WS "confirmed" event).
 export type ExecutionStatus = 'idle' | 'running' | 'waiting_approval' | 'complete_pending' | 'submitted' | 'pausing' | 'paused' | 'cancelled'
 export type NodeStatus = 'idle' | 'running' | 'complete' | 'waiting' | 'skipped'
-export type ActiveView = 'orchestrator' | 'capabilities' | 'approvals' | 'admin' | 'workflows' | 'command'
+export type ActiveView = 'orchestrator' | 'capabilities' | 'approvals' | 'admin' | 'workflows' | 'command' | 'hospital'
 // Only 'assisted' is reachable from this UI (no mode switcher) -- the union stays
 // so PipelineCanvas/useSessionWebSocket's autonomous-only branches keep compiling;
 // they simply never trigger.

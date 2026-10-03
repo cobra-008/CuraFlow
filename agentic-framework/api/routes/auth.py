@@ -7,6 +7,8 @@ import jwt
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from pydantic import BaseModel
+
 from config import settings
 from db.hasura import hasura
 from schemas.models import SignupRequest, LoginRequest
@@ -206,3 +208,31 @@ async def me(ctx: AuthContext = Depends(require_active_user)):
         "org_id":       ctx.org_id,
         "org_name":     await _org_name(ctx.org_id),
     }
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/auth/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    ctx: AuthContext = Depends(require_active_user),
+):
+    """Allow an authenticated user to update their own password."""
+    if len(body.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+
+    user = await hasura.get_user_by_username(ctx.username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not _verify_password(body.current_password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    new_hash = _hash_password(body.new_password)
+    await hasura.update_user(user["id"], {"password_hash": new_hash})
+
+    logger.info("password_changed  username=%s", ctx.username)
+    return {"status": "ok", "message": "Password updated successfully"}

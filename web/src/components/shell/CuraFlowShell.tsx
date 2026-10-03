@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useStore } from '../../store'
 import {
   LayoutDashboard, Activity, Bed, GitBranch, FlaskConical,
   Package, AlertTriangle, Bot, BarChart3, Settings,
@@ -6,6 +7,7 @@ import {
 } from 'lucide-react'
 import { CommandCenter } from '../ops/CommandCenter'
 import { ApprovalCenter } from '../ops/ApprovalCenter'
+import { MobileApprovalsView } from '../ops/MobileApprovalsView'
 import { SimulationView } from '../ops/SimulationView'
 import { AgentOpsView } from '../ops/AgentOpsView'
 import { SystemHealthView } from '../ops/SystemHealthView'
@@ -18,22 +20,6 @@ import { ReportsView } from '../ops/ReportsView'
 import { SettingsView } from '../ops/SettingsView'
 import { TopBar } from '../TopBar'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
-
-// ── Placeholder View ───────────────────────────────────────────────────────────
-const PlaceholderView = ({ title, status = 'NOT CONFIGURED' }: { title: string; status?: string }) => (
-  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-    <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-4">
-      <AlertTriangle size={28} className="text-amber-500" />
-    </div>
-    <h2 className="text-lg font-bold text-navy-900 mb-2">{title}</h2>
-    <span className="text-xs font-semibold uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-      {status}
-    </span>
-    <p className="text-sm text-gray-500 mt-4 max-w-md">
-      This module is part of the CuraFlow clinical operations platform. It requires backend integration and configuration before live deployment.
-    </p>
-  </div>
-)
 
 // ── Nav items config ───────────────────────────────────────────────────────────
 const NAV_GROUPS = [
@@ -67,6 +53,9 @@ function Sidebar({
   bottlenecks: Bottleneck[]
   recommendations: Recommendation[]
 }) {
+  const currentUser = useStore(s => s.currentUser)
+  const role = currentUser?.role || 'nurse'
+  
   const now = new Date()
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })
@@ -98,7 +87,7 @@ function Sidebar({
 
         {/* Logo */}
         <div className="px-4 pt-4 pb-3 border-b" style={{ borderColor: 'rgba(180,150,100,0.3)' }}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#1e3a6e' }}>
               <span className="text-white font-bold text-xs">CF</span>
             </div>
@@ -107,6 +96,16 @@ function Sidebar({
               <div className="text-2xs leading-tight" style={{ color: '#6b5c40', fontSize: '10px' }}>Hospital Operations Orchestration</div>
             </div>
           </div>
+          
+          {role === 'super_admin' && (
+            <div className="mt-2">
+              <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block tracking-wider">Org Switcher</label>
+              <select className="w-full bg-white/50 border border-slate-300 text-xs rounded-md p-1.5 outline-none text-slate-700">
+                <option>Memorial General (Global)</option>
+                <option>City Hospital (Branch 2)</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Mission Briefing */}
@@ -184,8 +183,15 @@ function Sidebar({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-2 py-2">
-          {NAV_GROUPS[0].items.map(({ id, label, icon: Icon }) => {
+        <nav className="flex-1 px-2 py-2 overflow-y-auto">
+          {NAV_GROUPS[0].items.filter(item => {
+            // Apply RBAC filters based on CuraFlow_RBAC_Design.md
+            if (role === 'super_admin' || role === 'admin') return true;
+            if (role === 'er_coordinator') return ['flow', 'capacity', 'orchestration', 'emergency'].includes(item.id);
+            if (role === 'ot_manager') return ['command', 'resources'].includes(item.id);
+            if (role === 'doctor' || role === 'nurse') return ['command', 'approvals'].includes(item.id); // Limited for clinical
+            return false;
+          }).map(({ id, label, icon: Icon }) => {
             const active = activeRoute === id
             const hasAlert = id === 'approvals' || (id === 'command' && pendingRecs.length > 0)
             return (
@@ -225,6 +231,9 @@ function Sidebar({
 
 // ── CuraFlowShell ──────────────────────────────────────────────────────────────
 export function CuraFlowShell() {
+  const currentUser = useStore(s => s.currentUser)
+  const role = currentUser?.role || 'nurse'
+  
   const [activeRoute, setActiveRoute] = useState<string>('command')
   const [hospitalState, setHospitalState] = useState<HospitalState | null>(null)
   const [bottlenecks, setBottlenecks] = useState<Bottleneck[]>([])
@@ -263,7 +272,9 @@ export function CuraFlowShell() {
   const renderView = () => {
     switch (activeRoute) {
       case 'command':       return <CommandCenter />
-      case 'approvals':     return <ApprovalCenter recommendations={recommendations} />
+      case 'approvals':     return (role === 'doctor' || role === 'nurse') 
+                              ? <MobileApprovalsView recommendations={recommendations} /> 
+                              : <ApprovalCenter recommendations={recommendations} />
       case 'simulation':    return <SimulationView />
       case 'agents':        return <AgentOpsView />
       case 'system':        return <SystemHealthView />

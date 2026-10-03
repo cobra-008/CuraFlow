@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
-  ArrowLeft, RefreshCw, BedDouble, Users, Stethoscope,
-  Scissors, Activity, AlertTriangle, TrendingUp, Building2,
-  Loader2, Send, Zap, CheckCircle2, ShieldAlert, BarChart3, BrainCircuit, Sparkles, AlertCircle
+  RefreshCw, BedDouble, Users, Stethoscope,
+  Scissors, Activity, AlertTriangle,
+  Loader2, Send, Zap, CheckCircle2, ShieldAlert, BrainCircuit, Sparkles
 } from 'lucide-react'
 import { useStore } from '../../store'
 import { fetchHospitalStats } from '../../services/api'
@@ -111,7 +111,6 @@ export function HospitalPage() {
   const showOT = ['super_admin', 'admin', 'ot_manager'].includes(role)
   const showPatients = ['super_admin', 'admin', 'er_coordinator', 'doctor'].includes(role)
   const showDoctors = ['super_admin', 'admin', 'doctor'].includes(role)
-  const showClaims = ['super_admin', 'admin'].includes(role)
 
   const handleCommand = (e: React.FormEvent) => {
     e.preventDefault()

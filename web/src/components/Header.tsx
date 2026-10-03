@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Activity } from 'lucide-react'
+import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Activity, Hospital } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useStore } from '../store'
 import { OrgSwitcher } from './OrgSwitcher'
