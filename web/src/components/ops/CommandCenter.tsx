@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import { opsApi, type HospitalState, type Bottleneck, type Recommendation } from '../../services/opsApi'
 import { useStore } from '../../store'
+import { DoctorDashboard } from './DoctorDashboard'
+import { NurseDashboard } from './NurseDashboard'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface LiveActivity {
@@ -951,8 +953,8 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
   )
 }
 
-// ── Main CommandCenter Component ───────────────────────────────────────────────
-export function CommandCenter() {
+// ── Admin/Operator Command Center (full graph+KPI layout) ──────────────────────
+function AdminCommandCenter() {
   const currentUser = useStore((s) => s.currentUser)
 
   const [state, setState] = useState<HospitalState | null>(null)
@@ -1125,4 +1127,13 @@ export function CommandCenter() {
       </div>
     </div>
   )
+}
+
+// ── Public export: routes by role ─────────────────────────────────────────────
+export function CommandCenter() {
+  const currentUser = useStore((s) => s.currentUser)
+  const role = currentUser?.role ?? 'admin'
+  if (role === 'doctor') return <DoctorDashboard />
+  if (role === 'nurse') return <NurseDashboard />
+  return <AdminCommandCenter />
 }

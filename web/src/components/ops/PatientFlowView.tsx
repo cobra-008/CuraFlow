@@ -1,4 +1,4 @@
-import { Activity, ArrowRight, UserCheck, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Activity, ArrowRight, UserCheck, Clock, CheckCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { opsApi, type HospitalState } from '../../services/opsApi'
 
@@ -96,54 +96,63 @@ export function PatientFlowView() {
       </div>
 
       <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
-        <div className="flex justify-between items-center mb-8">
-          <h3 className="font-semibold text-slate-700 text-lg">Live Pipeline Saturation</h3>
-          <span className="text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" /> Live Updating</span>
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-semibold text-slate-700 text-lg">Department Throughput Summary</h3>
+          <span className="text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" /> Live
+          </span>
         </div>
-        
+
         {state ? (
-          <div className="flex-1 w-full flex items-center justify-between relative px-10 py-12 bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
-            {/* Connecting line background */}
-            <div className="absolute top-1/2 left-12 right-12 h-2 bg-slate-200 -translate-y-1/2 rounded-full z-0" />
-            
-            {/* The Nodes */}
-            {steps.map((step, idx) => {
-              const fillPct = step.capacity > 0 ? Math.min(100, Math.max(5, (step.count / step.capacity) * 100)) : 0
-              const isCrit = step.status === 'critical'
-              const isWarn = step.status === 'warning'
-              const colorCls = isCrit ? 'text-red-500 stroke-red-500' : isWarn ? 'text-amber-500 stroke-amber-500' : 'text-emerald-500 stroke-emerald-500'
-              const shadowCls = isCrit ? 'shadow-red-500/40' : isWarn ? 'shadow-amber-500/30' : 'shadow-emerald-500/20'
-              
-              return (
-                <div key={idx} className="relative z-10 flex flex-col items-center group">
-                  <div className={`w-[90px] h-[90px] bg-white border-[6px] border-white rounded-full shadow-lg ${shadowCls} flex items-center justify-center relative transition-shadow duration-500 ${isCrit ? 'animate-pulse' : ''}`}>
-                    {/* Ring progress */}
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle cx="50%" cy="50%" r="38" className="fill-none stroke-slate-100" strokeWidth="6" />
-                      <circle cx="50%" cy="50%" r="38" className={`fill-none ${colorCls}`} strokeWidth="6" strokeDasharray="239" strokeDashoffset={239 - (239 * fillPct) / 100} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease-in-out' }} />
-                    </svg>
-                    <span className="font-bold text-slate-800 text-xl relative z-10">{step.count}</span>
-                  </div>
-                  
-                  <div className="absolute top-28 flex flex-col items-center w-40">
-                    <div className="font-bold text-slate-700 text-[13px] text-center">{step.name}</div>
-                    <div className={`text-[11px] font-semibold mt-1 ${colorCls.split(' ')[0]}`}>{fillPct.toFixed(0)}% CAPACITY</div>
-                    {isCrit && <div className="text-[10px] uppercase font-bold text-white bg-red-500 px-2 py-0.5 rounded-full mt-2 flex items-center gap-1"><AlertTriangle size={10} /> Bottleneck</div>}
-                  </div>
-                </div>
-              )
-            })}
+          <div className="overflow-x-auto flex-1">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  {['Department', 'Current Load', 'Capacity', 'Avg Wait', 'Status'].map(h => (
+                    <th key={h} className="pb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {steps.map((step, idx) => {
+                  const fillPct = step.capacity > 0 ? Math.min(100, Math.round((step.count / step.capacity) * 100)) : 0
+                  const barColor = step.status === 'optimal' ? '#16a34a' : step.status === 'warning' ? '#d97706' : '#dc2626'
+                  const badgeBg  = step.status === 'optimal' ? '#f0fdf4' : step.status === 'warning' ? '#fffbeb' : '#fef2f2'
+                  const badgeTxt = step.status === 'optimal' ? '#15803d' : step.status === 'warning' ? '#92400e' : '#dc2626'
+                  const badgeLabel = step.status === 'optimal' ? 'Optimal' : step.status === 'warning' ? 'Elevated' : 'Critical'
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3.5 font-semibold text-sm text-slate-700">{step.name}</td>
+                      <td className="py-3.5 text-sm font-bold text-slate-800">{step.count}</td>
+                      <td className="py-3.5 text-sm text-slate-500">
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${fillPct}%`, background: barColor }} />
+                          </div>
+                          <span className="text-xs font-semibold" style={{ color: barColor }}>{fillPct}%</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 text-sm text-slate-600 font-medium">{step.waitTime}</td>
+                      <td className="py-3.5">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: badgeBg, color: badgeTxt }}>
+                          {badgeLabel}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
-           <div className="h-full flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-             <div className="text-center flex flex-col items-center">
-               <Activity size={32} className="mb-3 text-slate-300 animate-pulse" />
-               <p>Fetching real-time data...</p>
-             </div>
-           </div>
+          <div className="h-full flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <div className="text-center flex flex-col items-center">
+              <Activity size={32} className="mb-3 text-slate-300 animate-pulse" />
+              <p>Fetching real-time data...</p>
+            </div>
+          </div>
         )}
       </div>
     </div>
   )
 }
-
