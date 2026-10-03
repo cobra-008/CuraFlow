@@ -460,7 +460,24 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
         elif p.startswith('/api/sessions'):
             self._send(200, {
                 "session_id": str(uuid.uuid4()), "status": "pending", "autonomous": False,
-                "pipeline": {"understood_goal": "Mock goal", "priority": "normal", "agents": [], "edges": []}
+                "pipeline": {
+                    "understood_goal": "Mock goal - generating a complex pipeline",
+                    "priority": "normal",
+                    "agents": [
+                        {"id": "er_agent", "task_type": "triage"},
+                        {"id": "icu_agent", "task_type": "capacity_check"},
+                        {"id": "discharge_agent", "task_type": "expedite"},
+                        {"id": "bed_agent", "task_type": "allocation"},
+                        {"id": "revenue_agent", "task_type": "impact_analysis"}
+                    ],
+                    "edges": [
+                        {"source": "er_agent", "target": "icu_agent"},
+                        {"source": "icu_agent", "target": "discharge_agent", "condition": "icu_full", "condition_label": "if ICU full"},
+                        {"source": "icu_agent", "target": "bed_agent", "condition": "icu_not_full", "condition_label": "if ICU has capacity"},
+                        {"source": "discharge_agent", "target": "bed_agent"},
+                        {"source": "bed_agent", "target": "revenue_agent"}
+                    ]
+                }
             })
 
         elif p.startswith('/api/ops/'):
@@ -658,8 +675,10 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
 
         if p == '/api/auth/me':
             self._send(200, {"id": "00000000-0000-0000-0000-000000000000", "username": "admin", "display_name": "Mock Admin", "role": "super_admin", "org_id": None, "org_name": "System"})
-        elif p == '/api/orgs/public':
-            self._send(200, {"organizations": []})
+        elif p == '/api/orgs/public' or p == '/api/orgs':
+            self._send(200, {"organizations": [
+                {"id": "org_mock_123", "name": "Mock General Hospital", "slug": "mock-gen", "status": "active"}
+            ]})
         elif p in ('/api/sessions', '/api/sessions?limit=50'):
             self._send(200, {"sessions": []})
         elif p.startswith('/api/sessions/'):
@@ -668,7 +687,24 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 self._send(200, {
                     "session_id": p.split('/')[-1], "status": "pending", "autonomous": False,
-                    "pipeline": {"understood_goal": "Mock goal", "priority": "normal", "agents": [], "edges": []}
+                    "pipeline": {
+                        "understood_goal": "Mock goal - generating a complex pipeline",
+                        "priority": "normal",
+                        "agents": [
+                            {"id": "er_agent", "task_type": "triage"},
+                            {"id": "icu_agent", "task_type": "capacity_check"},
+                            {"id": "discharge_agent", "task_type": "expedite"},
+                            {"id": "bed_agent", "task_type": "allocation"},
+                            {"id": "revenue_agent", "task_type": "impact_analysis"}
+                        ],
+                        "edges": [
+                            {"source": "er_agent", "target": "icu_agent"},
+                            {"source": "icu_agent", "target": "discharge_agent", "condition": "icu_full", "condition_label": "if ICU full"},
+                            {"source": "icu_agent", "target": "bed_agent", "condition": "icu_not_full", "condition_label": "if ICU has capacity"},
+                            {"source": "discharge_agent", "target": "bed_agent"},
+                            {"source": "bed_agent", "target": "revenue_agent"}
+                        ]
+                    }
                 })
         elif p == '/api/queues/paused':
             self._send(200, {"paused": 0, "flows": []})
