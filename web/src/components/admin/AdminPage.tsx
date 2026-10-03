@@ -1,4 +1,3 @@
-import { DynamicIcon } from '../DynamicIcon'
 import { useEffect, useState } from 'react'
 import { Building2, UserCheck, Users, ArrowLeft } from 'lucide-react'
 import { useStore } from '../../store'
