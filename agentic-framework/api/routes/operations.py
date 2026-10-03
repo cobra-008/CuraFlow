@@ -597,32 +597,15 @@ class ChatRequest(BaseModel):
     message: str
 
 
+from chat_rag import process_chat_rag
+
 @router.post("/chat", dependencies=[Depends(require_active_user)])
 async def chat_with_assistant(body: ChatRequest):
+    resp = await process_chat_rag(body.message)
+    
     snap = _state().get_snapshot()
     pressure_info = snap.get("pressure", {})
     pressure_label = pressure_info.get("label", "NORMAL")
-    beds = snap.get("beds", {})
-    icu = snap.get("icu", {})
-    er = snap.get("emergency", {})
-    staff = snap.get("staff", {})
-
-    q = body.message.lower().strip()
-
-    if "bed" in q or "occupancy" in q:
-        resp = f"Current bed occupancy is {beds.get('occupancy_pct', 0)}%. {beds.get('occupied', 0)} of {beds.get('total', 0)} beds are occupied ({beds.get('available', 0)} available, {beds.get('cleaning', 0)} cleaning)."
-    elif "icu" in q:
-        resp = f"ICU occupancy is currently {icu.get('occupancy_pct', 0)}%. {icu.get('available', 0)} ICU beds available out of {icu.get('total', 0)} total."
-    elif "er" in q or "emergency" in q or "wait" in q:
-        resp = f"Emergency department has {er.get('waiting', 0)} patients waiting. Current demand score is {er.get('demand_score', 0)}."
-    elif "staff" in q or "nurse" in q or "doctor" in q:
-        resp = f"Staff utilization is {staff.get('utilization_pct', 0)}% with {staff.get('on_duty', 0)} staff on duty and {staff.get('available', 0)} available."
-    elif "crisis" in q:
-        resp = f"Hospital operational pressure status is {pressure_label}. {'Crisis mode is currently active.' if snap.get('crisis_mode') else 'Normal operational protocols are active.'}"
-    elif "recommend" in q or "action" in q:
-        resp = "Recommendations are continuously generated based on real-time bed, ICU, and ER telemetry. Please check the Pending Approvals tab for actionable items."
-    else:
-        resp = f"CuraFlow AI monitoring active. Hospital pressure: {pressure_label} (Beds: {beds.get('occupancy_pct', 0)}%, ICU: {icu.get('occupancy_pct', 0)}%, ER Waiting: {er.get('waiting', 0)}). All clinical systems operating."
 
     return {
         "response": resp,
