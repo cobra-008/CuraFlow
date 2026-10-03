@@ -6,14 +6,16 @@ import type { DoctorPatient } from "./DoctorDashboard"
 import { opsApi } from '../../services/opsApi'
 
 // ── Nurse Status Badge ────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: DoctorPatient["status"] }) {
-  const map = {
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, any> = {
     waiting: { label: "Waiting", bg: "#fffbeb", color: "#b45309", border: "#fde68a" },
     "in-progress": { label: "In Progress", bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
     done: { label: "Done", bg: "#f0fdf4", color: "#16a34a", border: "#bbf7d0" },
     discharged: { label: "Discharged", bg: "#f1f5f9", color: "#64748b", border: "#e2e8f0" },
+    admitted: { label: "Admitted", bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" }
   }
-  const s = map[status]
+  const normalizedStatus = (status || "").toLowerCase()
+  const s = map[normalizedStatus] || map["waiting"]
   return <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border" style={{ background: s.bg, color: s.color, borderColor: s.border }}>{s.label}</span>
 }
 
