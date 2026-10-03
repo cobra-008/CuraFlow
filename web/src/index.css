@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+/* No external font import needed — using system Times New Roman */
 
 @tailwind base;
 @tailwind components;
@@ -43,6 +43,7 @@
 /* ── Base body ───────────────────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
+  font-family: 'Times New Roman', Times, Georgia, serif !important;
 }
 
 html, body {

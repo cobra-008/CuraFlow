@@ -49,22 +49,25 @@ export function TopBar() {
     }}>
 
       {/* Search */}
-      <div className="flex-1 max-w-sm relative">
+      <div className="flex-1 max-w-lg relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9aa3b2' }} />
         <input
-          type="text"
+          type="search"
           value={searchVal}
           onChange={e => setSearchVal(e.target.value)}
-          placeholder="Search patient, bed, staff, equipment..."
-          className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg outline-none transition-all"
+          placeholder="Search patients, beds, staff, equipment, departments..."
+          autoComplete="off"
+          spellCheck={false}
+          className="w-full pl-8 pr-3 py-1.5 rounded-lg outline-none transition-all"
           style={{
             background: '#f5f0e8',
             border: '1px solid #e0d5c0',
             color: '#1a2744',
-            fontSize: '13px',
+            fontSize: '14px',
+            fontFamily: "'Times New Roman', Times, serif",
           }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#1e3a6e' }}
-          onBlur={e => { e.currentTarget.style.borderColor = '#e0d5c0' }}
+          onFocus={e => { e.currentTarget.style.borderColor = '#1e3a6e'; e.currentTarget.style.background = '#fff' }}
+          onBlur={e => { e.currentTarget.style.borderColor = '#e0d5c0'; e.currentTarget.style.background = '#f5f0e8' }}
         />
       </div>
 

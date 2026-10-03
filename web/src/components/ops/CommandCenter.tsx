@@ -120,112 +120,162 @@ function KpiCard({
 
 // ── Area Chart for Patient Flow ────────────────────────────────────────────────
 function PatientFlowChart({ state }: { state: HospitalState | null }) {
-  // Generate synthetic 16-point daily data (6AM–10PM) based on current state
   const hours = ['6 AM','8 AM','10 AM','12 PM','2 PM','4 PM','6 PM','8 PM','10 PM']
 
   const er = state ? [
     Math.floor(state.emergency.waiting * 0.4),
-    Math.floor(state.emergency.waiting * 0.6),
-    Math.floor(state.emergency.waiting * 0.8),
+    Math.floor(state.emergency.waiting * 0.65),
+    Math.floor(state.emergency.waiting * 0.85),
     Math.floor(state.emergency.waiting * 1.0),
-    Math.floor(state.emergency.waiting * 1.1),
-    Math.floor(state.emergency.waiting * 0.9),
-    Math.floor(state.emergency.waiting * 0.7),
+    Math.floor(state.emergency.waiting * 1.15),
+    Math.floor(state.emergency.waiting * 0.95),
+    Math.floor(state.emergency.waiting * 0.72),
     Math.floor(state.emergency.waiting * 0.5),
-    Math.floor(state.emergency.waiting * 0.3),
-  ] : Array(9).fill(0)
+    Math.floor(state.emergency.waiting * 0.28),
+  ] : [3,6,9,12,15,11,8,5,2]
 
   const adm = state ? [
-    Math.floor(state.beds.occupied * 0.3),
-    Math.floor(state.beds.occupied * 0.5),
-    Math.floor(state.beds.occupied * 0.7),
-    Math.floor(state.beds.occupied * 0.85),
-    Math.floor(state.beds.occupied * 0.9),
-    Math.floor(state.beds.occupied * 0.85),
-    Math.floor(state.beds.occupied * 0.75),
-    Math.floor(state.beds.occupied * 0.6),
-    Math.floor(state.beds.occupied * 0.45),
-  ] : Array(9).fill(0)
+    Math.floor(state.beds.occupied * 0.30),
+    Math.floor(state.beds.occupied * 0.52),
+    Math.floor(state.beds.occupied * 0.70),
+    Math.floor(state.beds.occupied * 0.88),
+    Math.floor(state.beds.occupied * 0.92),
+    Math.floor(state.beds.occupied * 0.88),
+    Math.floor(state.beds.occupied * 0.76),
+    Math.floor(state.beds.occupied * 0.60),
+    Math.floor(state.beds.occupied * 0.42),
+  ] : [25,42,58,72,76,68,60,48,33]
 
-  const disc = adm.map(v => Math.floor(v * 0.15))
+  const disc = adm.map(v => Math.floor(v * 0.14))
 
-  const W = 520; const H = 120
+  const W = 520; const H = 130
+  const PAD_L = 30; const PAD_B = 24
+  const chartW = W - PAD_L
   const maxVal = Math.max(...er, ...adm, 1)
 
-  function areaPath(values: number[], fill = false) {
-    const pts = values.map((v, i) => {
-      const x = (i / (values.length - 1)) * W
-      const y = H - (v / maxVal) * (H - 8)
-      return `${x.toFixed(1)},${y.toFixed(1)}`
-    })
-    if (fill) {
-      return `M0,${H} ${pts.join(' L')} L${W},${H} Z`
+  // Smooth cubic bezier path
+  function smoothPath(values: number[], fill = false) {
+    const pts = values.map((v, i) => ({
+      x: PAD_L + (i / (values.length - 1)) * chartW,
+      y: H - PAD_B - (v / maxVal) * (H - PAD_B - 8),
+    }))
+    let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`
+    for (let i = 1; i < pts.length; i++) {
+      const cp1x = (pts[i-1].x + pts[i].x) / 2
+      d += ` C${cp1x.toFixed(1)},${pts[i-1].y.toFixed(1)} ${cp1x.toFixed(1)},${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)},${pts[i].y.toFixed(1)}`
     }
-    return `M${pts.join(' L')}`
+    if (fill) {
+      d += ` L${pts[pts.length-1].x.toFixed(1)},${H - PAD_B} L${pts[0].x.toFixed(1)},${H - PAD_B} Z`
+    }
+    return d
   }
 
+  function getPoints(values: number[]) {
+    return values.map((v, i) => ({
+      x: PAD_L + (i / (values.length - 1)) * chartW,
+      y: H - PAD_B - (v / maxVal) * (H - PAD_B - 8),
+      v,
+    }))
+  }
+
+  const gridTicks = [0.25, 0.5, 0.75, 1.0]
+
   return (
-    <div className="cf-card p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-sm" style={{ color: '#1a2744' }}>Today's Patient Flow</h3>
-        <div className="flex items-center gap-4">
-          {[
-            { label: 'ER Arrivals', color: '#4e8ef7' },
-            { label: 'Admissions', color: '#f5a623' },
-            { label: 'Discharges', color: '#4caf82' },
-          ].map(({ label, color }) => (
-            <div key={label} className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-              <span className="text-xs text-gray-500">{label}</span>
-            </div>
-          ))}
+    <div className="cf-card" style={{ overflow: 'hidden' }}>
+      {/* Header with accent bar */}
+      <div style={{ height: '3px', background: 'linear-gradient(90deg, #4e8ef7 0%, #f5a623 50%, #4caf82 100%)' }} />
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="font-bold" style={{ fontSize: '14px', color: '#1a2744' }}>Today's Patient Flow</h3>
+            <p style={{ fontSize: '11px', color: '#9aa3b2', marginTop: '1px' }}>Live throughput — updated every 5 seconds</p>
+          </div>
+          <div className="flex items-center gap-5">
+            {[
+              { label: 'ER Arrivals', color: '#4e8ef7', value: er[4] },
+              { label: 'Admissions', color: '#f5a623', value: adm[4] },
+              { label: 'Discharges', color: '#4caf82', value: disc[4] },
+            ].map(({ label, color, value }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                <div>
+                  <div style={{ fontSize: '11px', color: '#5a6475', lineHeight: 1 }}>{label}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color, lineHeight: 1.2 }}>{value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="overflow-hidden">
-        <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full" style={{ height: '140px' }}>
-          <defs>
-            <linearGradient id="gr-er" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4e8ef7" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#4e8ef7" stopOpacity="0.02" />
-            </linearGradient>
-            <linearGradient id="gr-adm" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f5a623" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#f5a623" stopOpacity="0.02" />
-            </linearGradient>
-            <linearGradient id="gr-disc" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4caf82" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#4caf82" stopOpacity="0.02" />
-            </linearGradient>
-          </defs>
+        <div className="overflow-hidden">
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: '150px' }}>
+            <defs>
+              <linearGradient id="gr-er" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#4e8ef7" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#4e8ef7" stopOpacity="0.0" />
+              </linearGradient>
+              <linearGradient id="gr-adm" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f5a623" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#f5a623" stopOpacity="0.0" />
+              </linearGradient>
+              <linearGradient id="gr-disc" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#4caf82" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#4caf82" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
 
-          {/* Grid lines */}
-          {[0.25, 0.5, 0.75, 1].map(t => (
-            <line key={t} x1="0" y1={H - t * (H - 8)} x2={W} y2={H - t * (H - 8)}
-              stroke="#f0ebe0" strokeWidth="1" />
-          ))}
+            {/* Y-axis grid lines with labels */}
+            {gridTicks.map(t => {
+              const y = H - PAD_B - t * (H - PAD_B - 8)
+              const label = Math.round(t * maxVal)
+              return (
+                <g key={t}>
+                  <line x1={PAD_L} y1={y} x2={W} y2={y}
+                    stroke="#ede8e0" strokeWidth="1" strokeDasharray="4,3" />
+                  <text x={PAD_L - 4} y={y + 4} textAnchor="end" fontSize="8" fill="#c0b8a8">{label}</text>
+                </g>
+              )
+            })}
 
-          {/* Areas */}
-          <path d={areaPath(er, true)} fill="url(#gr-er)" />
-          <path d={areaPath(adm, true)} fill="url(#gr-adm)" />
-          <path d={areaPath(disc, true)} fill="url(#gr-disc)" />
+            {/* Bottom axis line */}
+            <line x1={PAD_L} y1={H - PAD_B} x2={W} y2={H - PAD_B} stroke="#ddd5c4" strokeWidth="1" />
 
-          {/* Lines */}
-          <path d={areaPath(er)} fill="none" stroke="#4e8ef7" strokeWidth="2" />
-          <path d={areaPath(adm)} fill="none" stroke="#f5a623" strokeWidth="2" />
-          <path d={areaPath(disc)} fill="none" stroke="#4caf82" strokeWidth="1.5" />
+            {/* Filled areas */}
+            <path d={smoothPath(adm, true)} fill="url(#gr-adm)" />
+            <path d={smoothPath(er, true)} fill="url(#gr-er)" />
+            <path d={smoothPath(disc, true)} fill="url(#gr-disc)" />
 
-          {/* X-axis labels */}
-          {hours.map((h, i) => (
-            <text key={h}
-              x={(i / (hours.length - 1)) * W}
-              y={H + 16}
-              textAnchor="middle"
-              fontSize="9"
-              fill="#9aa3b2"
-            >{h}</text>
-          ))}
-        </svg>
+            {/* Smooth lines */}
+            <path d={smoothPath(adm)} fill="none" stroke="#f5a623" strokeWidth="2.5" strokeLinecap="round" />
+            <path d={smoothPath(er)} fill="none" stroke="#4e8ef7" strokeWidth="2.5" strokeLinecap="round" />
+            <path d={smoothPath(disc)} fill="none" stroke="#4caf82" strokeWidth="2" strokeLinecap="round" />
+
+            {/* Data dots on ER line */}
+            {getPoints(er).map(({ x, y }, i) => (
+              <circle key={i} cx={x} cy={y} r={i === 4 ? 4 : 2.5}
+                fill="#fff" stroke="#4e8ef7" strokeWidth={i === 4 ? 2.5 : 1.5} />
+            ))}
+
+            {/* Peak label on ER */}
+            {(() => { const p = getPoints(er)[4]; return (
+              <g>
+                <rect x={p.x - 15} y={p.y - 18} width="30" height="13" rx="3" fill="#4e8ef7" />
+                <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="9" fill="#fff" fontWeight="700">{p.v}</text>
+              </g>
+            )})()}
+
+            {/* X-axis labels */}
+            {hours.map((h, i) => (
+              <text key={h}
+                x={PAD_L + (i / (hours.length - 1)) * chartW}
+                y={H - 6}
+                textAnchor="middle"
+                fontSize="9"
+                fill="#9aa3b2"
+              >{h}</text>
+            ))}
+          </svg>
+        </div>
       </div>
     </div>
   )
@@ -914,7 +964,7 @@ export function CommandCenter() {
   }
 
   return (
-    <div className="p-5 flex flex-col gap-5 min-h-full" style={{ background: '#f5f0e8' }}>
+    <div className="p-4 flex flex-col gap-3 min-h-full" style={{ background: '#f5f0e8' }}>
 
       {/* ── Welcome Header ────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
@@ -952,7 +1002,7 @@ export function CommandCenter() {
       </div>
 
       {/* ── 5 KPI Cards ──────────────────────────────────────────────────── */}
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         <KpiCard
           icon={Users} iconColor="#1e50a0" iconBg="#dbeafe"
           label="ER Waiting"
@@ -1004,7 +1054,7 @@ export function CommandCenter() {
       </div>
 
       {/* ── Middle row: AI Assistant + Live Activity ──────────────────────── */}
-      <div className="flex gap-4" style={{ minHeight: '400px' }}>
+      <div className="flex gap-3" style={{ minHeight: '400px' }}>
         {/* AI Assistant */}
         <div className="flex-1 min-w-0" style={{ minHeight: 0 }}>
           <AIAssistant state={state} />
@@ -1017,7 +1067,7 @@ export function CommandCenter() {
       </div>
 
       {/* ── Bottom row: Patient Flow Chart + Department Table ─────────────── */}
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         <div className="flex-1 min-w-0">
           <PatientFlowChart state={state} />
         </div>
