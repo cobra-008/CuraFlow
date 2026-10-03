@@ -1,5 +1,5 @@
-﻿import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { ChevronDown, CheckCircle, Sun, Moon, Cloud, Loader2, Save, LogOut, ShieldCheck, Workflow as WorkflowIcon, Hospital } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useStore } from '../store'
 import { OrgSwitcher } from './OrgSwitcher'
@@ -46,8 +46,8 @@ export function Header() {
   const roleLabel = currentUser?.role === 'super_admin'
     ? 'Platform · Super Admin'
     : `${currentUser?.org_name ?? '—'} · ${
-        currentUser?.role === 'admin' ? 'Admin'
-        : currentUser?.role === 'approver' ? 'Approver' : 'Doctor'}`
+        (currentUser?.role ?? '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+      }`
 
   return (
     <header className="relative z-[60] grid grid-cols-[1fr_auto_1fr] items-center px-5 py-0 border-b border-[var(--border)] bg-[var(--bg-base)] flex-shrink-0 h-14">
@@ -131,7 +131,18 @@ export function Header() {
 
         {/* Mode control moved to the Mission Brief sidebar (below its header). */}
 
-        {/* Agent Capabilities / Autonomous Workflows — icon buttons */}
+        <button
+          onClick={() => setActiveView('hospital')}
+          title="Hospital Overview"
+          aria-label="Hospital Overview"
+          className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors flex-shrink-0 ${
+            activeView === 'hospital'
+              ? 'bg-blue-600 border-blue-600 text-white'
+              : 'border-[var(--border-a)] bg-[var(--bg-raised)] text-slate-400 hover:bg-[var(--bg-hover)] hover:text-slate-200'
+          }`}
+        >
+          <Hospital size={15} className="flex-shrink-0" />
+        </button>
         <button
           onClick={() => setActiveView('capabilities')}
           title="Agent Capabilities"

@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import logging
 import sys
 from contextlib import asynccontextmanager
@@ -26,6 +26,7 @@ from api.routes.agents import router as agents_router
 from api.routes.auth import router as auth_router
 from api.routes.orgs import router as orgs_router
 from api.routes.users import router as users_router
+from api.routes.hospital import router as hospital_router
 
 logger = logging.getLogger("__main__")
 
@@ -193,6 +194,7 @@ app.include_router(sessions_router, prefix="/api")
 app.include_router(approvals_router, prefix="/api")
 app.include_router(queues_router, prefix="/api")
 app.include_router(agents_router, prefix="/api")
+app.include_router(hospital_router, prefix="/api/hospital")
 app.include_router(ws_router)
 
 
