@@ -1072,23 +1072,90 @@ export function AgentFindings() {
           <div className="text-sm text-slate-600 italic">Select an agent to view output</div>
         )}
 
-        {/* Synthesis loader / recommendation card */}
+        {/* ── Synthesis / Recommendation ─────────────────────────────────────── */}
         {(synthesisRunning || sessionRecommendation) && (
-          <div className="mt-3 border-t border-[var(--border)] pt-3">
-            {sessionRecommendation
-              ? (
-                <>
-                  <RecommendationCard rec={sessionRecommendation} />
-                  <CommitButton committed={committedSession} onCommit={commitSession} />
-                </>
-              )
-              : (
-                <div className="flex items-center gap-2 text-sm text-blue-400 px-1 py-1">
-                  <Loader2 size={11} className="animate-spin flex-shrink-0" />
-                  <span>Generating recommendation…</span>
+          <div className="mt-4">
+            {sessionRecommendation ? (
+              <div className="rounded-xl overflow-hidden border-2"
+                style={{
+                  borderColor: sessionRecommendation.risk === 'high' ? '#dc2626'
+                    : sessionRecommendation.risk === 'medium' ? '#d97706'
+                    : 'var(--accent-teal)',
+                  background: sessionRecommendation.risk === 'high' ? 'rgba(220,38,38,0.06)'
+                    : sessionRecommendation.risk === 'medium' ? 'rgba(217,119,6,0.06)'
+                    : 'rgba(15,118,110,0.06)',
+                }}
+              >
+                {/* Header banner */}
+                <div className="px-4 py-2 flex items-center gap-2"
+                  style={{
+                    background: sessionRecommendation.risk === 'high' ? 'rgba(220,38,38,0.15)'
+                      : sessionRecommendation.risk === 'medium' ? 'rgba(217,119,6,0.15)'
+                      : 'rgba(15,118,110,0.15)',
+                  }}
+                >
+                  <Sparkles size={14} style={{
+                    color: sessionRecommendation.risk === 'high' ? '#dc2626'
+                      : sessionRecommendation.risk === 'medium' ? '#d97706'
+                      : 'var(--accent-teal)'
+                  }} />
+                  <span className="text-xs font-bold uppercase tracking-widest" style={{
+                    color: sessionRecommendation.risk === 'high' ? '#dc2626'
+                      : sessionRecommendation.risk === 'medium' ? '#d97706'
+                      : 'var(--accent-teal)'
+                  }}>
+                    CuraFlow Recommendation
+                  </span>
+                  <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style={{
+                    background: sessionRecommendation.risk === 'high' ? '#dc2626'
+                      : sessionRecommendation.risk === 'medium' ? '#d97706'
+                      : 'var(--accent-teal)',
+                    color: '#fff'
+                  }}>
+                    {sessionRecommendation.risk.toUpperCase()} RISK
+                  </span>
                 </div>
-              )
-            }
+
+                {/* Headline + summary */}
+                <div className="px-4 py-3 space-y-1.5">
+                  <p className="text-[var(--text-primary)] font-semibold text-sm leading-snug">
+                    {sessionRecommendation.headline}
+                  </p>
+                  {sessionRecommendation.summary && (
+                    <p className="text-[var(--text-secondary)] text-xs leading-relaxed">
+                      {sessionRecommendation.summary}
+                    </p>
+                  )}
+                </div>
+
+                {/* Action list */}
+                {sessionRecommendation.actions.length > 0 && (
+                  <div className="px-4 pb-3">
+                    <ul className="space-y-1">
+                      {sessionRecommendation.actions.map((a, i) => (
+                        <li key={i} className="flex gap-2 text-xs text-[var(--text-secondary)] leading-snug">
+                          <span className="flex-shrink-0 font-bold" style={{
+                            color: sessionRecommendation.risk === 'high' ? '#dc2626'
+                              : sessionRecommendation.risk === 'medium' ? '#d97706'
+                              : 'var(--accent-teal)'
+                          }}>{i + 1}.</span>
+                          {a}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <CommitButton committed={committedSession} onCommit={commitSession} />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm px-1 py-2 rounded-lg border"
+                style={{ borderColor: 'var(--border)', color: 'var(--accent-blue)', background: 'rgba(30,80,160,0.05)' }}
+              >
+                <Loader2 size={12} className="animate-spin flex-shrink-0" />
+                <span>Generating recommendation…</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -1242,28 +1309,33 @@ function CommitButton({ committed, onCommit }: { committed: boolean; onCommit: (
 
   if (committed) {
     return (
-      <div className="mt-2 flex items-center gap-1.5 text-sm text-teal-400 px-1">
-        <CheckCircle size={11} className="flex-shrink-0" />
+      <div className="flex items-center gap-2 text-sm font-semibold px-4 py-3"
+        style={{ color: 'var(--accent-teal)' }}
+      >
+        <CheckCircle size={13} className="flex-shrink-0" />
         <span>Saved to hospital system</span>
       </div>
     )
   }
 
   return (
-    <button
-      disabled={saving}
-      onClick={async () => {
-        setSaving(true)
-        await onCommit()
-        setSaving(false)
-      }}
-      className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
-    >
-      {saving
-        ? <><Loader2 size={11} className="animate-spin flex-shrink-0" /> Saving…</>
-        : <><Save size={11} className="flex-shrink-0" /> Save &amp; Confirm</>
-      }
-    </button>
+    <div className="px-3 pb-3">
+      <button
+        disabled={saving}
+        onClick={async () => {
+          setSaving(true)
+          await onCommit()
+          setSaving(false)
+        }}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ background: 'var(--accent-teal)' }}
+      >
+        {saving
+          ? <><Loader2 size={13} className="animate-spin flex-shrink-0" /> Saving…</>
+          : <><Save size={13} className="flex-shrink-0" /> Save &amp; Confirm Recommendation</>
+        }
+      </button>
+    </div>
   )
 }
 
