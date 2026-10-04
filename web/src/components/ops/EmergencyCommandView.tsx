@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { AlertTriangle, Clock, Ambulance, BedDouble, Activity, Users, Flame, ShieldAlert, ArrowRight } from "lucide-react"
+import { Clock, Ambulance, BedDouble, Activity, Users } from "lucide-react"
 
 interface TriagePatient {
   id: string

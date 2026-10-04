@@ -438,3 +438,17 @@ async def change_password(
 
     logger.info("password_changed  username=%s", ctx.username)
     return {"status": "ok", "message": "Password updated successfully"}
+
+@router.get("/auth/demo-credentials")
+async def demo_credentials():
+    users = await hasura.list_users(status="active")
+    docs = [u for u in users if u["role"] == "doctor"]
+    nurses = [u for u in users if u["role"] == "nurse"]
+    return {
+        "doctor_count": len(docs),
+        "nurse_count": len(nurses),
+        "credentials": [
+            {"username": u["username"], "role": u["role"], "display_name": u["display_name"]}
+            for u in docs + nurses
+        ]
+    }

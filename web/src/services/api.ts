@@ -588,3 +588,13 @@ export async function fetchHospitalStats() {
 	if (!res.ok) throw new Error(`fetchHospitalStats failed: ${res.statusText}`)
 	return res.json()
 }
+
+export async function fetchDemoCredentials(): Promise<{
+  doctor_count: number
+  nurse_count: number
+  credentials: Array<{ username: string; role: string; display_name: string }>
+}> {
+  const res = await fetch(`${API_BASE}/api/auth/demo-credentials`, { headers: authHeader() })
+  if (!res.ok) return { doctor_count: 0, nurse_count: 0, credentials: [] }
+  return res.json()
+}
