@@ -76,9 +76,9 @@ export type ReorchestrateResponse = ReorchestratePipelineResponse | Reorchestrat
 // ── Auth token helpers ─────────────────────────────────────────────────────────
 
 const TOKEN_KEY = 'hospilot_token'
-export const getToken = () => localStorage.getItem(TOKEN_KEY)
-export const setToken = (t: string) => localStorage.setItem(TOKEN_KEY, t)
-export const clearToken = () => localStorage.removeItem(TOKEN_KEY)
+export const getToken = () => sessionStorage.getItem(TOKEN_KEY)
+export const setToken = (t: string) => sessionStorage.setItem(TOKEN_KEY, t)
+export const clearToken = () => sessionStorage.removeItem(TOKEN_KEY)
 
 function authHeader(): Record<string, string> {
 	const t = getToken()
@@ -92,9 +92,9 @@ function authHeader(): Record<string, string> {
 // (none is ever set) — and the backend ignores org_id for non-super callers.
 
 const ACTIVE_ORG_KEY = 'hospilot_active_org'
-export const getActiveOrgId = () => localStorage.getItem(ACTIVE_ORG_KEY)
-export const setActiveOrgId = (id: string) => localStorage.setItem(ACTIVE_ORG_KEY, id)
-export const clearActiveOrgId = () => localStorage.removeItem(ACTIVE_ORG_KEY)
+export const getActiveOrgId = () => sessionStorage.getItem(ACTIVE_ORG_KEY)
+export const setActiveOrgId = (id: string) => sessionStorage.setItem(ACTIVE_ORG_KEY, id)
+export const clearActiveOrgId = () => sessionStorage.removeItem(ACTIVE_ORG_KEY)
 
 function withOrg(path: string): string {
 	const org = getActiveOrgId()

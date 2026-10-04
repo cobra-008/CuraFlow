@@ -23,7 +23,7 @@ const ACTIVE_VIEWS: ActiveView[] = ['orchestrator', 'capabilities', 'approvals',
 // this and will correct an inappropriate restored view (e.g. an approver landing
 // anywhere but Approvals).
 function loadActiveView(): ActiveView {
-  const saved = localStorage.getItem('hospilot_active_view')
+  const saved = sessionStorage.getItem('hospilot_active_view')
   return (ACTIVE_VIEWS as string[]).includes(saved ?? '') ? (saved as ActiveView) : 'orchestrator'
 }
 
@@ -1479,8 +1479,8 @@ export const useStore = create<AppState>((set, get) => {
 // Persist the active sessionId and recommendation across page refreshes
 useStore.subscribe((state, prev) => {
   if (state.sessionId !== prev.sessionId) {
-    if (state.sessionId) localStorage.setItem('hospilot_session_id', state.sessionId)
-    else localStorage.removeItem('hospilot_session_id')
+    if (state.sessionId) sessionStorage.setItem('hospilot_session_id', state.sessionId)
+    else sessionStorage.removeItem('hospilot_session_id')
     // When embedded in the Hospilot widget (iframe), tell the host so the minimized
     // panel tracks whatever session was started/loaded here (iframe → widget sync).
     if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
@@ -1488,10 +1488,10 @@ useStore.subscribe((state, prev) => {
     }
   }
   if (state.sessionRecommendation !== prev.sessionRecommendation && state.sessionId && state.sessionRecommendation) {
-    localStorage.setItem(`hospilot_rec_${state.sessionId}`, JSON.stringify(state.sessionRecommendation))
+    sessionStorage.setItem(`hospilot_rec_${state.sessionId}`, JSON.stringify(state.sessionRecommendation))
   }
   if (state.activeView !== prev.activeView) {
-    localStorage.setItem('hospilot_active_view', state.activeView)
+    sessionStorage.setItem('hospilot_active_view', state.activeView)
   }
 })
 

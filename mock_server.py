@@ -23,6 +23,46 @@ import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import queue
+
+_sse_clients = []
+
+_patients_db = [
+    {
+        "id": "pt-001",
+        "name": "Evelyn Carter",
+        "age": 68,
+        "gender": "F",
+        "ward": "A",
+        "room": "101",
+        "bed": "1",
+        "problem": "Post-op Hip Replacement",
+        "appointmentTime": "09:00 AM",
+        "status": "admitted",
+        "nurseCalled": False
+    },
+    {
+        "id": "pt-002",
+        "name": "Marcus Johnson",
+        "age": 45,
+        "gender": "M",
+        "ward": "B",
+        "room": "205",
+        "bed": "2",
+        "problem": "Pneumonia",
+        "appointmentTime": "10:30 AM",
+        "status": "in-progress",
+        "nurseCalled": False
+    }
+]
+
+def _broadcast_sse(event_type, data):
+    for q in list(_sse_clients):
+        try:
+            q.put({"type": event_type, "data": data})
+        except Exception:
+            pass
+
 # Optional JWT validation
 try:
     import jwt as _jwt
@@ -692,6 +732,35 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
                 "timestamp": NOW(),
             })
 
+        elif p == '/api/ops/patients/admit':
+            new_pt = {
+                "id": f"pt-{uuid.uuid4().hex[:6]}",
+                "name": body.get("name", "New Patient"),
+                "age": random.randint(20, 80),
+                "gender": "M" if random.random() > 0.5 else "F",
+                "ward": body.get("dept", "Gen"),
+                "room": "TBD",
+                "bed": "-",
+                "problem": body.get("type", "General"),
+                "appointmentTime": "Now",
+                "status": "admitted",
+                "nurseCalled": False
+            }
+            _patients_db.insert(0, new_pt)
+            _broadcast_sse("NEW_ADMISSION", new_pt)
+            self._send(200, {"status": "admitted", "patient": new_pt})
+
+        elif p == '/api/ops/patients/call-nurse':
+            pt_id = body.get("id")
+            pt_name = "Unknown"
+            for pt in _patients_db:
+                if pt["id"] == pt_id:
+                    pt["nurseCalled"] = True
+                    pt_name = pt["name"]
+                    break
+            _broadcast_sse("CALL_NURSE", {"patientId": pt_id, "patientName": pt_name})
+            self._send(200, {"status": "nurse_called"})
+
         else:
             self._send(404, {"detail": f"Not found: {p}"})
 
@@ -741,12 +810,41 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             ok, actor = self._require_ops_auth()
             if not ok:
                 return
+            if p == '/api/ops/stream':
+                self.send_response(200)
+                self.send_header('Content-type', 'text/event-stream')
+                self.send_header('Cache-Control', 'no-cache')
+                self.send_header('Connection', 'keep-alive')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                
+                client_queue = queue.Queue()
+                _sse_clients.append(client_queue)
+                try:
+                    while True:
+                        try:
+                            event = client_queue.get(timeout=15)
+                            msg = f"data: {json.dumps(event)}\n\n"
+                            self.wfile.write(msg.encode('utf-8'))
+                            self.wfile.flush()
+                        except queue.Empty:
+                            self.wfile.write(b": keep-alive\n\n")
+                            self.wfile.flush()
+                except Exception:
+                    pass
+                finally:
+                    if client_queue in _sse_clients:
+                        _sse_clients.remove(client_queue)
+                return
             self._ops_get(p, actor)
         else:
             self._send(404, {"detail": f"Not found: {p}"})
 
     def _ops_get(self, p, actor):
-        if p == '/api/ops/hospital-state':
+        if p == '/api/ops/patients':
+            self._send(200, {"patients": _patients_db})
+
+        elif p == '/api/ops/hospital-state':
             self._send(200, _snap())
 
         elif p == '/api/ops/beds':
@@ -870,6 +968,6 @@ print(f"CuraFlow Mock API Server — port {PORT}")
 print(f"  Hospital state: synthetic ({'loaded' if _hospital else 'unavailable'})")
 print(f"  Auth mode: {auth_mode}")
 print(f"  All /api/ops/* routes require Authorization: Bearer <token>")
-socketserver.TCPServer.allow_reuse_address = True
-with socketserver.TCPServer(("", PORT), MockAPIHandler) as httpd:
+socketserver.ThreadingTCPServer.allow_reuse_address = True
+with socketserver.ThreadingTCPServer(("", PORT), MockAPIHandler) as httpd:
     httpd.serve_forever()

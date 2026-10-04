@@ -47,6 +47,14 @@ export function useRealTime() {
             )
             // Trigger re-fetch of patients list
             window.dispatchEvent(new Event('curaflow:patients_updated'))
+          } else if (data.type === 'CALL_NURSE') {
+            if (navigator.vibrate) {
+              navigator.vibrate([400, 200, 400])
+            }
+            window.dispatchEvent(
+              new CustomEvent('curaflow:call_nurse', { detail: data.data })
+            )
+            window.dispatchEvent(new Event('curaflow:patients_updated'))
           }
         } catch (err) {}
       }

@@ -119,11 +119,11 @@ export default function App() {
           setActiveView('approvals')
         } else if (user.role === 'super_admin' || user.role === 'admin') {
           setActiveView('orchestrator')
-          const savedId = localStorage.getItem('hospilot_session_id')
+          const savedId = sessionStorage.getItem('hospilot_session_id')
           if (savedId) loadSession(savedId)
         } else {
           setActiveView('command')
-          const savedId = localStorage.getItem('hospilot_session_id')
+          const savedId = sessionStorage.getItem('hospilot_session_id')
           if (savedId) loadSession(savedId)
         }
       })

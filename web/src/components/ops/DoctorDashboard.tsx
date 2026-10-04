@@ -31,7 +31,7 @@ export interface DoctorPatient {
   bed?: string
   nurseNote?: string
   nurseNoteAt?: string
-  status: "waiting" | "in-progress" | "done" | "discharged"
+  status: string
   nurseCalled?: boolean
 }
 
@@ -39,21 +39,22 @@ import { opsApi } from '../../services/opsApi'
 
 // ── Doctor Status Badge ────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: DoctorPatient["status"] }) {
-  const map = {
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string, bg: string, color: string, border: string }> = {
     waiting: { label: "Waiting", bg: "#fffbeb", color: "#b45309", border: "#fde68a" },
     "in-progress": { label: "In Progress", bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
     done: { label: "Done", bg: "#f0fdf4", color: "#16a34a", border: "#bbf7d0" },
     discharged: { label: "Discharged", bg: "#f1f5f9", color: "#64748b", border: "#e2e8f0" },
+    admitted: { label: "Admitted", bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
   }
-  const s = map[status]
+  const s = map[(status || '').toLowerCase()] || { label: status || 'Unknown', bg: "#f1f5f9", color: "#64748b", border: "#e2e8f0" }
   return <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border" style={{ background: s.bg, color: s.color, borderColor: s.border }}>{s.label}</span>
 }
 
 function PatientCard({ patient, onCallNurse, onStatusChange, onDismissDischarge }: {
   patient: DoctorPatient
   onCallNurse: (id: string) => void
-  onStatusChange: (id: string, status: DoctorPatient["status"]) => void
+  onStatusChange: (id: string, status: string) => void
   onDismissDischarge: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -183,7 +184,7 @@ export function DoctorDashboard() {
 
   useEffect(() => {
     const handler = (e: CustomEvent) => {
-      const { patientId, note, time, status } = e.detail as { patientId: string; note?: string; time?: string; status?: DoctorPatient["status"] }
+      const { patientId, note, time, status } = e.detail as { patientId: string; note?: string; time?: string; status?: string }
       setPatients(prev => prev.map(p => {
         if (p.id !== patientId) return p
         const updated = { ...p }
@@ -211,11 +212,16 @@ export function DoctorDashboard() {
     })
   }, [patients, dischargedQueue, pushToast])
 
-  const handleCallNurse = useCallback((id: string) => {
+  const handleCallNurse = useCallback(async (id: string) => {
     setPatients(prev => prev.map(p => p.id === id ? { ...p, nurseCalled: true } : p))
     const patient = patients.find(p => p.id === id)
-    pushToast({ severity: "info", title: "Nurse Called", message: `Nurse summoned for ${patient?.name ?? "patient"}.` })
-    window.dispatchEvent(new CustomEvent("curaflow:call_nurse", { detail: { patientId: id, patientName: patient?.name } }))
+    pushToast({ severity: "info", title: "Calling Nurse...", message: `Summoning nurse for ${patient?.name ?? "patient"}.` })
+    try {
+      await opsApi.callNurse(id)
+    } catch (e) {
+      pushToast({ severity: "critical", title: "Error", message: "Failed to call nurse." })
+      setPatients(prev => prev.map(p => p.id === id ? { ...p, nurseCalled: false } : p))
+    }
   }, [patients, pushToast])
 
   const handleStatusChange = useCallback((id: string, status: DoctorPatient["status"]) => {

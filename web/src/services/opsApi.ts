@@ -214,12 +214,40 @@ export const opsApi = {
   getDataQuality: () => opsGet<{ sources: DataSource[]; overall_confidence: number }>('data-quality'),
   getAgentPerformance: () => opsGet<{ agents: AgentPerf[] }>('agents/performance'),
 
-  // AI Chat
-  chat: (message: string) =>
-    opsPost<{ response: string; context: { pressure: string; timestamp: string }; timestamp: string }>('chat', { message }),
+  // AI Chat (Streaming)
+  chatStream: async function* (message: string) {
+    const res = await fetch(`${API_BASE}/api/ops/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify({ message }),
+    })
+    if (!res.ok || !res.body) throw new Error('Chat API error')
+    
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      
+      const lines = buffer.split('\n\n')
+      buffer = lines.pop() || ''
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            yield JSON.parse(line.slice(6))
+          } catch (e) { /* ignore parse error */ }
+        }
+      }
+    }
+  },
 
   // Patients
   getPatients: () => opsGet<{ patients: unknown[] }>('patients'),
   admitPatient: (body: { name: string; phone: string; type: string; dept: string; needsBed: boolean }) =>
     opsPost<{ status: string; patient: unknown }>('patients/admit', body),
+  callNurse: (id: string) => opsPost<{ status: string }>('patients/call-nurse', { id }),
 }

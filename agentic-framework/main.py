@@ -211,11 +211,19 @@ app = FastAPI(
 
 @app.middleware("http")
 async def sanitize_json_body(request: Request, call_next):
-    if request.method in ("POST", "PUT", "PATCH") and "application/json" in request.headers.get("content-type", "") and not request.url.path.startswith("/fhir"):
+    if request.method in ("POST", "PUT", "PATCH") and "application/json" in request.headers.get("content-type", "") and not request.url.path.startswith("/fhir") and not request.url.path.endswith("/chat"):
         raw = await request.body()
         cleaned = raw.replace(b"\r\n", b" ").replace(b"\r", b" ").replace(b"\n", b" ")
+        
+        has_returned = False
+        original_receive = request._receive
         async def receive():
-            return {"type": "http.request", "body": cleaned, "more_body": False}
+            nonlocal has_returned
+            if not has_returned:
+                has_returned = True
+                return {"type": "http.request", "body": cleaned, "more_body": False}
+            return await original_receive()
+            
         request._receive = receive
     return await call_next(request)
 

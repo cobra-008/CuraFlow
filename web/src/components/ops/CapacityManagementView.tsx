@@ -1,4 +1,5 @@
 import { Bed, Users, TrendingUp, AlertTriangle } from 'lucide-react'
+import { SimulationView } from './SimulationView'
 
 export function CapacityManagementView() {
   const wards = [
@@ -11,11 +12,11 @@ export function CapacityManagementView() {
   ]
 
   return (
-    <div className="p-6 h-full flex flex-col gap-6" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <header className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+    <div className="p-6 h-full flex flex-col gap-6 overflow-y-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <header className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Capacity Management</h1>
-          <p className="text-sm text-slate-500 mt-1">Bed availability and ward utilization</p>
+          <h1 className="text-2xl font-bold text-slate-800">Capacity & Simulation</h1>
+          <p className="text-sm text-slate-500 mt-1">Bed availability, ward utilization, and digital twin scenarios</p>
         </div>
         <div className="flex gap-3">
           <div className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 border border-indigo-100 shadow-sm">
@@ -29,7 +30,7 @@ export function CapacityManagementView() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-shrink-0">
         {wards.map((ward, i) => {
           const utilPct = Math.round((ward.occupied / ward.total) * 100)
           const isHigh = utilPct > 85
@@ -67,6 +68,10 @@ export function CapacityManagementView() {
             </div>
           )
         })}
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex-shrink-0 mt-4 overflow-hidden">
+        <SimulationView />
       </div>
     </div>
   )

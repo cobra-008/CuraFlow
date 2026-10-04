@@ -335,7 +335,15 @@ function LiveActivityFeed({ state, bottlenecks }: { state: HospitalState | null;
 // ── AI Assistant ───────────────────────────────────────────────────────────────
 type TabId = 'ask' | 'recs' | 'analyze' | 'simulate' | 'capacity' | 'emergency'
 
-interface ChatMsg { role: 'user' | 'ai'; text: string; ts: string }
+interface ChatMsg { 
+  role: 'user' | 'ai' 
+  text: string 
+  ts: string
+  isStreaming?: boolean
+  statusLogs?: { step: number; message: string }[]
+  agentsUsed?: string[]
+  widgets?: any[]
+}
 
 const TABS: { id: TabId; icon: React.ReactNode; label: string }[] = [
   { id: 'ask',       icon: <MessageSquare size={14} />, label: 'Ask Anything' },
@@ -428,12 +436,48 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
     setInput('')
     const ts = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     setMessages(m => [...m, { role: 'user', text, ts }])
+    
+    // Add AI placeholder message
+    const aiTs = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    setMessages(m => [...m, { role: 'ai', text: '', ts: aiTs, isStreaming: true, statusLogs: [] }])
     setSending(true)
+    
     try {
-      const res = await opsApi.chat(text)
-      setMessages(m => [...m, { role: 'ai', text: res.response, ts: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }])
+      for await (const chunk of opsApi.chatStream(text)) {
+        setMessages(currentMessages => {
+          const newMessages = [...currentMessages]
+          const lastMsgIndex = newMessages.length - 1
+          const lastMsg = { ...newMessages[lastMsgIndex] }
+          
+          if (lastMsg.role === 'ai') {
+            if (chunk.type === 'status') {
+              // Prevent duplicate steps just in case
+              const currentLogs = lastMsg.statusLogs || []
+              if (!currentLogs.some(l => l.step === chunk.step)) {
+                lastMsg.statusLogs = [...currentLogs, { step: chunk.step, message: chunk.message }]
+              }
+            } else if (chunk.type === 'result') {
+              lastMsg.text = chunk.response
+              lastMsg.agentsUsed = chunk.agents_used
+              lastMsg.widgets = chunk.widgets
+              lastMsg.isStreaming = false
+            }
+          }
+          
+          newMessages[lastMsgIndex] = lastMsg
+          return newMessages
+        })
+      }
     } catch {
-      setMessages(m => [...m, { role: 'ai', text: 'Unable to connect to CuraFlow AI. Please check the server connection.', ts }])
+      setMessages(currentMessages => {
+        const newMessages = [...currentMessages]
+        const lastMsgIndex = newMessages.length - 1
+        const lastMsg = { ...newMessages[lastMsgIndex] }
+        lastMsg.text = 'Unable to connect to CuraFlow AI.'
+        lastMsg.isStreaming = false
+        newMessages[lastMsgIndex] = lastMsg
+        return newMessages
+      })
     } finally {
       setSending(false)
     }
@@ -469,21 +513,91 @@ function AIAssistant({ state }: { state: HospitalState | null }) {
                   </div>
                 )}
                 <div className={`max-w-[85%] ${m.role === 'user' ? '' : 'flex-1 min-w-0'}`}>
-                  <div className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed ${
-                    m.role === 'user'
-                      ? 'rounded-br-sm'
-                      : 'rounded-bl-sm'
-                  }`} style={{
-                    background: m.role === 'user' ? '#1e3a6e' : '#f5f0e8',
-                    color: m.role === 'user' ? '#fff' : '#1a2744',
-                  }}>
-                    {m.text}
-                  </div>
+                  {m.role === 'ai' && m.statusLogs && m.statusLogs.length > 0 && (
+                    <div className="flex flex-col gap-2 mb-3 bg-white/50 p-3 rounded-xl border border-blue-50">
+                      {m.statusLogs.map((log, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-[11.5px] text-blue-700 font-medium animate-in slide-in-from-left-2 fade-in duration-300">
+                          <CheckCircle2 size={14} className="text-blue-500 mt-[1px]" />
+                          <span>{log.message}</span>
+                        </div>
+                      ))}
+                      {m.isStreaming && (
+                         <div className="flex items-center gap-2 mt-1 px-1">
+                           <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                           <span className="text-[10px] text-blue-400 italic">Processing...</span>
+                         </div>
+                      )}
+                    </div>
+                  )}
+
+                  {m.text && (
+                    <div className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed ${
+                      m.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'
+                    }`} style={{
+                      background: m.role === 'user' ? '#1e3a6e' : '#f5f0e8',
+                      color: m.role === 'user' ? '#fff' : '#1a2744',
+                    }}>
+                      {m.text}
+                      
+                      {/* Render rich UI widgets */}
+                      {m.widgets && m.widgets.length > 0 && (
+                        <div className="mt-3 flex flex-col gap-2">
+                          {m.widgets.map((w: any, wIdx: number) => {
+                            if (w.type === 'button') {
+                              return (
+                                <button key={wIdx} className="px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2" style={{ background: '#1e50a0', color: '#fff' }}>
+                                  {w.label}
+                                </button>
+                              )
+                            }
+                            if (w.type === 'chart') {
+                              return (
+                                <div key={wIdx} className="bg-white rounded-xl p-3 shadow-sm border border-black/5 mt-1">
+                                  <div className="text-[10px] font-bold text-black/40 uppercase tracking-wider mb-2">{w.title}</div>
+                                  <div className="flex items-end gap-3 h-20">
+                                    {Object.entries(w.data).map(([key, val]: [string, any]) => (
+                                      <div key={key} className="flex-1 flex flex-col items-center gap-1">
+                                        <div className="w-full relative flex items-end justify-center h-full bg-slate-50 rounded-sm">
+                                          <div className="w-full rounded-sm transition-all" style={{ height: `${Math.min(100, Math.max(10, Number(val)))}%`, background: Number(val) > 80 ? '#ef4444' : '#3b82f6' }} />
+                                        </div>
+                                        <div className="text-[9px] font-medium text-black/60 truncate w-full text-center" title={key}>{key}</div>
+                                        <div className="text-[10px] font-bold" style={{ color: '#1a2744' }}>{val}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )
+                            }
+                            return null
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Render agents used badges if present */}
+                      {m.agentsUsed && m.agentsUsed.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-black/5 flex flex-wrap gap-1">
+                          <span className="text-[10px] text-black/40 w-full mb-1">Sources:</span>
+                          {m.agentsUsed.map(agent => (
+                            <span key={agent} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/5 text-black/60 border border-black/10">
+                              {agent}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {m.role === 'ai' && m.isStreaming && (!m.statusLogs || m.statusLogs.length === 0) && (
+                    <div className="rounded-2xl rounded-bl-sm w-fit" style={{ background: '#f5f0e8' }}>
+                      <TypingDots />
+                    </div>
+                  )}
+                  
                   <div className="text-xs mt-1 px-1" style={{ color: '#c0b8a8', fontSize: '11px' }}>{m.ts}</div>
                 </div>
               </div>
             ))}
-            {sending && (
+            {sending && messages.length > 0 && messages[messages.length - 1].role !== 'ai' && (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: '#1e3a6e' }}>
                   <Sparkles size={14} className="text-white" />

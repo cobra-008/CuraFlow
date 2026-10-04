@@ -4,7 +4,7 @@
  * Clearly labeled: SYNTHETIC / PROTOTYPE — not clinical evidence.
  */
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { opsApi } from '../../services/opsApi'
 
 const SCENARIOS = [
@@ -66,11 +66,19 @@ export function SimulationView() {
   const [timeMultiplier, setTimeMultiplier] = useState(1)
   const [running, setRunning] = useState(false)
   const [result, setResult] = useState<any>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (result && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [result])
 
   const runSim = async () => {
     setRunning(true)
     setResult(null)
     try {
+      await new Promise(resolve => setTimeout(resolve, 1500))
       const r = await opsApi.runSimulation({ scenario_type: scenario, with_curaflow: true, time_multiplier: timeMultiplier })
       setResult(r)
     } catch (e) {
@@ -163,7 +171,7 @@ export function SimulationView() {
 
       {/* Results */}
       {metrics && (
-        <div className="flex flex-col gap-3">
+        <div ref={resultsRef} className="flex flex-col gap-3 mt-2">
           <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
             Simulation Results — {SCENARIOS.find(s => s.id === scenario)?.name ?? scenario}
           </div>

@@ -23,7 +23,7 @@ export function SimulationEngine() {
   const runSimulation = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('hospilot_token')
+      const token = sessionStorage.getItem('hospilot_token')
       const res = await fetch('/api/hospital/predict_and_escalate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

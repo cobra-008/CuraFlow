@@ -85,7 +85,7 @@ export function Sidebar() {
   useEffect(() => {
     if (!sessionId || turns.length === 0) return
     try {
-      localStorage.setItem(`hospilot_turns_${sessionId}`, JSON.stringify(turns))
+      sessionStorage.setItem(`hospilot_turns_${sessionId}`, JSON.stringify(turns))
     } catch {
       // storage full/unavailable -- just means this reload won't restore the thread
     }
@@ -98,7 +98,7 @@ export function Sidebar() {
 
     // Prefer the locally-persisted thread (full modify-prompt history) over the
     // bare single-turn reconstruction below.
-    const stored = sessionId ? localStorage.getItem(`hospilot_turns_${sessionId}`) : null
+    const stored = sessionId ? sessionStorage.getItem(`hospilot_turns_${sessionId}`) : null
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as Turn[]

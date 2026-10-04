@@ -8,7 +8,6 @@ import {
 import { CommandCenter } from '../ops/CommandCenter'
 import { ApprovalCenter } from '../ops/ApprovalCenter'
 import { MobileApprovalsView } from '../ops/MobileApprovalsView'
-import { SimulationView } from '../ops/SimulationView'
 import { AgentOpsView } from '../ops/AgentOpsView'
 import { SystemHealthView } from '../ops/SystemHealthView'
 import { PatientFlowView } from '../ops/PatientFlowView'
@@ -31,9 +30,8 @@ const NAV_GROUPS = [
     items: [
       { id: 'command',       label: 'Command Center',     icon: LayoutDashboard },
       { id: 'flow',          label: 'Patient Flow',        icon: Activity },
-      { id: 'capacity',      label: 'Capacity Management', icon: Bed },
+      { id: 'capacity',      label: 'Capacity & Simulation', icon: Bed },
       { id: 'orchestration', label: 'Orchestration',       icon: GitBranch },
-      { id: 'simulation',    label: 'Simulation',          icon: FlaskConical },
       { id: 'resources',     label: 'Resources',           icon: Package },
       { id: 'emergency',     label: 'Emergency',           icon: AlertTriangle },
       { id: 'agents',        label: 'Agents',              icon: Bot },
@@ -326,7 +324,6 @@ export function CuraFlowShell() {
           case 'approvals':  return (role === 'doctor' || role === 'nurse')
                                ? <MobileApprovalsView recommendations={recommendations} />
                                : <ApprovalCenter recommendations={recommendations} />
-          case 'simulation': return <SimulationView />
           case 'agents':     return <AgentOpsView />
           case 'system':     return <SystemHealthView />
           case 'capacity':   return <CapacityManagementView />
