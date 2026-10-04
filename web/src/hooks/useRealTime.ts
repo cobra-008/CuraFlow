@@ -55,6 +55,19 @@ export function useRealTime() {
               new CustomEvent('curaflow:call_nurse', { detail: data.data })
             )
             window.dispatchEvent(new Event('curaflow:patients_updated'))
+          } else if (data.type === 'TASK_CREATED') {
+            if (navigator.vibrate) {
+              navigator.vibrate([200, 100, 200])
+            }
+            window.dispatchEvent(
+              new CustomEvent('curaflow:task_created', { detail: data.task })
+            )
+            window.dispatchEvent(new Event('curaflow:tasks_updated'))
+          } else if (data.type === 'TASK_UPDATED') {
+            window.dispatchEvent(
+              new CustomEvent('curaflow:task_updated', { detail: data.task })
+            )
+            window.dispatchEvent(new Event('curaflow:tasks_updated'))
           }
         } catch (err) {}
       }
