@@ -581,10 +581,6 @@ export const useStore = create<AppState>((set, get) => {
     updateEdgeCondition(rawSource, rawTarget, condition) {
       const { nodes: currentNodes, rawEdgeDefs: currentEdgeDefs } = get()
 
-      // Preserve current positions — only newly injected nodes (vd_*) will get computed positions
-      const existingPositions: Record<string, { x: number; y: number }> = {}
-      for (const n of currentNodes) existingPositions[n.id] = n.position
-
       const nodeDefs = currentNodes
         .filter((n) => !n.id.startsWith('vd_'))
         .map((n) => ({
@@ -608,7 +604,7 @@ export const useStore = create<AppState>((set, get) => {
         return { ...e, condition, condition_label: CONDITION_LABELS[condition] ?? condition.replace(/_/g, ' ') }
       })
 
-      const layout = computeLayout(nodeDefs, newEdgeDefs, existingPositions)
+      const layout = computeLayout(nodeDefs, newEdgeDefs)
       set({ rawEdgeDefs: newEdgeDefs, nodes: layout.nodes, edges: layout.edges })
       get().triggerPipelineSave()
     },

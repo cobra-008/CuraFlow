@@ -6,48 +6,46 @@ import { useTheme } from 'next-themes'
 export const DecisionNode = memo(function DecisionNode({ data, id }: NodeProps) {
   const nodeStates = useStore((s) => s.nodeStates)
   const status = nodeStates[id]?.status ?? 'idle'
-  const { theme } = useTheme()
-  const isLight = theme === 'light'
 
-  const borderColor = status === 'complete' ? '#14b8a6'
-    : status === 'skipped'                  ? (isLight ? '#cbd5e1' : '#1e293b')
-    : (isLight ? '#3b82f6' : '#2563eb')
+  const borderColor = status === 'complete' ? 'var(--accent-teal)'
+    : status === 'skipped'                  ? 'var(--border-a)'
+    : 'var(--accent-blue)'
 
-  const glowColor = status === 'complete' ? (isLight ? 'rgba(20,184,166,0.2)' : 'rgba(20,184,166,0.25)')
+  const glowColor = status === 'complete' ? 'rgba(15,118,110,0.15)'
     : status === 'skipped'                ? 'transparent'
-    : (isLight ? 'rgba(59,130,246,0.15)' : 'rgba(37,99,235,0.25)')
+    : 'rgba(30,80,160,0.15)'
 
   const bgColor = status === 'complete'
-    ? (isLight ? '#f0fdfa' : '#080f1e')
+    ? 'var(--bg-raised)'
     : status === 'skipped'
-    ? (isLight ? '#f8fafc' : '#080f1e')
-    : (isLight ? '#eff6ff' : '#080f1e')
+    ? 'var(--bg-base)'
+    : 'var(--bg-surface)'
 
   const textColor = status === 'skipped'
-    ? (isLight ? '#94a3b8' : '#475569')
-    : (isLight ? '#1d4ed8' : '#93c5fd')
+    ? 'var(--text-muted)'
+    : 'var(--text-primary)'
 
-  const opacity = status === 'skipped' ? 0.4 : 1
+  const opacity = status === 'skipped' ? 0.6 : 1
   const question = (data as { question?: string }).question ?? ''
 
   return (
-    <div style={{ width: 260, height: 260, position: 'relative', opacity }}>
+    <div style={{ width: 140, height: 140, position: 'relative', opacity }}>
       <Handle
         type="target"
         position={Position.Left}
-        style={{ background: 'transparent', border: 'none', width: 8, height: 8 }}
+        style={{ background: 'var(--border-s)', border: '2px solid var(--bg-surface)', width: 10, height: 10 }}
       />
       <Handle
         id="yes"
         type="source"
         position={Position.Top}
-        style={{ background: 'transparent', border: 'none', width: 8, height: 8 }}
+        style={{ background: 'var(--border-s)', border: '2px solid var(--bg-surface)', width: 10, height: 10 }}
       />
       <Handle
         id="no"
         type="source"
         position={Position.Bottom}
-        style={{ background: 'transparent', border: 'none', width: 8, height: 8 }}
+        style={{ background: 'var(--border-s)', border: '2px solid var(--bg-surface)', width: 10, height: 10 }}
       />
 
       {/* Diamond body */}
@@ -55,11 +53,11 @@ export const DecisionNode = memo(function DecisionNode({ data, id }: NodeProps) 
         position: 'absolute',
         top: '50%', left: '50%',
         transform: 'translate(-50%, -50%) rotate(45deg)',
-        width: 184, height: 184,
+        width: 100, height: 100,
         background: bgColor,
         border: `2px solid ${borderColor}`,
-        borderRadius: 10,
-        boxShadow: `0 0 24px ${glowColor}`,
+        borderRadius: 8,
+        boxShadow: `0 0 16px ${glowColor}`,
         transition: 'border-color 0.3s, box-shadow 0.3s, background 0.3s',
       }} />
 
@@ -68,17 +66,17 @@ export const DecisionNode = memo(function DecisionNode({ data, id }: NodeProps) 
         position: 'absolute',
         top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: 210,
+        width: 120,
         textAlign: 'center',
         pointerEvents: 'none',
         userSelect: 'none',
       }}>
         <span style={{
-          fontSize: 15,
+          fontSize: 12,
           color: textColor,
-          fontFamily: 'monospace',
+          fontFamily: 'inherit',
           fontWeight: 600,
-          lineHeight: 1.4,
+          lineHeight: 1.2,
           display: 'block',
           transition: 'color 0.3s',
         }}>

@@ -130,30 +130,52 @@ export function computeLayout(
   }
 
   // ── Unpaired conditional edges → diamond + STOP terminal ──────────────────
-  // A single conditional edge with no matching opposite becomes a diamond whose
-  // YES branch leads to the existing target and NO branch leads to a stop node.
+  // Process remaining conditional edges grouped by source.
+  const sourceGroups: Record<string, PipelineEdgeDef[]> = {}
   for (let i = 0; i < edgeDefs.length; i++) {
     if (usedEdgeIdx.has(i)) continue
     const e = edgeDefs[i]
     if (!e.condition) continue
+    if (!sourceGroups[e.source]) sourceGroups[e.source] = []
+    sourceGroups[e.source].push(e)
+    usedEdgeIdx.add(i)
+  }
 
-    const decId  = `vd_${e.source}`
-    const stopId = `stop_${e.source}`
-    if (augNodeDefs.some((n) => n.id === decId)) continue   // already processed
+  for (const [source, edges] of Object.entries(sourceGroups)) {
+    const decId = `vd_${source}`
+    if (augNodeDefs.some((n) => n.id === decId)) continue // Safety check
 
-    const question = (_conditionLabel(e.condition) ?? e.condition)
+    const e1 = edges[0]
+    const e2 = edges[1] // might be undefined
+
+    const question = (_conditionLabel(e1.condition) ?? e1.condition)
       .replace(/^if /i, '')
 
-    augNodeDefs.push({ id: decId,  agentId: '_decision', isDecision: true,  question })
-    augNodeDefs.push({ id: stopId, agentId: '_terminal', isTerminal: true })
+    augNodeDefs.push({ id: decId, agentId: '_decision', isDecision: true, question })
 
-    augEdgeDefs = augEdgeDefs.filter((edge) => edge !== edgeDefs[i])
-    augEdgeDefs.push(
-      { source: e.source, target: decId },
-      { source: decId, target: e.target, condition: e.condition, condition_label: 'YES', isDecisionBranch: 'yes'  },
-      { source: decId, target: stopId,                           condition_label: 'NO',  isDecisionBranch: 'no'   },
-    )
-    usedEdgeIdx.add(i)
+    // Remove the original edges from augEdgeDefs
+    augEdgeDefs = augEdgeDefs.filter((edge) => !edges.includes(edge))
+    
+    // Always add the link from source to the new decision node
+    augEdgeDefs.push({ source: source, target: decId })
+
+    // Link YES to the first condition's target
+    augEdgeDefs.push({
+      source: decId, target: e1.target, condition: e1.condition, condition_label: 'YES', isDecisionBranch: 'yes'
+    })
+
+    // If there's a second condition, link NO to it. Otherwise, create a STOP terminal.
+    if (e2) {
+      augEdgeDefs.push({
+        source: decId, target: e2.target, condition: e2.condition, condition_label: 'NO', isDecisionBranch: 'no'
+      })
+    } else {
+      const stopId = `stop_${source}`
+      augNodeDefs.push({ id: stopId, agentId: '_terminal', isTerminal: true })
+      augEdgeDefs.push({
+        source: decId, target: stopId, condition_label: 'NO', isDecisionBranch: 'no'
+      })
+    }
   }
 
   // ── Topological sort → column assignment ──────────────────────────────────
@@ -277,28 +299,25 @@ export function computeLayout(
       })
     }
   } else {
-    const BRANCH_CY = ROW_H / 2
-    // Main-row nodes centered at the branch-band midpoint so the backbone
-    // threads through the middle of the YES/NO lanes.
-    const MAIN_CY = BRANCH_CY
+    const branchBandHeight = totalLanes * ROW_H
 
     for (const [c, colIds] of Object.entries(byCol)) {
       const colNum    = Number(c)
       const mainIds   = colIds.filter((id) => !inBranchRow.has(id))
       const branchIds = colIds.filter((id) => inBranchRow.has(id))
 
-      mainIds.forEach((id, i) => {
-        const h = mainIds.length * ROW_H
-        position[id] = {
-          x: H_P + colNum * COL_W,
-          y: V_P + MAIN_CY - h / 2 + ROW_H / 2 + i * ROW_H,
-        }
-      })
       branchIds.forEach((id) => {
         const lane = branchLane[id] ?? 0
         position[id] = {
           x: H_P + colNum * COL_W,
-          y: V_P + BRANCH_CY - (totalLanes * ROW_H) / 2 + ROW_H / 2 + lane * ROW_H,
+          y: V_P + lane * ROW_H,
+        }
+      })
+
+      mainIds.forEach((id, i) => {
+        position[id] = {
+          x: H_P + colNum * COL_W,
+          y: V_P + branchBandHeight + i * ROW_H,
         }
       })
     }
@@ -314,7 +333,7 @@ export function computeLayout(
       : n.isDecision
         ? { question: n.question }
         : { agentId: n.agentId, nodeId: n.id, taskType: n.taskType },
-    ...(n.isDecision ? { style: { width: 260, height: 260 } } : {}),
+    ...(n.isDecision ? { style: { width: 140, height: 140 } } : {}),
   }))
 
   const edges: Edge[] = augEdgeDefs.map((e, i) => {
