@@ -56,6 +56,41 @@ _execution_log: list[dict] = []
 _audit_events: list[dict] = []
 _simulation_runs: dict[str, dict] = {}
 _patients: list[dict] = []
+_scheduled_tasks: list[dict] = [
+    {
+        "id": "task-icu-01",
+        "title": "Reassign Float Nurse Joy to ICU Ward",
+        "description": "ICU occupancy has reached 92%. ICU Agent recommends deploying 1 float nurse for high-acuity patient monitoring.",
+        "department": "ICU",
+        "assigned_role": "nurse",
+        "assigned_staff_id": "Nurse Joy",
+        "source_agent": "icu_agent",
+        "urgency": "HIGH",
+        "status": "PENDING_APPROVAL",
+        "created_at": NOW().isoformat(),
+        "created_by": "icu_agent",
+        "decided_at": None,
+        "decided_by": None,
+        "decision_reason": None,
+    },
+    {
+        "id": "task-er-02",
+        "title": "Urgent CT Diagnostic Slot Priority",
+        "description": "ER surge detected (8 patients waiting). ER Agent requests priority diagnostic queue reservation for trauma patient MRN-8472.",
+        "department": "Emergency",
+        "assigned_role": "doctor",
+        "assigned_staff_id": "Dr. Sarah Mitchell",
+        "source_agent": "er_agent",
+        "urgency": "CRITICAL",
+        "status": "PENDING_APPROVAL",
+        "created_at": NOW().isoformat(),
+        "created_by": "er_agent",
+        "decided_at": None,
+        "decided_by": None,
+        "decision_reason": None,
+    }
+]
+
 
 def _audit(event_type: str, resource_type: str, resource_id: str,
            action: str, actor_type: str = "system", **kwargs):
@@ -399,6 +434,107 @@ async def request_approval(rec_id: str, ctx: AuthContext = Depends(require_activ
     _audit("approval_requested", "recommendation", rec_id, "request_approval",
            actor_id=ctx.user_id)
     return {"approval": approval}
+
+
+# ── Human-In-The-Loop Task Scheduling ───────────────────────────────────────
+
+class TaskCreateRequest(BaseModel):
+    title: str
+    description: str
+    department: str = "ICU"
+    assigned_role: str = "nurse"
+    assigned_staff_id: Optional[str] = "Nurse Joy"
+    source_agent: str = "icu_agent"
+    urgency: str = "HIGH"
+
+class TaskApproveRequest(BaseModel):
+    decision: str  # "approve" | "reject"
+    reason: Optional[str] = None
+
+@router.get("/tasks", dependencies=[Depends(require_active_user)])
+async def get_scheduled_tasks(
+    status: Optional[str] = Query(None),
+    role: Optional[str] = Query(None),
+    dept: Optional[str] = Query(None),
+):
+    """Retrieve scheduled/pending agent tasks."""
+    tasks = list(reversed(_scheduled_tasks))
+    if status:
+        tasks = [t for t in tasks if t.get("status") == status]
+    if role:
+        tasks = [t for t in tasks if t.get("assigned_role") == role or t.get("assigned_role") == "all"]
+    if dept:
+        tasks = [t for t in tasks if t.get("department") == dept]
+    return {"tasks": tasks, "count": len(tasks)}
+
+@router.post("/tasks/create", dependencies=[Depends(require_active_user)])
+async def create_scheduled_task(req: TaskCreateRequest, ctx: AuthContext = Depends(require_active_user)):
+    """Create a new task in PENDING_APPROVAL status (HITL)."""
+    from api.routes.ws import deliver_ops_local
+    task_id = f"task-{uuid.uuid4().hex[:8]}"
+    task = {
+        "id": task_id,
+        "title": req.title,
+        "description": req.description,
+        "department": req.department,
+        "assigned_role": req.assigned_role,
+        "assigned_staff_id": req.assigned_staff_id,
+        "source_agent": req.source_agent,
+        "urgency": req.urgency,
+        "status": "PENDING_APPROVAL",  # Enforce Human Intervention requirement
+        "created_at": NOW().isoformat(),
+        "created_by": ctx.user_id,
+        "decided_at": None,
+        "decided_by": None,
+        "decision_reason": None,
+    }
+    _scheduled_tasks.append(task)
+    _audit("task_created", "task", task_id, "create_task", actor_id=ctx.user_id, reason=req.description)
+    
+    # Alert relevant staff members in real-time over WebSockets
+    event_payload = {
+        "type": "TASK_CREATED",
+        "task": task,
+        "action_required": True,
+    }
+    await deliver_ops_local(req.assigned_role, event_payload, is_role=True)
+    await deliver_ops_local("admin", event_payload, is_role=True)
+    return {"status": "success", "task": task}
+
+@router.post("/tasks/{task_id}/approve", dependencies=[Depends(require_active_user)])
+async def approve_scheduled_task(task_id: str, req: TaskApproveRequest, ctx: AuthContext = Depends(require_active_user)):
+    """Staff member explicitly approves or rejects a pending task."""
+    from api.routes.ws import deliver_ops_local
+    task = next((t for t in _scheduled_tasks if t["id"] == task_id), None)
+    if not task:
+        raise HTTPException(404, "Scheduled task not found")
+    
+    if req.decision not in ("approve", "reject"):
+        raise HTTPException(400, "Decision must be 'approve' or 'reject'")
+    
+    new_status = "SCHEDULED" if req.decision == "approve" else "REJECTED"
+    task["status"] = new_status
+    task["decided_at"] = NOW().isoformat()
+    task["decided_by"] = ctx.user_id
+    task["decision_reason"] = req.reason
+    
+    _audit(
+        "task_scheduled" if req.decision == "approve" else "task_rejected",
+        "task", task_id, req.decision, actor_id=ctx.user_id, reason=req.reason
+    )
+    
+    # Broadcast updated task state to all devices on the network
+    event_payload = {
+        "type": "TASK_UPDATED",
+        "task": task,
+    }
+    await deliver_ops_local("nurse", event_payload, is_role=True)
+    await deliver_ops_local("doctor", event_payload, is_role=True)
+    await deliver_ops_local("admin", event_payload, is_role=True)
+    
+    return {"status": "success", "task": task}
+
+
 
 
 # ── Execution Log ─────────────────────────────────────────────────────────────

@@ -154,7 +154,25 @@ export interface DataSource {
   note?: string
 }
 
+export interface ScheduledTask {
+  id: string
+  title: string
+  description: string
+  department: string
+  assigned_role: string
+  assigned_staff_id?: string
+  source_agent: string
+  urgency: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
+  status: 'PENDING_APPROVAL' | 'SCHEDULED' | 'REJECTED' | 'COMPLETED'
+  created_at: string
+  created_by?: string
+  decided_at?: string
+  decided_by?: string
+  decision_reason?: string
+}
+
 // ── API calls ─────────────────────────────────────────────────────────────────
+
 
 export const opsApi = {
   // Hospital State
@@ -198,7 +216,21 @@ export const opsApi = {
     }),
   requestApproval: (recId: string) => opsPost<{ approval: unknown }>(`recommendations/${recId}/request-approval`),
 
+  // Scheduled Tasks (HITL)
+  getTasks: (status?: string, role?: string, dept?: string) => {
+    const params = new URLSearchParams()
+    if (status) params.set('status', status)
+    if (role) params.set('role', role)
+    if (dept) params.set('dept', dept)
+    return opsGet<{ tasks: ScheduledTask[]; count: number }>(`tasks${params.toString() ? '?' + params : ''}`)
+  },
+  createTask: (body: { title: string; description: string; department?: string; assigned_role?: string; assigned_staff_id?: string; source_agent?: string; urgency?: string }) =>
+    opsPost<{ status: string; task: ScheduledTask }>('tasks/create', body),
+  approveTask: (taskId: string, decision: 'approve' | 'reject', reason?: string) =>
+    opsPost<{ status: string; task: ScheduledTask }>(`tasks/${taskId}/approve`, { decision, reason }),
+
   // Execution
+
   getExecutionLog: () => opsGet<{ execution_log: unknown[]; total: number }>('execution'),
 
   // Audit

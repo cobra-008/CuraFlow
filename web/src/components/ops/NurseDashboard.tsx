@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from "react"
-import { User, Clock, Send, BellRing, CheckCircle2, AlertTriangle, Edit3, Save, X, ChevronDown, ChevronUp, CheckSquare, Square } from "lucide-react"
+import { User, Clock, Send, BellRing, CheckCircle2, AlertTriangle, Edit3, Save, X, ChevronDown, ChevronUp } from "lucide-react"
+
 import { useStore } from "../../store"
 import type { DoctorPatient } from "./DoctorDashboard"
 
 import { opsApi } from '../../services/opsApi'
+import { PendingTasksPanel } from './PendingTasksPanel'
+
 
 // ── Nurse Status Badge ────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
@@ -239,7 +242,11 @@ export function NurseDashboard() {
         </div>
       </div>
 
+      {/* ── Human-in-the-Loop Agent Task Approvals ────────────────────── */}
+      <PendingTasksPanel roleFilter="nurse" title="Nurse Duty & Resource Reassignment Tasks (HITL Approval Required)" />
+
       {/* ── Schedule table header ──────────────────────────────────── */}
+
       <div className="hidden md:grid grid-cols-12 gap-2 px-5 text-[11px] font-bold uppercase tracking-wider" style={{ color: "#8c7e6a" }}>
         <div className="col-span-4">Patient</div>
         <div className="col-span-2">Ward</div>

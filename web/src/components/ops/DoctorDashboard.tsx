@@ -36,6 +36,8 @@ export interface DoctorPatient {
 }
 
 import { opsApi } from '../../services/opsApi'
+import { PendingTasksPanel } from './PendingTasksPanel'
+
 
 // ── Doctor Status Badge ────────────────────────────────────────────────────────
 
@@ -251,7 +253,12 @@ export function DoctorDashboard() {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}><CheckCircle2 size={14} style={{ color: "#16a34a" }} /><span className="text-xs font-bold" style={{ color: "#15803d" }}>{activePts.filter(p => p.status === "done").length} Done</span></div>
         </div>
       </div>
+
+      {/* ── Human-in-the-Loop Agent Task Approvals ────────────────────── */}
+      <PendingTasksPanel roleFilter="doctor" title="Doctor & Clinical Task Approvals (HITL)" />
+
       {dischargedQueue.length > 0 && (
+
         <div className="flex items-center gap-3 px-5 py-3 rounded-2xl" style={{ background: "#f1f5f9", border: "1px solid #e2e8f0" }}>
           <LogOut size={16} style={{ color: "#64748b" }} />
           <span className="text-sm" style={{ color: "#475569" }}>
