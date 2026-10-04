@@ -114,7 +114,8 @@ async def get_all_beds() -> list[dict]:
     
     if beds:
         return beds
-    return await get_many("bed:*")
+    fallback = await get_many("bed:*")
+    return [b for b in fallback if isinstance(b, dict)]
 
 async def set_beds(beds: list[dict]) -> None:
     await _set_indexed("bed", beds, ttl=BED_TTL)

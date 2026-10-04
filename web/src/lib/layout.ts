@@ -148,7 +148,8 @@ export function computeLayout(
     const e1 = edges[0]
     const e2 = edges[1] // might be undefined
 
-    const question = (_conditionLabel(e1.condition) ?? e1.condition)
+    const condition = e1.condition || ''
+    const question = (_conditionLabel(condition) ?? condition)
       .replace(/^if /i, '')
 
     augNodeDefs.push({ id: decId, agentId: '_decision', isDecision: true, question })

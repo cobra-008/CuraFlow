@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Clock } from 'lucide-react'
-import { loginUser, signupUser, setToken, fetchPublicOrgs, type AuthUser, type PublicOrg } from '../services/api'
+import { loginUser, signupUser, setToken, fetchPublicOrgs, fetchDemoCredentials, type AuthUser, type PublicOrg } from '../services/api'
 
 interface Props {
   onAuth: (user: AuthUser) => void
@@ -11,6 +11,12 @@ export function AuthScreen({ onAuth }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')      // post-signup "awaiting approval" message
+
+  const [demoCreds, setDemoCreds] = useState<{ doctor_count: number; nurse_count: number; credentials: any[] } | null>(null)
+
+  useEffect(() => {
+    fetchDemoCredentials().then(setDemoCreds).catch(() => {})
+  }, [])
 
   // Login fields
   const [loginUsername, setLoginUsername] = useState('')
@@ -205,6 +211,14 @@ export function AuthScreen({ onAuth }: Props) {
                   <span>Quick Demo Logins</span>
                   <span className="text-[10px] font-normal text-slate-400">1-click sign in</span>
                 </div>
+                
+                {demoCreds ? (
+                  <div className="mb-3 text-[10px] text-slate-500 flex justify-between">
+                    <span>Active Doctors: <strong>{demoCreds.doctor_count}</strong></span>
+                    <span>Active Nurses: <strong>{demoCreds.nurse_count}</strong></span>
+                  </div>
+                ) : null}
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                   <button
                     type="button"
@@ -220,7 +234,7 @@ export function AuthScreen({ onAuth }: Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => fillAndLogin('doctor', 'doctor')}
+                    onClick={() => fillAndLogin('doctor1', 'password123')}
                     disabled={loading}
                     className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
                     style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}
@@ -232,7 +246,7 @@ export function AuthScreen({ onAuth }: Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => fillAndLogin('nurse', 'nurse')}
+                    onClick={() => fillAndLogin('nurse1', 'password123')}
                     disabled={loading}
                     className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
                     style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}
@@ -244,7 +258,7 @@ export function AuthScreen({ onAuth }: Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => fillAndLogin('er', 'er')}
+                    onClick={() => fillAndLogin('er_coord', 'password123')}
                     disabled={loading}
                     className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
                     style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}
@@ -256,7 +270,7 @@ export function AuthScreen({ onAuth }: Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => fillAndLogin('ot', 'ot')}
+                    onClick={() => fillAndLogin('ot_mgr', 'password123')}
                     disabled={loading}
                     className="px-2 py-1.5 rounded-lg border text-left text-xs hover:border-blue-700 hover:bg-blue-50/50 transition-all"
                     style={{ borderColor: '#e2d8c7', background: '#faf7f2' }}

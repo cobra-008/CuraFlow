@@ -21,7 +21,7 @@ import re
 
 from RestrictedPython import compile_restricted, safe_builtins, safe_globals
 from RestrictedPython.Eval import default_guarded_getiter, default_guarded_getitem
-from RestrictedPython.Guards import safe_globals as _rp_safe_globals, guarded_iter_unpack_sequence
+from RestrictedPython.Guards import safe_globals as _rp_safe_globals, guarded_iter_unpack_sequence, guarded_unpack_sequence
 
 from llm_client import llm_chat
 from db.hasura import hasura
@@ -82,6 +82,7 @@ _SAFE_GLOBALS = {
     "_getiter_": default_guarded_getiter,
     "_getitem_": default_guarded_getitem,
     "_iter_unpack_sequence_": guarded_iter_unpack_sequence,
+    "_unpack_sequence_": guarded_unpack_sequence,
     "_getattr_": getattr,
     "_write_": lambda x: x,
     "_inplacevar_": lambda op, x, y: (
@@ -122,6 +123,8 @@ Rules:
 - Every code path must reach a return statement — never fall off the end of the function
 - Handle empty lists and None values gracefully with safe defaults, not None returns
 - Never call a method directly on a value that could be None — coerce to a safe default first: (value or "").lower(), not value.lower()
+- CRITICAL: Never compare a value to a number without guarding for None first. WRONG: `if x >= 95`. RIGHT: `if x is not None and x >= 95`
+- CRITICAL: When reading vitals dicts, always use: `spo2 = (v.get('spo2') or 0)` style guards before numeric comparisons
 - Write each statement on a single line; do not use backslash line continuation or multi-line expressions
 
 Return ONLY the function code. No explanation, no markdown fences."""
@@ -192,11 +195,30 @@ async def _generate_meta(task_id: str, description: str) -> tuple[str, str]:
     return "", ""
 
 
+def _sanitize_none_numerics(obj):
+    """Recursively replace None values in nested dicts/lists with 0 for numeric safety.
+    Only affects dicts that look like vitals (contain known vital sign keys)."""
+    VITAL_KEYS = {"spo2", "pulse", "bp_systolic", "bp_diastolic", "respiratory_rate",
+                  "resp_rate", "temperature", "temp", "gcs", "triage_score",
+                  "icu_available", "vent_available"}
+    if isinstance(obj, dict):
+        return {
+            k: (0 if v is None and k in VITAL_KEYS else _sanitize_none_numerics(v))
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_sanitize_none_numerics(i) for i in obj]
+    return obj
+
+
 def _run(task_id: str, code: str, inp: dict) -> dict:
     byte_code = compile_restricted(code, f"<exec:{task_id}>", "exec")
     local_vars: dict = {}
     exec(byte_code, _SAFE_GLOBALS, local_vars)  # noqa: S102
-    return local_vars["execute"](inp)
+    # Sanitize None numerics before calling — guards against LLM code that forgets
+    # to check for None before comparing vitals (e.g. `if spo2 >= 95` crashes when spo2 is None).
+    safe_inp = _sanitize_none_numerics(inp)
+    return local_vars["execute"](safe_inp)
 
 
 async def execute(

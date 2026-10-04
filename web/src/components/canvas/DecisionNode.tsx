@@ -1,7 +1,6 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { useStore } from '../../store'
-import { useTheme } from 'next-themes'
 
 export const DecisionNode = memo(function DecisionNode({ data, id }: NodeProps) {
   const nodeStates = useStore((s) => s.nodeStates)

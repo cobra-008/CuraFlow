@@ -1341,6 +1341,7 @@ function CommitButton({ committed, onCommit }: { committed: boolean; onCommit: (
 
 // ── Final Recommendation Card ─────────────────────────────────────────────────
 
+// @ts-ignore
 function RecommendationCard({
   rec,
 }: {

@@ -422,6 +422,25 @@ export const AGENTS: AgentDef[] = [
     description: 'Dispatch available ambulances to intercept and transport the patient',
     subAgents: [],
   },
+  {
+    id: 'patient_verification_agent',
+    label: 'Patient Verification',
+    icon: 'ShieldCheck',
+    color: '#14b8a6',
+    description: 'Verifies the identity of the patient securely across clinical and billing workflows',
+    subAgents: [
+      {
+        id: 'sa_pv_verify',
+        label: 'Identity Verification',
+        description: 'Authenticates patient records and resolves any ID discrepancies',
+        active: true,
+        capabilities: ['Identity Verification', 'Record Matching'],
+        tasks: [
+          { id: 'pv-1', label: 'Verify patient credentials' }
+        ]
+      }
+    ]
+  }
 ]
 
 export const AGENT_MAP = Object.fromEntries(AGENTS.map((a) => [a.id, a]))

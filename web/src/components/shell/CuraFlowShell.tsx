@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useStore } from '../../store'
 import {
-  LayoutDashboard, Activity, Bed, GitBranch, FlaskConical,
+  LayoutDashboard, Activity, Bed, GitBranch,
   Package, AlertTriangle, Bot, BarChart3, Settings,
   ChevronRight, CheckCircle2, LogOut
 } from 'lucide-react'
@@ -249,7 +249,7 @@ export function CuraFlowShell() {
   const role = currentUser?.role || 'nurse'
   
   const [activeRoute, _setActiveRoute] = useState<string>('command')
-  const [routeHistory, setRouteHistory] = useState<string[]>(['command'])
+  const [_routeHistory, setRouteHistory] = useState<string[]>(['command'])
 
   const setActiveRoute = useCallback((route: string) => {
     _setActiveRoute(current => {

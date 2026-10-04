@@ -14,7 +14,12 @@ const SCENARIOS = [
   { id: 'device_failure', name: 'Device Failure', description: 'Primary CT scanner down' },
 ]
 
-const TIME_MULTIPLIERS = [1, 10, 30, 60]
+const FORECAST_HORIZONS = [
+  { id: 7, label: '1 Week', desc: 'Short-term tactical planning' },
+  { id: 14, label: '2 Weeks', desc: 'Bi-weekly resource allocation' },
+  { id: 30, label: '1 Month', desc: 'Medium-term capacity forecast' },
+  { id: 90, label: '3 Months', desc: 'Strategic trend analysis' },
+]
 
 function MetricCompare({
   label,
@@ -63,7 +68,7 @@ function MetricCompare({
 
 export function SimulationView() {
   const [scenario, setScenario] = useState('emergency_surge')
-  const [timeMultiplier, setTimeMultiplier] = useState(1)
+  const [forecastDays, setForecastDays] = useState(7)
   const [running, setRunning] = useState(false)
   const [result, setResult] = useState<any>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -79,7 +84,7 @@ export function SimulationView() {
     setResult(null)
     try {
       await new Promise(resolve => setTimeout(resolve, 1500))
-      const r = await opsApi.runSimulation({ scenario_type: scenario, with_curaflow: true, time_multiplier: timeMultiplier })
+      const r = await opsApi.runSimulation({ scenario_type: scenario, with_curaflow: true, time_multiplier: forecastDays })
       setResult(r)
     } catch (e) {
       // fallback result
@@ -139,19 +144,20 @@ export function SimulationView() {
           </div>
 
           <div>
-            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-2">Time Multiplier</label>
-            <div className="flex gap-2 flex-wrap">
-              {TIME_MULTIPLIERS.map(t => (
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-2">Forecast Horizon</label>
+            <div className="flex flex-col gap-1.5">
+              {FORECAST_HORIZONS.map(h => (
                 <button
-                  key={t}
-                  onClick={() => setTimeMultiplier(t)}
-                  className={`px-3 py-1.5 text-xs font-mono border rounded-sm transition-colors ${
-                    timeMultiplier === t
-                      ? 'border-blue-600 bg-blue-900/20 text-blue-700'
-                      : 'border-warm-200 text-gray-400 hover:border-warm-300'
+                  key={h.id}
+                  onClick={() => setForecastDays(h.id)}
+                  className={`text-left px-3 py-2 border rounded-sm text-xs transition-colors ${
+                    forecastDays === h.id
+                      ? 'border-blue-600 bg-blue-900/20 text-navy-800'
+                      : 'border-warm-200 text-gray-400 hover:border-warm-300 hover:text-gray-500'
                   }`}
                 >
-                  {t}×
+                  <div className="font-semibold">{h.label}</div>
+                  <div className="text-[10px] mt-0.5 text-gray-400">{h.desc}</div>
                 </button>
               ))}
             </div>
