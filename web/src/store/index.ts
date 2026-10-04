@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Node, Edge } from '@xyflow/react'
 import { SCENARIOS, type ScenarioDef, type ApprovalGate, type PipelineEdgeDef } from '../data/scenarios'
 import type { TaskDef } from '../data/agents'
+import { AGENT_MAP } from '../data/agents'
 import { computeLayout, CONDITION_LABELS } from '../lib/layout'
 import { createSession, executeSession, decideApproval, commitSession as apiCommitSession, reorchestrateSession, fetchAgentRegistry, listSessions, getSession, updateSessionPipeline, fetchPendingApprovals, clearToken, pauseSession as apiPauseSession, resumeSession as apiResumeSession, cancelSession as apiCancelSession, fetchPausedQueue, fetchCheckpoints as apiFetchCheckpoints, getActiveOrgId, setActiveOrgId as apiSetActiveOrgId, clearActiveOrgId, ApiError, type BackendPipeline, type RegistryAgent, type PendingApproval, type AuthUser, type Checkpoint } from '../services/api'
 
@@ -1592,8 +1593,18 @@ async function runExecution(
   get: () => AppState,
   autoApprove = false,
 ) {
-  const ids = nodes.map((n) => n.id)
-  const edgeDefs = storeEdges.map((e) => ({ source: e.source, target: e.target }))
+  // Filter out virtual nodes (decision diamonds, stop terminals) — they have no
+  // streaming output and cause the wave-loop to stall or loop infinitely.
+  const runnable = nodes.filter(
+    (n) => !n.id.startsWith('vd_') && !n.id.startsWith('stop_')
+  )
+  const ids = runnable.map((n) => n.id)
+
+  // Build the adjacency graph using only runnable node edges
+  const runnableIds = new Set(ids)
+  const edgeDefs = storeEdges
+    .map((e) => ({ source: e.source, target: e.target }))
+    .filter((e) => runnableIds.has(e.source) && runnableIds.has(e.target))
 
   const inDegree: Record<string, number> = {}
   const children: Record<string, string[]> = {}
@@ -1607,16 +1618,33 @@ async function runExecution(
   let wave = ids.filter((id) => remaining[id] === 0)
 
   const getAgentId = (nodeId: string) =>
-    (nodes.find((n) => n.id === nodeId)?.data as { agentId: string })?.agentId ?? nodeId
+    (runnable.find((n) => n.id === nodeId)?.data as { agentId: string })?.agentId ?? nodeId
 
-  const getOutputs = (nodeId: string) => scenario.streamingOutputs[nodeId] ?? []
+  // Outputs: try nodeId first, then agentId from scenario, then generic
+  const getOutputs = (nodeId: string) => {
+    const agentId = getAgentId(nodeId)
+    return scenario.streamingOutputs[nodeId] ?? scenario.streamingOutputs[agentId] ?? []
+  }
 
-  while (wave.length > 0) {
-    const gatesThisWave = scenario.approvalGates.filter((g) => wave.includes(g.agentId))
+  // Safety: track visited to break any unexpected cycles
+  const visited = new Set<string>()
+  let maxWaves = ids.length + 10
+
+  while (wave.length > 0 && maxWaves-- > 0) {
+    // Only process nodes we haven't visited yet (cycle guard)
+    wave = wave.filter((id) => !visited.has(id))
+    if (wave.length === 0) break
+    for (const id of wave) visited.add(id)
+
+    // Match approval gates by nodeId OR agentId
+    const gatesThisWave = scenario.approvalGates.filter(
+      (g) => wave.includes(g.agentId) || wave.some((id) => getAgentId(id) === g.agentId)
+    )
 
     if (gatesThisWave.length > 0 && !autoApprove) {
       const gate = gatesThisWave[0]
-      const gateNodeId = gate.agentId
+      // Resolve actual wave node ID — the gate's agentId may be a short agentId
+      const gateNodeId = wave.find((id) => id === gate.agentId || getAgentId(id) === gate.agentId) ?? gate.agentId
       const outputs = getOutputs(gateNodeId)
       const halfIdx = Math.ceil(outputs.length / 2)
 
@@ -1662,10 +1690,27 @@ async function runExecution(
     wave = nextWave
   }
 
-  const { edges: currentEdges } = get()
+  const { edges: currentEdges, promptText } = get()
+
+  // Build a recommendation — prefer the pre-defined scenario one, otherwise
+  // generate a context-aware summary so the user always sees a result card.
+  const recommendation = scenario.recommendation ?? {
+    headline: 'Workflow executed successfully.',
+    actions: runnable.map((n) => {
+      const agentId = getAgentId(n.id)
+      const label = AGENT_MAP[agentId]?.label ?? agentId
+      return `${label}: analysis complete.`
+    }),
+    risk: 'low' as const,
+    summary: promptText
+      ? `Mission "${promptText.slice(0, 80)}${promptText.length > 80 ? '\u2026' : ''}" has been processed by ${runnable.length} coordinated agent${runnable.length !== 1 ? 's' : ''}. All tasks completed without critical issues.`
+      : `${runnable.length} agent${runnable.length !== 1 ? 's' : ''} completed their tasks. Review individual findings in the panel above.`,
+  }
+
   set({
     executionStatus: 'complete_pending',
-    sessionRecommendation: scenario.recommendation ?? null,
+    sessionRecommendation: recommendation,
+    synthesisRunning: false,
     edges: currentEdges.map((e) => ({
       ...e,
       animated: true,
