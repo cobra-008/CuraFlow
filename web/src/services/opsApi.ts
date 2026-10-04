@@ -171,6 +171,29 @@ export interface ScheduledTask {
   decision_reason?: string
 }
 
+export interface OutgoingPatient {
+  id: string
+  patient_id: string
+  name: string
+  mrn: string
+  department: string
+  assigned_doctor: string
+  assigned_nurse: string
+  ward: string
+  bed_number?: string
+  discharge_stage: 'CLINICAL_CLEARANCE' | 'PHARMACY_CLEARANCE' | 'BILLING_SETTLEMENT' | 'PATIENT_EXIT' | 'DISCHARGED'
+  stage_started_at: string
+  total_elapsed_mins: number
+  is_delayed: boolean
+  delay_reason?: string
+  clinical_cleared: boolean
+  pharmacy_cleared: boolean
+  billing_cleared: boolean
+  follow_up_scheduled: boolean
+  follow_up_date?: string
+}
+
+
 // ── API calls ─────────────────────────────────────────────────────────────────
 
 
@@ -278,8 +301,38 @@ export const opsApi = {
   },
 
   // Patients
-  getPatients: () => opsGet<{ patients: unknown[] }>('patients'),
+  getPatients: (dept?: string, doctor?: string, spec?: string) => {
+    const params = new URLSearchParams()
+    if (dept) params.set('dept', dept)
+    if (doctor) params.set('doctor', doctor)
+    if (spec) params.set('spec', spec)
+    return opsGet<{ patients: unknown[] }>(`patients${params.toString() ? '?' + params : ''}`)
+  },
+
   admitPatient: (body: { name: string; phone: string; type: string; dept: string; needsBed: boolean }) =>
     opsPost<{ status: string; patient: unknown }>('patients/admit', body),
   callNurse: (id: string) => opsPost<{ status: string }>('patients/call-nurse', { id }),
+
+  // Outgoing Patients & Discharge Queue
+  getOutgoingPatients: (dept?: string, stage?: string, delayedOnly?: boolean) => {
+    const params = new URLSearchParams()
+    if (dept) params.set('dept', dept)
+    if (stage) params.set('stage', stage)
+    if (delayedOnly) params.set('delayed_only', 'true')
+    return opsGet<{
+      outgoing_patients: OutgoingPatient[]
+      metrics: { total_active_discharges: number; delayed_discharges: number; avg_turnaround_mins: number }
+    }>(`patients/outgoing${params.toString() ? '?' + params : ''}`)
+  },
+  processOutgoingStage: (outgoingId: string, nextStage: string, notes?: string) =>
+    opsPost<{ status: string; outgoing_patient: OutgoingPatient }>('patients/outgoing/process-stage', {
+      outgoing_id: outgoingId,
+      next_stage: nextStage,
+      notes,
+    }),
+  completeOutgoingDischarge: (outgoingId: string) =>
+    opsPost<{ status: string; outgoing_patient: OutgoingPatient; cleaning_task: unknown }>('patients/outgoing/complete-discharge', {
+      outgoing_id: outgoingId,
+    }),
 }
+

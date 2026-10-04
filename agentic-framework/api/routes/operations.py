@@ -55,7 +55,236 @@ _approvals: dict[str, dict] = {}
 _execution_log: list[dict] = []
 _audit_events: list[dict] = []
 _simulation_runs: dict[str, dict] = {}
-_patients: list[dict] = []
+_patients: list[dict] = [
+    {
+        "id": "pat-er-01",
+        "name": "Marcus Vance",
+        "mrn": "MRN-84729",
+        "age": 45,
+        "gender": "M",
+        "status": "waiting",
+        "severity": "critical",
+        "department": "Emergency",
+        "specialization": "Emergency Medicine",
+        "location": "Emergency Bay 3",
+        "problem": "Severe Chest Pain / Suspected Acute Coronary Syndrome",
+        "vitals": {"hr": 110, "bp": "145/95", "spo2": 94, "temp": 98.8},
+        "allergies": ["Penicillin"],
+        "assigned_doctor": "Dr. Sarah Mitchell",
+        "appointmentTime": "09:30 AM",
+        "ward": "Emergency",
+        "room": "Bay 3",
+        "bed": "01",
+    },
+    {
+        "id": "pat-er-02",
+        "name": "David Ross",
+        "mrn": "MRN-39201",
+        "age": 62,
+        "gender": "M",
+        "status": "in-progress",
+        "severity": "high",
+        "department": "Emergency",
+        "specialization": "Emergency Medicine",
+        "location": "Emergency Bay 1",
+        "problem": "Acute Respiratory Distress / COPD Exacerbation",
+        "vitals": {"hr": 98, "bp": "130/85", "spo2": 91, "temp": 99.1},
+        "allergies": ["None"],
+        "assigned_doctor": "Dr. Sarah Mitchell",
+        "appointmentTime": "10:00 AM",
+        "ward": "Emergency",
+        "room": "Bay 1",
+        "bed": "02",
+    },
+    {
+        "id": "pat-cardio-01",
+        "name": "Eleanor Vance",
+        "mrn": "MRN-10928",
+        "age": 68,
+        "gender": "F",
+        "status": "in-progress",
+        "severity": "moderate",
+        "department": "Cardiology",
+        "specialization": "Cardiology",
+        "location": "Cardiology Ward 4B",
+        "problem": "Post-Percutaneous Coronary Intervention (PCI) Monitoring",
+        "vitals": {"hr": 74, "bp": "118/76", "spo2": 98, "temp": 98.4},
+        "allergies": ["Aspirin"],
+        "assigned_doctor": "Dr. Robert Chen",
+        "appointmentTime": "10:30 AM",
+        "ward": "Cardiology 4B",
+        "room": "402",
+        "bed": "A",
+    },
+    {
+        "id": "pat-cardio-02",
+        "name": "Arthur Pendelton",
+        "mrn": "MRN-58291",
+        "age": 72,
+        "gender": "M",
+        "status": "waiting",
+        "severity": "high",
+        "department": "Cardiology",
+        "specialization": "Cardiology",
+        "location": "Cardiology Ward 4A",
+        "problem": "Uncontrolled Atrial Fibrillation / Tachycardia",
+        "vitals": {"hr": 128, "bp": "138/88", "spo2": 96, "temp": 98.6},
+        "allergies": ["None"],
+        "assigned_doctor": "Dr. Robert Chen",
+        "appointmentTime": "11:15 AM",
+        "ward": "Cardiology 4A",
+        "room": "405",
+        "bed": "B",
+    },
+    {
+        "id": "pat-icu-01",
+        "name": "Chloe Bennett",
+        "mrn": "MRN-77281",
+        "age": 34,
+        "gender": "F",
+        "status": "in-progress",
+        "severity": "critical",
+        "department": "ICU",
+        "specialization": "ICU",
+        "location": "ICU Bed 04",
+        "problem": "Septic Shock Protocol / Vasopressor Titration",
+        "vitals": {"hr": 118, "bp": "90/60", "spo2": 93, "temp": 102.1},
+        "allergies": ["Sulfa"],
+        "assigned_doctor": "Dr. Amanda Lewis",
+        "appointmentTime": "08:45 AM",
+        "ward": "ICU",
+        "room": "ICU-04",
+        "bed": "04",
+    },
+    {
+        "id": "pat-ortho-01",
+        "name": "Samuel Green",
+        "mrn": "MRN-48291",
+        "age": 29,
+        "gender": "M",
+        "status": "in-progress",
+        "severity": "moderate",
+        "department": "Orthopedics",
+        "specialization": "Orthopedics",
+        "location": "Orthopedics Ward 302",
+        "problem": "Closed Reduction & Internal Fixation - Right Femur Fracture",
+        "vitals": {"hr": 82, "bp": "122/80", "spo2": 99, "temp": 98.6},
+        "allergies": ["None"],
+        "assigned_doctor": "Dr. James Wilson",
+        "appointmentTime": "11:45 AM",
+        "ward": "Orthopedics",
+        "room": "302",
+        "bed": "B",
+    },
+    {
+        "id": "pat-neuro-01",
+        "name": "Nina Patel",
+        "mrn": "MRN-92018",
+        "age": 54,
+        "gender": "F",
+        "status": "in-progress",
+        "severity": "high",
+        "department": "Neurology",
+        "specialization": "Neurology",
+        "location": "Neurology Ward 501",
+        "problem": "Acute Ischemic Stroke / Post-tPA Monitoring",
+        "vitals": {"hr": 88, "bp": "142/86", "spo2": 97, "temp": 98.7},
+        "allergies": ["Latex"],
+        "assigned_doctor": "Dr. Elena Rostova",
+        "appointmentTime": "09:00 AM",
+        "ward": "Neurology",
+        "room": "501",
+        "bed": "A",
+    },
+    {
+        "id": "pat-peds-01",
+        "name": "Oliver Kim",
+        "mrn": "MRN-38192",
+        "age": 8,
+        "gender": "M",
+        "status": "waiting",
+        "severity": "moderate",
+        "department": "Pediatrics",
+        "specialization": "Pediatrics",
+        "location": "Pediatrics Ward 201",
+        "problem": "Acute Pediatric Asthma Exacerbation",
+        "vitals": {"hr": 105, "bp": "100/65", "spo2": 94, "temp": 99.2},
+        "allergies": ["Peanuts"],
+        "assigned_doctor": "Dr. Marcus Vance",
+        "appointmentTime": "10:15 AM",
+        "ward": "Pediatrics",
+        "room": "201",
+        "bed": "01",
+    }
+]
+
+_outgoing_patients: list[dict] = [
+    {
+        "id": "out-cardio-01",
+        "patient_id": "pat-cardio-01",
+        "name": "Eleanor Vance",
+        "mrn": "MRN-10928",
+        "department": "Cardiology",
+        "assigned_doctor": "Dr. Robert Chen",
+        "assigned_nurse": "Nurse Joy",
+        "ward": "Cardiology 4B",
+        "bed_number": "BED-402",
+        "discharge_stage": "PHARMACY_CLEARANCE",
+        "stage_started_at": (NOW() - timedelta(minutes=38)).isoformat(),
+        "total_elapsed_mins": 45,
+        "is_delayed": True,
+        "delay_reason": "Take-home blood thinner medication pending pharmacy verification",
+        "clinical_cleared": True,
+        "pharmacy_cleared": False,
+        "billing_cleared": False,
+        "follow_up_scheduled": True,
+        "follow_up_date": (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d"),
+    },
+    {
+        "id": "out-ortho-01",
+        "patient_id": "pat-ortho-01",
+        "name": "Samuel Green",
+        "mrn": "MRN-48291",
+        "department": "Orthopedics",
+        "assigned_doctor": "Dr. James Wilson",
+        "assigned_nurse": "Nurse Sarah",
+        "ward": "Orthopedics",
+        "bed_number": "BED-302",
+        "discharge_stage": "BILLING_SETTLEMENT",
+        "stage_started_at": (NOW() - timedelta(minutes=42)).isoformat(),
+        "total_elapsed_mins": 58,
+        "is_delayed": True,
+        "delay_reason": "Insurance pre-authorization claim verification bottleneck",
+        "clinical_cleared": True,
+        "pharmacy_cleared": True,
+        "billing_cleared": False,
+        "follow_up_scheduled": True,
+        "follow_up_date": (datetime.now() + timedelta(days=21)).strftime("%Y-%m-%d"),
+    },
+    {
+        "id": "out-neuro-01",
+        "patient_id": "pat-neuro-01",
+        "name": "Nina Patel",
+        "mrn": "MRN-92018",
+        "department": "Neurology",
+        "assigned_doctor": "Dr. Elena Rostova",
+        "assigned_nurse": "Nurse Joy",
+        "ward": "Neurology",
+        "bed_number": "BED-501",
+        "discharge_stage": "PATIENT_EXIT",
+        "stage_started_at": (NOW() - timedelta(minutes=10)).isoformat(),
+        "total_elapsed_mins": 25,
+        "is_delayed": False,
+        "delay_reason": None,
+        "clinical_cleared": True,
+        "pharmacy_cleared": True,
+        "billing_cleared": True,
+        "follow_up_scheduled": True,
+        "follow_up_date": (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
+    }
+]
+
+
 _scheduled_tasks: list[dict] = [
     {
         "id": "task-icu-01",
@@ -172,8 +401,161 @@ class AdmitPatientRequest(BaseModel):
     needsBed: bool
 
 @router.get("/patients", dependencies=[Depends(require_active_user)])
-async def get_patients():
-    return {"patients": list(reversed(_patients))}
+async def get_patients(
+    dept: Optional[str] = Query(None),
+    doctor: Optional[str] = Query(None),
+    spec: Optional[str] = Query(None),
+):
+    """Get authoritative patient list with optional department/doctor specialization filtering."""
+    patients = list(reversed(_patients))
+    if dept:
+        patients = [
+            p for p in patients
+            if dept.lower() in p.get("department", "").lower()
+            or dept.lower() in p.get("ward", "").lower()
+        ]
+    if doctor:
+        patients = [
+            p for p in patients
+            if doctor.lower() in p.get("assigned_doctor", "").lower()
+        ]
+    if spec:
+        patients = [
+            p for p in patients
+            if spec.lower() in p.get("specialization", "").lower()
+            or spec.lower() in p.get("department", "").lower()
+        ]
+    return {"patients": patients}
+
+
+# ── Outgoing Patient & Discharge Queue Management ────────────────────────────
+
+class ProcessStageRequest(BaseModel):
+    outgoing_id: str
+    next_stage: str
+    notes: Optional[str] = None
+
+class CompleteDischargeRequest(BaseModel):
+    outgoing_id: str
+
+@router.get("/patients/outgoing", dependencies=[Depends(require_active_user)])
+async def get_outgoing_patients(
+    dept: Optional[str] = Query(None),
+    stage: Optional[str] = Query(None),
+    delayed_only: Optional[bool] = Query(False),
+):
+    """Retrieve outgoing patients in discharge/transfer queue with delay metrics."""
+    outgoings = list(reversed(_outgoing_patients))
+    if dept:
+        outgoings = [p for p in outgoings if dept.lower() in p.get("department", "").lower() or dept.lower() in p.get("ward", "").lower()]
+    if stage:
+        outgoings = [p for p in outgoings if p.get("discharge_stage") == stage]
+    if delayed_only:
+        outgoings = [p for p in outgoings if p.get("is_delayed")]
+
+    total_active = len([p for p in _outgoing_patients if p.get("discharge_stage") != "DISCHARGED"])
+    delayed_count = len([p for p in _outgoing_patients if p.get("is_delayed") and p.get("discharge_stage") != "DISCHARGED"])
+    avg_mins = round(sum(p.get("total_elapsed_mins", 0) for p in _outgoing_patients) / max(len(_outgoing_patients), 1))
+
+    return {
+        "outgoing_patients": outgoings,
+        "metrics": {
+            "total_active_discharges": total_active,
+            "delayed_discharges": delayed_count,
+            "avg_turnaround_mins": avg_mins,
+        }
+    }
+
+@router.post("/patients/outgoing/process-stage", dependencies=[Depends(require_active_user)])
+async def process_outgoing_stage(req: ProcessStageRequest, ctx: AuthContext = Depends(require_active_user)):
+    """Advance an outgoing patient to the next discharge stage or clear a stage bottleneck."""
+    from api.routes.ws import deliver_ops_local
+    p = next((x for x in _outgoing_patients if x["id"] == req.outgoing_id), None)
+    if not p:
+        raise HTTPException(404, "Outgoing patient record not found")
+
+    p["discharge_stage"] = req.next_stage
+    p["stage_started_at"] = NOW().isoformat()
+
+    if req.next_stage == "PHARMACY_CLEARANCE":
+        p["clinical_cleared"] = True
+    elif req.next_stage == "BILLING_SETTLEMENT":
+        p["clinical_cleared"] = True
+        p["pharmacy_cleared"] = True
+        p["is_delayed"] = False
+    elif req.next_stage == "PATIENT_EXIT":
+        p["clinical_cleared"] = True
+        p["pharmacy_cleared"] = True
+        p["billing_cleared"] = True
+        p["is_delayed"] = False
+
+    _audit("outgoing_stage_updated", "patient", p["id"], req.next_stage, actor_id=ctx.user_id, reason=req.notes)
+
+    event_payload = {
+        "type": "OUTGOING_PATIENT_UPDATED",
+        "outgoing_patient": p,
+    }
+    await deliver_ops_local("nurse", event_payload, is_role=True)
+    await deliver_ops_local("doctor", event_payload, is_role=True)
+    await deliver_ops_local("admin", event_payload, is_role=True)
+
+    return {"status": "success", "outgoing_patient": p}
+
+@router.post("/patients/outgoing/complete-discharge", dependencies=[Depends(require_active_user)])
+async def complete_outgoing_discharge(req: CompleteDischargeRequest, ctx: AuthContext = Depends(require_active_user)):
+    """Finalize patient discharge: marks patient DISCHARGED, releases bed, and dispatches housekeeping task."""
+    from api.routes.ws import deliver_ops_local
+    p = next((x for x in _outgoing_patients if x["id"] == req.outgoing_id), None)
+    if not p:
+        raise HTTPException(404, "Outgoing patient record not found")
+
+    p["discharge_stage"] = "DISCHARGED"
+    p["is_delayed"] = False
+    p["discharged_at"] = NOW().isoformat()
+
+    # Free the assigned bed in state engine
+    bed_num = p.get("bed_number")
+    if bed_num:
+        try:
+            _state().update_bed_status(bed_num, "cleaning")
+        except Exception:
+            pass
+
+    # Auto-create Housekeeping Bed Clean Task (Agentic Orchestration)
+    task_id = f"task-clean-{uuid.uuid4().hex[:6]}"
+    clean_task = {
+        "id": task_id,
+        "title": f"Sanitize & Turn Over {p.get('ward', 'Ward')} {bed_num or 'Bed'}",
+        "description": f"Patient {p.get('name')} discharged. Housekeeping agent dispatched task for bed turnover.",
+        "department": p.get("department", "General Ward"),
+        "assigned_role": "housekeeping",
+        "assigned_staff_id": "Housekeeping Team",
+        "source_agent": "housekeeping_agent",
+        "urgency": "HIGH",
+        "status": "PENDING_APPROVAL",
+        "created_at": NOW().isoformat(),
+        "created_by": "discharge_agent",
+        "decided_at": None,
+        "decided_by": None,
+        "decision_reason": None,
+    }
+    _scheduled_tasks.append(clean_task)
+
+    _audit("patient_discharged", "patient", p["id"], "complete_discharge", actor_id=ctx.user_id, reason="Patient checkout complete")
+
+    event_payload = {
+        "type": "OUTGOING_PATIENT_UPDATED",
+        "outgoing_patient": p,
+        "task_created": clean_task,
+    }
+    await deliver_ops_local("nurse", event_payload, is_role=True)
+    await deliver_ops_local("doctor", event_payload, is_role=True)
+    await deliver_ops_local("admin", event_payload, is_role=True)
+
+    return {"status": "success", "outgoing_patient": p, "cleaning_task": clean_task}
+
+
+
 
 @router.post("/patients/admit", dependencies=[Depends(require_active_user)])
 async def admit_patient(req: AdmitPatientRequest, ctx: AuthContext = Depends(require_active_user)):
