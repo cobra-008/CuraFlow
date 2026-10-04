@@ -6,6 +6,8 @@ import type { DoctorPatient } from "./DoctorDashboard"
 
 import { opsApi } from '../../services/opsApi'
 import { PendingTasksPanel } from './PendingTasksPanel'
+import { OutgoingPatientManager } from './OutgoingPatientManager'
+
 
 
 // ── Nurse Status Badge ────────────────────────────────────────────────────────
@@ -244,6 +246,10 @@ export function NurseDashboard() {
 
       {/* ── Human-in-the-Loop Agent Task Approvals ────────────────────── */}
       <PendingTasksPanel roleFilter="nurse" title="Nurse Duty & Resource Reassignment Tasks (HITL Approval Required)" />
+
+      {/* ── Outgoing Patients & Discharge Queue Management ──────────── */}
+      <OutgoingPatientManager title="Nurse Discharge & Bed Turnover Queue" />
+
 
       {/* ── Schedule table header ──────────────────────────────────── */}
 

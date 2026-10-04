@@ -37,6 +37,8 @@ export interface DoctorPatient {
 
 import { opsApi } from '../../services/opsApi'
 import { PendingTasksPanel } from './PendingTasksPanel'
+import { OutgoingPatientManager } from './OutgoingPatientManager'
+
 
 
 // ── Doctor Status Badge ────────────────────────────────────────────────────────
@@ -165,24 +167,49 @@ function PatientCard({ patient, onCallNurse, onStatusChange, onDismissDischarge 
   )
 }
 
+export interface DoctorProfile {
+  id: string
+  name: string
+  specialization: string
+  department: string
+  badgeColor: string
+  iconLabel: string
+}
+
+export const DOCTOR_PROFILES: DoctorProfile[] = [
+  { id: 'dr-mitchell', name: 'Dr. Sarah Mitchell', specialization: 'Emergency Medicine', department: 'Emergency', badgeColor: 'bg-rose-50 text-rose-700 border-rose-200', iconLabel: '⚡ Emergency' },
+  { id: 'dr-chen', name: 'Dr. Robert Chen', specialization: 'Cardiology', department: 'Cardiology', badgeColor: 'bg-sky-50 text-sky-800 border-sky-200', iconLabel: '🫀 Cardiology' },
+  { id: 'dr-lewis', name: 'Dr. Amanda Lewis', specialization: 'Critical Care & ICU', department: 'ICU', badgeColor: 'bg-amber-50 text-amber-800 border-amber-200', iconLabel: '🏥 ICU / Critical Care' },
+  { id: 'dr-wilson', name: 'Dr. James Wilson', specialization: 'Orthopedics & Surgery', department: 'Orthopedics', badgeColor: 'bg-purple-50 text-purple-800 border-purple-200', iconLabel: '🦴 Orthopedics' },
+  { id: 'dr-rostova', name: 'Dr. Elena Rostova', specialization: 'Neurology', department: 'Neurology', badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200', iconLabel: '🧠 Neurology' },
+  { id: 'dr-vance', name: 'Dr. Marcus Vance', specialization: 'Pediatrics', department: 'Pediatrics', badgeColor: 'bg-pink-50 text-pink-800 border-pink-200', iconLabel: '👶 Pediatrics' },
+]
+
 export function DoctorDashboard() {
   const currentUser = useStore(s => s.currentUser)
   const pushToast = useStore(s => s.pushToast)
+  
+  // Find matching profile by current logged in user display name, default to Sarah Mitchell (Emergency)
+  const activeDoctor = DOCTOR_PROFILES.find(p => p.name.toLowerCase() === (currentUser?.display_name || '').toLowerCase()) || DOCTOR_PROFILES[0]
+
+
   const [patients, setPatients] = useState<any[]>([])
   const [dischargedQueue, setDischargedQueue] = useState<string[]>([])
 
-  const loadPatients = async () => {
+  const loadPatients = useCallback(async () => {
     try {
-      const res = await opsApi.getPatients()
-      setPatients(res.patients)
-    } catch (e) {}
-  }
+      const res = await opsApi.getPatients(activeDoctor.department, activeDoctor.name)
+      setPatients(res.patients || [])
+    } catch (e) {
+      console.error('Failed to load patients for doctor specialization:', e)
+    }
+  }, [activeDoctor])
 
   useEffect(() => {
     loadPatients()
     window.addEventListener("curaflow:patients_updated", loadPatients)
     return () => window.removeEventListener("curaflow:patients_updated", loadPatients)
-  }, [])
+  }, [loadPatients])
 
   useEffect(() => {
     const handler = (e: CustomEvent) => {
@@ -239,50 +266,113 @@ export function DoctorDashboard() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6" style={{ fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-bold text-2xl lg:text-3xl" style={{ color: "#1a2744" }}>Dr. {currentUser?.display_name ?? "Doctor"}'s Dashboard</h1>
-          <p className="text-sm mt-1.5 flex items-center gap-2" style={{ color: "#6b5c40" }}>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-            Today's patient schedule · Click a row to expand details
-          </p>
+      {/* ── Doctor Specialization Switcher & Header ────────────────────── */}
+      <div className="bg-white rounded-2xl border border-[#e8e1d4] p-5 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${activeDoctor.badgeColor}`}>
+                {activeDoctor.iconLabel}
+              </span>
+              <span className="text-xs font-semibold text-[#8c7e6a] bg-[#f5f0e8] px-2.5 py-1 rounded-full">
+                Department: {activeDoctor.department}
+              </span>
+            </div>
+            
+            <h1 className="font-bold text-2xl lg:text-3xl text-[#1a2744]">
+              {activeDoctor.name}'s Dashboard
+            </h1>
+            <p className="text-xs text-[#6b5c40] mt-1 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+              Viewing specialized schedule & clinical cases for <strong>{activeDoctor.specialization}</strong>
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: "#fffbeb", border: "1px solid #fde68a" }}><Clock size={14} style={{ color: "#b45309" }} /><span className="text-xs font-bold" style={{ color: "#92400e" }}>{waiting} Waiting</span></div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: "#eff6ff", border: "1px solid #bfdbfe" }}><Stethoscope size={14} style={{ color: "#1d4ed8" }} /><span className="text-xs font-bold" style={{ color: "#1e40af" }}>{inProgress} In Progress</span></div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}><CheckCircle2 size={14} style={{ color: "#16a34a" }} /><span className="text-xs font-bold" style={{ color: "#15803d" }}>{activePts.filter(p => p.status === "done").length} Done</span></div>
+
+
+        {/* Specialized Department Metrics Bar */}
+        <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-[#f0e8d8]">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200">
+            <Clock size={16} className="text-amber-700" />
+            <div>
+              <span className="text-[10px] font-bold uppercase text-amber-800 block">{activeDoctor.specialization} Waiting</span>
+              <span className="text-sm font-extrabold text-amber-900">{waiting} Patients</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200">
+            <Stethoscope size={16} className="text-blue-700" />
+            <div>
+              <span className="text-[10px] font-bold uppercase text-blue-800 block">{activeDoctor.specialization} Active</span>
+              <span className="text-sm font-extrabold text-blue-900">{inProgress} In Treatment</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200">
+            <CheckCircle2 size={16} className="text-emerald-700" />
+            <div>
+              <span className="text-[10px] font-bold uppercase text-emerald-800 block">Completed Today</span>
+              <span className="text-sm font-extrabold text-emerald-900">{activePts.filter(p => p.status === "done").length} Cases</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Human-in-the-Loop Agent Task Approvals ────────────────────── */}
-      <PendingTasksPanel roleFilter="doctor" title="Doctor & Clinical Task Approvals (HITL)" />
+      {/* ── Specialized Human-in-the-Loop Agent Tasks ───────────────── */}
+      <PendingTasksPanel
+        roleFilter="doctor"
+        deptFilter={activeDoctor.department}
+        title={`${activeDoctor.specialization} Clinical Tasks & Approvals (HITL)`}
+      />
+
+      {/* ── Specialized Outgoing Patients & Discharge Queue ─────────── */}
+      <OutgoingPatientManager
+        deptFilter={activeDoctor.department}
+        title={`${activeDoctor.specialization} Outgoing Patients & Discharge Queue`}
+      />
+
 
       {dischargedQueue.length > 0 && (
-
-        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl" style={{ background: "#f1f5f9", border: "1px solid #e2e8f0" }}>
-          <LogOut size={16} style={{ color: "#64748b" }} />
-          <span className="text-sm" style={{ color: "#475569" }}>
+        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-slate-100 border border-slate-200">
+          <LogOut size={16} className="text-slate-500" />
+          <span className="text-sm text-slate-700">
             <strong>{patients.filter(p => dischargedQueue.includes(p.id)).map(p => p.name).join(", ")}</strong> discharged — record{dischargedQueue.length > 1 ? "s" : ""} will be removed in 5 seconds.
           </span>
         </div>
       )}
+
+      {/* ── Specialized Patients Roster ──────────────────────────────── */}
       <div className="space-y-3">
-        {activePts.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed" style={{ borderColor: "#e0d5c0", background: "#faf7f2" }}>
-            <CheckCircle2 size={32} style={{ color: "#a3b8a0" }} className="mb-3" />
-            <p className="text-sm font-semibold" style={{ color: "#6b5c40" }}>All patients attended for today</p>
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6b5c40]">
+            {activeDoctor.specialization} Patient Roster ({activePts.length})
+          </h3>
+          <span className="text-xs text-[#8c7e6a]">
+            Filtered exclusively to {activeDoctor.department} Department
+          </span>
+        </div>
+
+        {activePts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed border-[#e0d5c0] bg-[#faf7f2]">
+            <CheckCircle2 size={32} className="text-[#a3b8a0] mb-3" />
+            <p className="text-sm font-semibold text-[#6b5c40]">
+              No active {activeDoctor.specialization} patients assigned right now
+            </p>
           </div>
+        ) : (
+          activePts.map(p => (
+            <PatientCard key={p.id} patient={p} onCallNurse={handleCallNurse} onStatusChange={handleStatusChange} onDismissDischarge={handleDismissDischarge} />
+          ))
         )}
-        {activePts.map(p => (
-          <PatientCard key={p.id} patient={p} onCallNurse={handleCallNurse} onStatusChange={handleStatusChange} onDismissDischarge={handleDismissDischarge} />
-        ))}
       </div>
-      <div className="flex items-center gap-4 pt-2 flex-wrap">
-        <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#8c7e6a" }}>Legend:</span>
-        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full" style={{ background: "#1d4ed8" }} /><span className="text-[11px]" style={{ color: "#6b5c40" }}>Nurse Update</span></div>
-        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full" style={{ background: "#b45309" }} /><span className="text-[11px]" style={{ color: "#6b5c40" }}>Complaint</span></div>
-        <span className="text-[11px] ml-auto flex items-center gap-1" style={{ color: "#a09080" }}><SyringeIcon size={12} /> = Call Nurse</span>
+
+      <div className="flex items-center gap-4 pt-2 flex-wrap text-[11px] text-[#8c7e6a]">
+        <span className="font-semibold uppercase tracking-wider">Legend:</span>
+        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-blue-600" /><span>Nurse Update</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-600" /><span>Complaint</span></div>
+        <span className="ml-auto flex items-center gap-1"><SyringeIcon size={12} /> = Call Nurse</span>
       </div>
     </div>
   )
 }
+
