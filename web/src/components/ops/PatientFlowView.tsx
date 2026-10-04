@@ -3,6 +3,7 @@ import { useCallback } from 'react'
 import { opsApi, type HospitalState } from '../../services/opsApi'
 import { useData } from '../../hooks/useData'
 
+
 function formatWaitTime(patients: number, throughputPerHr: number): string {
   if (patients === 0 || throughputPerHr === 0) return '-'
   
@@ -235,3 +236,4 @@ export function PatientFlowView() {
     </div>
   )
 }
+

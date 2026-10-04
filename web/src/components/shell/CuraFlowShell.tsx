@@ -3,7 +3,7 @@ import { useStore } from '../../store'
 import {
   LayoutDashboard, Activity, Bed, GitBranch, FlaskConical,
   Package, AlertTriangle, Bot, BarChart3, Settings,
-  ChevronRight, CheckCircle2
+  ChevronRight, CheckCircle2, LogOut
 } from 'lucide-react'
 import { CommandCenter } from '../ops/CommandCenter'
 import { ApprovalCenter } from '../ops/ApprovalCenter'
@@ -17,6 +17,7 @@ import { ResourcesView } from '../ops/ResourcesView'
 import { EmergencyCommandView } from '../ops/EmergencyCommandView'
 import { ReportsView } from '../ops/ReportsView'
 import { SettingsView } from '../ops/SettingsView'
+import { OutgoingPatientManager } from '../ops/OutgoingPatientManager'
 import { TopBar } from '../TopBar'
 import { Toaster } from '../execution/Toaster'
 import { useNotificationPipeline } from '../../hooks/useNotificationPipeline'
@@ -30,6 +31,7 @@ const NAV_GROUPS = [
     items: [
       { id: 'command',       label: 'Command Center',     icon: LayoutDashboard },
       { id: 'flow',          label: 'Patient Flow',        icon: Activity },
+      { id: 'outgoing',      label: 'Discharge Queue',    icon: LogOut },
       { id: 'capacity',      label: 'Capacity & Simulation', icon: Bed },
       { id: 'orchestration', label: 'Orchestration',       icon: GitBranch },
       { id: 'resources',     label: 'Resources',           icon: Package },
@@ -40,6 +42,7 @@ const NAV_GROUPS = [
     ],
   },
 ]
+
 
 function GlobalNewAdmissionModal() {
   const [patient, setPatient] = useState<any>(null)
@@ -173,11 +176,12 @@ function Sidebar({
           {NAV_GROUPS[0].items.filter(item => {
             // Apply RBAC filters based on CuraFlow_RBAC_Design.md
             if (role === 'super_admin' || role === 'admin') return true;
-            if (role === 'er_coordinator') return ['emergency', 'command', 'flow', 'capacity', 'orchestration', 'reports', 'settings'].includes(item.id);
-            if (role === 'ot_manager') return ['command', 'resources', 'capacity', 'reports', 'settings'].includes(item.id);
-            if (role === 'doctor') return ['command', 'flow', 'capacity', 'reports', 'settings'].includes(item.id);
-            if (role === 'nurse') return ['command', 'capacity', 'resources', 'reports', 'settings'].includes(item.id);
+            if (role === 'er_coordinator') return ['emergency', 'command', 'flow', 'outgoing', 'capacity', 'orchestration', 'reports', 'settings'].includes(item.id);
+            if (role === 'ot_manager') return ['command', 'resources', 'outgoing', 'capacity', 'reports', 'settings'].includes(item.id);
+            if (role === 'doctor') return ['command', 'flow', 'outgoing', 'capacity', 'reports', 'settings'].includes(item.id);
+            if (role === 'nurse') return ['command', 'outgoing', 'capacity', 'resources', 'reports', 'settings'].includes(item.id);
             return false;
+
           }).map(({ id, label, icon: Icon }) => {
             const active = activeRoute === id
             const hasAlert = id === 'approvals' || (id === 'command' && pendingRecs.length > 0)
@@ -328,7 +332,9 @@ export function CuraFlowShell() {
           case 'system':     return <SystemHealthView />
           case 'capacity':   return <CapacityManagementView />
           case 'flow':       return <PatientFlowView />
+          case 'outgoing':   return <OutgoingPatientManager />
           case 'resources':  return <ResourcesView />
+
           case 'emergency':  return <EmergencyCommandView />
           case 'reports':    return <ReportsView />
           case 'settings':   return <SettingsView />
